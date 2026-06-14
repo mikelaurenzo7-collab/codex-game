@@ -9,6 +9,8 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - The initial game concept has been selected: `Signal Below`, an atmospheric exploration/mystery prototype.
 - A no-dependency HTML5 Canvas MVP exists with movement, signal pulse, hidden fragments, echoes, relays, and an extraction gate.
 - Core state transitions are covered by `tests/game-state.test.mjs`.
+- The HUD now includes a live objective cue, backed by pure state-selection logic, that points players toward the next memory target or extraction.
+- The authored map has a validated complete route through all three fragments and the extraction gate.
 
 ## Operating Rules
 
@@ -48,3 +50,19 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** GitHub is the repository remote. Browser was used for local smoke testing. Supabase, OpenAI Developers, Canva, and Linear were not used because no external service was required for this iteration.
 - **Learned Constraints:** `npm` is not available on this machine's PATH, but the bundled Node executable can run tests and the server directly.
 - **Next Bottleneck:** Add a lightweight in-game affordance or onboarding path, then tune the map so at least one fragment collection path can be completed and verified end-to-end in browser automation.
+
+### 0002 - Objective Cue and Route Proof
+
+- **State Assessment:** The prototype had a working pulse loop and state tests, but the next logged bottleneck was player affordance and proof that the authored map could be completed through normal movement. A player could load the game, but the UI did not provide an in-game objective vector and automated coverage did not prove a full route through the current geometry.
+- **Strategic Choice:** D. Technical/Polish Overhaul.
+- **Justification:** The highest leverage next step was not a new subsystem or narrative expansion. The current loop needed clearer moment-to-moment guidance and stronger validation before adding more mechanics.
+- **Execution Plan:**
+  - **Specific Tasks:** Add a pure active-objective selector; surface the selected objective in the HUD; draw a directional cue near the player without revealing hidden fragments outright; fix reveal-window checks so fragments are not considered exposed at exact time zero; add tests for objective selection and a complete movement route through all fragments and the gate.
+  - **Technology Stack Justification:** The existing vanilla Canvas and ES module stack remains appropriate because this was a scoped UI/state polish pass. Keeping objective selection in `src/game-state.js` preserves deterministic test coverage without adding dependencies.
+  - **Success Metrics:** Initial HUD shows a trace objective, Space still consumes signal, hidden fragments remain hidden until a valid pulse window, tests prove objective transitions, and the full route completes without signal failure.
+  - **Risk Mitigation:** The cue points directionally from the player instead of marking exact hidden fragment locations on the map, preserving the pulse reveal mechanic. The route test uses normal state updates and collision instead of teleporting so geometry regressions fail locally.
+- **Work Completed:** Added `getActiveObjective`, the objective HUD readout, the canvas direction cue, strict reveal-window checks, and a full route simulation in `tests/game-state.test.mjs`.
+- **Validation Evidence:** Bundled Node test run passed: `game-state tests passed`. In-app Browser smoke at `http://localhost:5173/` rendered `Signal Below` at `1280x720`, showed `Trace memory signal 778m`, accepted Space input, reduced signal to `77%`, and reported no console errors.
+- **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. No other external plugins or services were used.
+- **Learned Constraints:** The in-app Browser read-only evaluation scope does not expose Canvas drawing methods like `getContext`; use DOM state plus browser screenshots for this local smoke path.
+- **Next Bottleneck:** Improve the first five minutes of play by turning the fragment clues into a persistent journal or map annotation layer so collected evidence affects navigation and mystery comprehension.

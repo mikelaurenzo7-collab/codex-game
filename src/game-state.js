@@ -100,6 +100,25 @@ export function collectedFragmentCount(state) {
   return state.fragments.filter((fragment) => fragment.collected).length;
 }
 
+export function getActiveObjective(state) {
+  if (state.status !== "running") {
+    return null;
+  }
+
+  const openFragments = state.fragments.filter((fragment) => !fragment.collected);
+  if (openFragments.length === 0) {
+    return buildObjective("gate", "Reach extraction", state.gate, state);
+  }
+
+  const revealedFragments = openFragments.filter((fragment) => fragment.revealedUntil > state.time);
+  const targetPool = revealedFragments.length > 0 ? revealedFragments : openFragments;
+  const target = findNearest(state.player, targetPool);
+  const kind = revealedFragments.length > 0 ? "exposed-fragment" : "hidden-fragment";
+  const label = revealedFragments.length > 0 ? "Recover exposed memory" : "Trace memory signal";
+
+  return buildObjective(kind, label, target, state);
+}
+
 export function canPulse(state) {
   return state.status === "running" && state.signal >= WORLD.pulseCost && state.time >= state.pulseCooldownUntil;
 }
@@ -211,7 +230,7 @@ function moveEchoes(state, dt) {
 
 function resolveCollection(state) {
   for (const fragment of state.fragments) {
-    const revealed = fragment.revealedUntil >= state.time;
+    const revealed = fragment.revealedUntil > state.time;
     if (!fragment.collected && revealed && distance(state.player, fragment) <= state.player.radius + 28) {
       fragment.collected = true;
       state.clueLog.push(fragment.clue);
@@ -239,6 +258,24 @@ function resolveGate(state) {
     state.status = "complete";
     state.result = "Archive thread recovered";
   }
+}
+
+function findNearest(origin, candidates) {
+  return candidates.reduce((nearest, candidate) => {
+    if (!nearest || distance(origin, candidate) < distance(origin, nearest)) {
+      return candidate;
+    }
+    return nearest;
+  }, null);
+}
+
+function buildObjective(kind, label, target, state) {
+  return {
+    kind,
+    label,
+    target: { x: target.x, y: target.y },
+    distance: Math.round(distance(state.player, target))
+  };
 }
 
 function clamp(value, min, max) {

@@ -2,6 +2,7 @@ import {
   WORLD,
   collectedFragmentCount,
   createGameState,
+  getActiveObjective,
   triggerPulse,
   updateGameState
 } from "./game-state.js";
@@ -11,6 +12,7 @@ const ctx = canvas.getContext("2d");
 const signalFill = document.querySelector("#signalFill");
 const fragmentReadout = document.querySelector("#fragmentReadout");
 const statusReadout = document.querySelector("#statusReadout");
+const objectiveReadout = document.querySelector("#objectiveReadout");
 const restartButton = document.querySelector("#restartButton");
 
 const input = {
@@ -116,6 +118,7 @@ function draw() {
   drawFog(camera, width, height);
 
   ctx.restore();
+  drawObjectiveCue(camera, width, height);
   drawBottomLog(width, height);
   drawEndState(width, height);
 }
@@ -211,7 +214,7 @@ function drawFragments() {
       continue;
     }
 
-    const visible = fragment.revealedUntil >= state.time;
+    const visible = fragment.revealedUntil > state.time;
     if (!visible) {
       drawHiddenGlitch(fragment);
       continue;
@@ -295,6 +298,44 @@ function drawPlayer() {
   ctx.restore();
 }
 
+function drawObjectiveCue(camera, width, height) {
+  const objective = getActiveObjective(state);
+  if (!objective) {
+    return;
+  }
+
+  const playerScreen = worldToScreen(camera, state.player);
+  const targetScreen = worldToScreen(camera, objective.target);
+  const dx = targetScreen.x - playerScreen.x;
+  const dy = targetScreen.y - playerScreen.y;
+  const magnitude = Math.hypot(dx, dy);
+  if (magnitude < 1) {
+    return;
+  }
+
+  const angle = Math.atan2(dy, dx);
+  const radius = Math.max(58, Math.min(132, Math.min(width, height) * 0.18));
+  const x = clamp(playerScreen.x + Math.cos(angle) * radius, 34, width - 34);
+  const y = clamp(playerScreen.y + Math.sin(angle) * radius, 76, height - 34);
+  const color = objective.kind === "gate" ? "#e8c46d" : "#62d6b8";
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.fillStyle = "rgba(6, 16, 19, 0.68)";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(18, 0);
+  ctx.lineTo(-10, -13);
+  ctx.lineTo(-4, 0);
+  ctx.lineTo(-10, 13);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawFog(camera, width, height) {
   const visibleWidth = width / camera.scale;
   const visibleHeight = height / camera.scale;
@@ -344,14 +385,16 @@ function drawEndState(width, height) {
 }
 
 function updateHud() {
+  const objective = getActiveObjective(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
+  objectiveReadout.textContent = objective ? `${objective.label} ${objective.distance}m` : "Thread resolved";
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
-  } else if (state.fragments.some((fragment) => fragment.revealedUntil >= state.time && !fragment.collected)) {
+  } else if (state.fragments.some((fragment) => fragment.revealedUntil > state.time && !fragment.collected)) {
     statusReadout.textContent = "Memory exposed";
   } else {
     statusReadout.textContent = "Sweep the archive";

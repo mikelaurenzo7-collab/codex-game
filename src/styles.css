@@ -90,6 +90,10 @@ body {
   color: rgba(243, 240, 220, 0.92);
 }
 
+#objectiveReadout {
+  color: #e8c46d;
+}
+
 .restart {
   position: absolute;
   right: 18px;
