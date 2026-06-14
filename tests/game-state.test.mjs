@@ -7,6 +7,7 @@ import {
   distance,
   getActiveObjective,
   getEvidenceJournal,
+  getEvidenceSynthesis,
   triggerPulse,
   updateGameState
 } from "../src/game-state.js";
@@ -67,6 +68,10 @@ function collectFragmentAt(state, fragmentId) {
   assert.equal(journal.length, 3);
   assert.equal(journal[0].title, "Hull Chorus");
   assert.equal(journal.every((entry) => !entry.collected), true);
+
+  const synthesis = getEvidenceSynthesis(state);
+  assert.equal(synthesis.phase, "unresolved");
+  assert.equal(synthesis.target, null);
 }
 
 {
@@ -75,6 +80,19 @@ function collectFragmentAt(state, fragmentId) {
   assert.equal(objective.kind, "hidden-fragment");
   assert.equal(objective.label, "Trace memory signal");
   assert.deepEqual(objective.target, { x: 520, y: 190 });
+}
+
+{
+  const state = createGameState();
+  state.fragments.find((fragment) => fragment.id === "chorus").collected = true;
+
+  const synthesis = getEvidenceSynthesis(state);
+  assert.equal(synthesis.phase, "cross-check");
+  assert.equal(synthesis.title, "Unpaired Evidence");
+
+  const objective = getActiveObjective(state);
+  assert.equal(objective.kind, "hidden-fragment");
+  assert.equal(objective.label, "Cross-check evidence");
 }
 
 {
@@ -119,12 +137,29 @@ function collectFragmentAt(state, fragmentId) {
 
 {
   const state = createGameState();
+  state.fragments.find((fragment) => fragment.id === "chorus").collected = true;
+  state.fragments.find((fragment) => fragment.id === "cartographer").collected = true;
+
+  const synthesis = getEvidenceSynthesis(state);
+  assert.equal(synthesis.phase, "deduced");
+  assert.equal(synthesis.title, "Eastern Knell");
+  assert.deepEqual(synthesis.target, { id: "bell", x: 1640, y: 420 });
+
+  const objective = getActiveObjective(state);
+  assert.equal(objective.kind, "deduced-fragment");
+  assert.equal(objective.label, "Resolve deduction");
+  assert.deepEqual(objective.target, { x: 1640, y: 420 });
+}
+
+{
+  const state = createGameState();
   for (const fragment of state.fragments) {
     fragment.collected = true;
   }
 
   tick(state, 0.1);
   assert.equal(state.gate.unlocked, true);
+  assert.equal(getEvidenceSynthesis(state).phase, "complete");
 
   state.player.x = state.gate.x;
   state.player.y = state.gate.y;

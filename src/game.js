@@ -3,6 +3,7 @@ import {
   collectedFragmentCount,
   createGameState,
   getEvidenceJournal,
+  getEvidenceSynthesis,
   getActiveObjective,
   triggerPulse,
   updateGameState
@@ -16,6 +17,8 @@ const statusReadout = document.querySelector("#statusReadout");
 const objectiveReadout = document.querySelector("#objectiveReadout");
 const journalCount = document.querySelector("#journalCount");
 const journalList = document.querySelector("#journalList");
+const synthesisTitle = document.querySelector("#synthesisTitle");
+const synthesisText = document.querySelector("#synthesisText");
 const restartButton = document.querySelector("#restartButton");
 
 const input = {
@@ -114,6 +117,7 @@ function draw() {
   drawWorldFloor();
   drawGate();
   drawRelays();
+  drawSynthesisTarget();
   drawFragments();
   drawRecoveredMarkers();
   drawEchoes();
@@ -243,6 +247,28 @@ function drawFragments() {
   }
 }
 
+function drawSynthesisTarget() {
+  const synthesis = getEvidenceSynthesis(state);
+  if (synthesis.phase !== "deduced" || !synthesis.target) {
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(synthesis.target.x, synthesis.target.y);
+  ctx.strokeStyle = "rgba(232, 196, 109, 0.72)";
+  ctx.lineWidth = 5;
+  ctx.setLineDash([18, 12]);
+  ctx.beginPath();
+  ctx.arc(0, 0, 58 + Math.sin(state.time * 3) * 4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "rgba(232, 196, 109, 0.16)";
+  ctx.beginPath();
+  ctx.arc(0, 0, 42, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawRecoveredMarkers() {
   const entries = getEvidenceJournal(state).filter((entry) => entry.collected);
   for (const entry of entries) {
@@ -351,7 +377,7 @@ function drawObjectiveCue(camera, width, height) {
   const radius = Math.max(58, Math.min(132, Math.min(width, height) * 0.18));
   const x = clamp(playerScreen.x + Math.cos(angle) * radius, 34, width - 34);
   const y = clamp(playerScreen.y + Math.sin(angle) * radius, 76, height - 34);
-  const color = objective.kind === "gate" ? "#e8c46d" : "#62d6b8";
+  const color = objective.kind === "gate" || objective.kind === "deduced-fragment" ? "#e8c46d" : "#62d6b8";
 
   ctx.save();
   ctx.translate(x, y);
@@ -420,6 +446,7 @@ function drawEndState(width, height) {
 
 function updateHud() {
   const objective = getActiveObjective(state);
+  const synthesis = getEvidenceSynthesis(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
   objectiveReadout.textContent = objective ? `${objective.label} ${objective.distance}m` : "Thread resolved";
@@ -429,6 +456,10 @@ function updateHud() {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
+  } else if (synthesis.phase === "deduced") {
+    statusReadout.textContent = "Deduction active";
+  } else if (synthesis.phase === "cross-check") {
+    statusReadout.textContent = "Evidence unstable";
   } else if (state.fragments.some((fragment) => fragment.revealedUntil > state.time && !fragment.collected)) {
     statusReadout.textContent = "Memory exposed";
   } else {
@@ -438,14 +469,17 @@ function updateHud() {
 
 function updateJournal() {
   const entries = getEvidenceJournal(state);
+  const synthesis = getEvidenceSynthesis(state);
   const signature = entries
     .map((entry) => `${entry.id}:${entry.collected}:${entry.collectedAt ?? "none"}`)
-    .join("|");
+    .join("|") + `|${synthesis.phase}:${synthesis.title}`;
   if (signature === journalSnapshot) {
     return;
   }
 
   journalSnapshot = signature;
+  synthesisTitle.textContent = synthesis.title;
+  synthesisText.textContent = synthesis.text;
   journalCount.textContent = `${entries.filter((entry) => entry.collected).length}/${entries.length}`;
   journalList.replaceChildren(
     ...entries.map((entry) => {

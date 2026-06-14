@@ -84,6 +84,33 @@ const BLUEPRINT = {
   ]
 };
 
+const DEDUCTION_RULES = new Map([
+  [
+    "cartographer+chorus",
+    {
+      missingId: "bell",
+      title: "Eastern Knell",
+      text: "The song and rewritten route converge on the eastern bell as the archive's last witness."
+    }
+  ],
+  [
+    "bell+chorus",
+    {
+      missingId: "cartographer",
+      title: "False Route",
+      text: "The masked alarms and dead bell leave one suspect gap: the map between them was altered."
+    }
+  ],
+  [
+    "bell+cartographer",
+    {
+      missingId: "chorus",
+      title: "Buried Chorus",
+      text: "The falsified map and silent bell imply the first breach was hidden in the northwest hull song."
+    }
+  ]
+]);
+
 export function createGameState() {
   return {
     time: 0,
@@ -131,11 +158,74 @@ export function getActiveObjective(state) {
 
   const revealedFragments = openFragments.filter((fragment) => fragment.revealedUntil > state.time);
   const targetPool = revealedFragments.length > 0 ? revealedFragments : openFragments;
-  const target = findNearest(state.player, targetPool);
-  const kind = revealedFragments.length > 0 ? "exposed-fragment" : "hidden-fragment";
-  const label = revealedFragments.length > 0 ? "Recover exposed memory" : "Trace memory signal";
+  const synthesis = getEvidenceSynthesis(state);
+  const synthesisTarget =
+    synthesis.target && openFragments.find((fragment) => fragment.id === synthesis.target.id);
+  const target =
+    revealedFragments.length > 0
+      ? findNearest(state.player, targetPool)
+      : synthesisTarget || findNearest(state.player, targetPool);
 
-  return buildObjective(kind, label, target, state);
+  if (revealedFragments.length > 0) {
+    return buildObjective("exposed-fragment", "Recover exposed memory", target, state);
+  }
+
+  if (synthesis.phase === "deduced") {
+    return buildObjective("deduced-fragment", "Resolve deduction", target, state);
+  }
+
+  if (synthesis.phase === "cross-check") {
+    return buildObjective("hidden-fragment", "Cross-check evidence", target, state);
+  }
+
+  return buildObjective("hidden-fragment", "Trace memory signal", target, state);
+}
+
+export function getEvidenceSynthesis(state) {
+  const collected = state.fragments.filter((fragment) => fragment.collected);
+  const openFragments = state.fragments.filter((fragment) => !fragment.collected);
+
+  if (collected.length === 0) {
+    return {
+      phase: "unresolved",
+      title: "No Pattern",
+      text: "Recover memory fragments to compare the archive's contradictions.",
+      target: null
+    };
+  }
+
+  if (openFragments.length === 0) {
+    return {
+      phase: "complete",
+      title: "Thread Assembled",
+      text: "The chorus, map, and bell now agree. The extraction gate can read the recovered thread.",
+      target: { id: "gate", x: state.gate.x, y: state.gate.y }
+    };
+  }
+
+  if (collected.length === 1) {
+    const target = findNearest(state.player, openFragments);
+    return {
+      phase: "cross-check",
+      title: "Unpaired Evidence",
+      text: `${collected[0].title} needs corroboration before the archive route can be trusted.`,
+      target: { id: target.id, x: target.x, y: target.y }
+    };
+  }
+
+  const key = collected
+    .map((fragment) => fragment.id)
+    .sort()
+    .join("+");
+  const rule = DEDUCTION_RULES.get(key);
+  const target = openFragments.find((fragment) => fragment.id === rule?.missingId) || openFragments[0];
+
+  return {
+    phase: "deduced",
+    title: rule?.title || "Triangulated Memory",
+    text: rule?.text || "The recovered evidence points to the remaining contradiction.",
+    target: { id: target.id, x: target.x, y: target.y }
+  };
 }
 
 export function getEvidenceJournal(state) {

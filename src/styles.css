@@ -99,7 +99,7 @@ body {
   left: 18px;
   bottom: 18px;
   width: min(420px, calc(100vw - 150px));
-  max-height: min(34vh, 260px);
+  max-height: min(42vh, 320px);
   padding: 12px 14px;
   border: 1px solid rgba(232, 196, 109, 0.28);
   background: rgba(6, 16, 19, 0.72);
@@ -122,9 +122,30 @@ body {
   color: #e8c46d;
 }
 
+.synthesis {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(98, 214, 184, 0.18);
+  background: rgba(18, 38, 43, 0.66);
+}
+
+.synthesis-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #62d6b8;
+}
+
+.synthesis-text {
+  font-size: 13px;
+  line-height: 1.32;
+  color: rgba(243, 240, 220, 0.84);
+}
+
 .journal-list {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   margin: 10px 0 0;
   padding: 0;
   list-style: none;
@@ -199,6 +220,6 @@ body {
   .journal {
     bottom: 72px;
     width: calc(100vw - 36px);
-    max-height: 31vh;
+    max-height: 38vh;
   }
 }

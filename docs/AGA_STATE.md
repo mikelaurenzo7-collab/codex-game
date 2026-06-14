@@ -13,6 +13,8 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - The authored map has a validated complete route through all three fragments and the extraction gate.
 - Recovered fragments now persist into an evidence journal with authored titles, clue text, collection timestamps, and collected-site map markers.
 - Evidence journal state is covered by `tests/game-state.test.mjs`.
+- Collected evidence now feeds a synthesis system that changes objectives after one or two recovered fragments and marks deduced targets in the world.
+- Evidence synthesis phases are covered by `tests/game-state.test.mjs`.
 
 ## Operating Rules
 
@@ -84,3 +86,19 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. Canva, Supabase, OpenAI Developers, and Product Design were not used because this scoped iteration did not need external resources.
 - **Learned Constraints:** `node` is still unavailable on PATH; use the bundled Node executable at `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe` for tests and local scripts. The Browser screenshot API can time out on this Canvas page even when DOM and console verification succeed.
 - **Next Bottleneck:** Make evidence affect decisions, not just memory: add clue synthesis or map deductions that change objectives after one or two fragments are recovered.
+
+### 0004 - Evidence Synthesis
+
+- **State Assessment:** The evidence journal made recovered clues persistent, but the clues were still passive. The player could read them, yet the objective system still treated the remaining archive as ordinary hidden-fragment search until every fragment was collected.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** The right next step was a small evidence-processing subsystem, not more prose. Making collected clues alter objective labels and deduce a target turns the journal into a gameplay-relevant layer while preserving the existing pulse and collection loop.
+- **Execution Plan:**
+  - **Specific Tasks:** Add a pure `getEvidenceSynthesis` selector; define pairwise deduction rules for missing fragments; route active objectives through synthesis phases; show synthesis title/text in the journal; draw a deduced target marker after two fragments; extend state tests for unresolved, cross-check, deduced, and complete synthesis phases.
+  - **Technology Stack Justification:** The existing vanilla Canvas and ES module stack remains appropriate. Synthesis belongs in `src/game-state.js` because it is deterministic game logic and can be verified without relying on Canvas rendering.
+  - **Success Metrics:** Initial synthesis reads as no pattern; one collected fragment changes the objective to cross-check evidence; two collected fragments produce a named deduction and target the missing memory; all fragments complete the thread; Browser smoke shows synthesis UI with no console errors or overlay collisions.
+  - **Risk Mitigation:** The deduction marker appears only after two fragments, so the early pulse-reveal mechanic is not short-circuited. The rule table is small and explicit, making incorrect deductions easy to revise.
+- **Work Completed:** Added `DEDUCTION_RULES`, `getEvidenceSynthesis`, synthesis-aware objective selection, a journal synthesis panel, an active deduction map marker, synthesis status text, and tests for the new state transitions.
+- **Validation Evidence:** Bundled Node test run passed: `game-state tests passed`. In-app Browser smoke at `http://localhost:5173/` confirmed `Signal Below`, Canvas presence, `No Pattern` synthesis copy, `Fragments 0/3`, `Trace memory signal 778m`, populated evidence entries after the animation frame, no journal overlap with HUD or restart control, and no captured console errors.
+- **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. Canva, Supabase, OpenAI Developers, and Product Design were not used because this scoped iteration did not need external resources.
+- **Learned Constraints:** The journal entries populate during the animation-frame HUD refresh, so immediate DOM checks can see static synthesis text before the evidence list appears. Wait briefly for the first frame when verifying the live UI.
+- **Next Bottleneck:** Make deductions demand player action by adding a lightweight interaction at deduced sites, such as an analysis hold, second pulse confirmation, or echo-risk tradeoff before the final fragment resolves.
