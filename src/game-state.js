@@ -28,9 +28,27 @@ const BLUEPRINT = {
     { x: 520, y: 760, width: 390, height: 62 }
   ],
   fragments: [
-    { id: "chorus", x: 520, y: 190, clue: "A crew sang to mask the hull alarms." },
-    { id: "cartographer", x: 1080, y: 760, clue: "The map was rewritten after the first descent." },
-    { id: "bell", x: 1640, y: 420, clue: "The bell rings only when nobody is alive to hear it." }
+    {
+      id: "chorus",
+      title: "Hull Chorus",
+      x: 520,
+      y: 190,
+      clue: "A crew sang to mask the hull alarms."
+    },
+    {
+      id: "cartographer",
+      title: "Rewritten Map",
+      x: 1080,
+      y: 760,
+      clue: "The map was rewritten after the first descent."
+    },
+    {
+      id: "bell",
+      title: "Dead Bell",
+      x: 1640,
+      y: 420,
+      clue: "The bell rings only when nobody is alive to hear it."
+    }
   ],
   relays: [
     { id: "south-relay", x: 260, y: 710, radius: 46 },
@@ -77,7 +95,8 @@ export function createGameState() {
     fragments: BLUEPRINT.fragments.map((fragment) => ({
       ...fragment,
       revealedUntil: 0,
-      collected: false
+      collected: false,
+      collectedAt: null
     })),
     relays: BLUEPRINT.relays.map((relay) => ({ ...relay, depleted: false })),
     echoes: BLUEPRINT.echoes.map((echo) => ({
@@ -117,6 +136,17 @@ export function getActiveObjective(state) {
   const label = revealedFragments.length > 0 ? "Recover exposed memory" : "Trace memory signal";
 
   return buildObjective(kind, label, target, state);
+}
+
+export function getEvidenceJournal(state) {
+  return state.fragments.map((fragment) => ({
+    id: fragment.id,
+    title: fragment.title,
+    clue: fragment.clue,
+    collected: fragment.collected,
+    collectedAt: fragment.collectedAt,
+    location: { x: fragment.x, y: fragment.y }
+  }));
 }
 
 export function canPulse(state) {
@@ -233,6 +263,7 @@ function resolveCollection(state) {
     const revealed = fragment.revealedUntil > state.time;
     if (!fragment.collected && revealed && distance(state.player, fragment) <= state.player.radius + 28) {
       fragment.collected = true;
+      fragment.collectedAt = state.time;
       state.clueLog.push(fragment.clue);
     }
   }

@@ -11,6 +11,8 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Core state transitions are covered by `tests/game-state.test.mjs`.
 - The HUD now includes a live objective cue, backed by pure state-selection logic, that points players toward the next memory target or extraction.
 - The authored map has a validated complete route through all three fragments and the extraction gate.
+- Recovered fragments now persist into an evidence journal with authored titles, clue text, collection timestamps, and collected-site map markers.
+- Evidence journal state is covered by `tests/game-state.test.mjs`.
 
 ## Operating Rules
 
@@ -66,3 +68,19 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. No other external plugins or services were used.
 - **Learned Constraints:** The in-app Browser read-only evaluation scope does not expose Canvas drawing methods like `getContext`; use DOM state plus browser screenshots for this local smoke path.
 - **Next Bottleneck:** Improve the first five minutes of play by turning the fragment clues into a persistent journal or map annotation layer so collected evidence affects navigation and mystery comprehension.
+
+### 0003 - Evidence Journal
+
+- **State Assessment:** The prototype had a route-tested pulse-and-fragment loop plus an objective cue, but recovered clues still behaved like temporary text. The next logged bottleneck was to make collected evidence persist so the player's first minutes build mystery comprehension instead of only progressing a counter.
+- **Strategic Choice:** C. Narrative/World Sculpting.
+- **Justification:** Core movement, reveal, collection, and completion were already validated. The most useful next step was to strengthen the game's authored mystery layer by preserving each recovered memory as evidence with a title, clue text, timestamp, and spatial marker.
+- **Execution Plan:**
+  - **Specific Tasks:** Add authored fragment titles; track collection time; expose a pure evidence-journal selector; render a compact evidence panel; mark collected fragment sites on the map; extend tests for journal initialization and recovered evidence entries.
+  - **Technology Stack Justification:** The existing vanilla Canvas and ES module stack remains appropriate. The narrative state lives in `src/game-state.js` so future UI, save, and map systems can reuse it without adding dependencies.
+  - **Success Metrics:** Initial journal renders all three unrecovered entries; collecting a fragment marks its journal entry as recovered with clue text and a numeric collection time; Browser smoke shows the journal in the playable UI with no console errors; state tests pass.
+  - **Risk Mitigation:** The journal starts as a passive evidence surface, not a new menu or inventory system. If the overlay competes with play space on smaller screens, the CSS keeps it compact and moves it above the restart control.
+- **Work Completed:** Added `getEvidenceJournal`, fragment titles, `collectedAt` tracking, a persistent evidence HUD panel, collected-site Canvas markers, and journal-focused state tests.
+- **Validation Evidence:** Bundled Node test run passed: `game-state tests passed`. In-app Browser smoke at `http://localhost:5173/` confirmed `Signal Below`, Canvas presence, `Fragments 0/3`, `Trace memory signal 778m`, journal entries for `Hull Chorus`, `Rewritten Map`, and `Dead Bell`, and no captured console errors. Browser screenshot capture timed out twice in the tool, so visual evidence came from DOM state and console checks.
+- **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. Canva, Supabase, OpenAI Developers, and Product Design were not used because this scoped iteration did not need external resources.
+- **Learned Constraints:** `node` is still unavailable on PATH; use the bundled Node executable at `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe` for tests and local scripts. The Browser screenshot API can time out on this Canvas page even when DOM and console verification succeed.
+- **Next Bottleneck:** Make evidence affect decisions, not just memory: add clue synthesis or map deductions that change objectives after one or two fragments are recovered.

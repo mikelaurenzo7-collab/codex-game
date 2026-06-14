@@ -94,6 +94,73 @@ body {
   color: #e8c46d;
 }
 
+.journal {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  width: min(420px, calc(100vw - 150px));
+  max-height: min(34vh, 260px);
+  padding: 12px 14px;
+  border: 1px solid rgba(232, 196, 109, 0.28);
+  background: rgba(6, 16, 19, 0.72);
+  color: #f3f0dc;
+  pointer-events: none;
+  overflow: hidden;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.journal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e8c46d;
+}
+
+.journal-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.journal-list li {
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(243, 240, 220, 0.14);
+}
+
+.journal-list li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.journal-list .is-hidden {
+  color: rgba(243, 240, 220, 0.55);
+}
+
+.journal-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.journal-clue {
+  font-size: 13px;
+  line-height: 1.32;
+  color: rgba(243, 240, 220, 0.82);
+}
+
+.is-hidden .journal-clue {
+  color: rgba(243, 240, 220, 0.46);
+}
+
 .restart {
   position: absolute;
   right: 18px;
@@ -127,5 +194,11 @@ body {
 
   .readouts {
     justify-content: flex-start;
+  }
+
+  .journal {
+    bottom: 72px;
+    width: calc(100vw - 36px);
+    max-height: 31vh;
   }
 }

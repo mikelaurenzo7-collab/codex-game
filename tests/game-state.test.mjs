@@ -6,6 +6,7 @@ import {
   createGameState,
   distance,
   getActiveObjective,
+  getEvidenceJournal,
   triggerPulse,
   updateGameState
 } from "../src/game-state.js";
@@ -61,6 +62,11 @@ function collectFragmentAt(state, fragmentId) {
   assert.equal(collectedFragmentCount(state), 0);
   assert.equal(state.gate.unlocked, false);
   assert.equal(canPulse(state), true);
+
+  const journal = getEvidenceJournal(state);
+  assert.equal(journal.length, 3);
+  assert.equal(journal[0].title, "Hull Chorus");
+  assert.equal(journal.every((entry) => !entry.collected), true);
 }
 
 {
@@ -102,6 +108,13 @@ function collectFragmentAt(state, fragmentId) {
   assert.equal(fragment.collected, true);
   assert.equal(collectedFragmentCount(state), 1);
   assert.equal(state.clueLog.length, 1);
+
+  const journal = getEvidenceJournal(state);
+  const entry = journal.find((candidate) => candidate.id === fragment.id);
+  assert.equal(entry.collected, true);
+  assert.equal(entry.clue, fragment.clue);
+  assert.equal(typeof entry.collectedAt, "number");
+  assert.deepEqual(entry.location, { x: fragment.x, y: fragment.y });
 }
 
 {

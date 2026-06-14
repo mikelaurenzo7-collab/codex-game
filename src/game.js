@@ -2,6 +2,7 @@ import {
   WORLD,
   collectedFragmentCount,
   createGameState,
+  getEvidenceJournal,
   getActiveObjective,
   triggerPulse,
   updateGameState
@@ -13,6 +14,8 @@ const signalFill = document.querySelector("#signalFill");
 const fragmentReadout = document.querySelector("#fragmentReadout");
 const statusReadout = document.querySelector("#statusReadout");
 const objectiveReadout = document.querySelector("#objectiveReadout");
+const journalCount = document.querySelector("#journalCount");
+const journalList = document.querySelector("#journalList");
 const restartButton = document.querySelector("#restartButton");
 
 const input = {
@@ -24,6 +27,7 @@ const input = {
 
 let state = createGameState();
 let lastTime = performance.now();
+let journalSnapshot = "";
 
 const keyMap = new Map([
   ["ArrowUp", "up"],
@@ -111,6 +115,7 @@ function draw() {
   drawGate();
   drawRelays();
   drawFragments();
+  drawRecoveredMarkers();
   drawEchoes();
   drawObstacles();
   drawPulses();
@@ -234,6 +239,35 @@ function drawFragments() {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawRecoveredMarkers() {
+  const entries = getEvidenceJournal(state).filter((entry) => entry.collected);
+  for (const entry of entries) {
+    ctx.save();
+    ctx.translate(entry.location.x, entry.location.y);
+    ctx.strokeStyle = "rgba(232, 196, 109, 0.9)";
+    ctx.fillStyle = "rgba(6, 16, 19, 0.68)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(98, 214, 184, 0.75)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-18, 0);
+    ctx.lineTo(18, 0);
+    ctx.moveTo(0, -18);
+    ctx.lineTo(0, 18);
+    ctx.stroke();
+
+    ctx.fillStyle = "#f3f0dc";
+    ctx.font = "700 18px system-ui, sans-serif";
+    ctx.fillText(entry.title, 46, 6);
     ctx.restore();
   }
 }
@@ -389,6 +423,7 @@ function updateHud() {
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
   objectiveReadout.textContent = objective ? `${objective.label} ${objective.distance}m` : "Thread resolved";
+  updateJournal();
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
@@ -399,6 +434,36 @@ function updateHud() {
   } else {
     statusReadout.textContent = "Sweep the archive";
   }
+}
+
+function updateJournal() {
+  const entries = getEvidenceJournal(state);
+  const signature = entries
+    .map((entry) => `${entry.id}:${entry.collected}:${entry.collectedAt ?? "none"}`)
+    .join("|");
+  if (signature === journalSnapshot) {
+    return;
+  }
+
+  journalSnapshot = signature;
+  journalCount.textContent = `${entries.filter((entry) => entry.collected).length}/${entries.length}`;
+  journalList.replaceChildren(
+    ...entries.map((entry) => {
+      const item = document.createElement("li");
+      item.className = entry.collected ? "is-collected" : "is-hidden";
+
+      const title = document.createElement("span");
+      title.className = "journal-title";
+      title.textContent = entry.title;
+
+      const clue = document.createElement("span");
+      clue.className = "journal-clue";
+      clue.textContent = entry.collected ? entry.clue : "Signal not recovered";
+
+      item.append(title, clue);
+      return item;
+    })
+  );
 }
 
 function clamp(value, min, max) {
