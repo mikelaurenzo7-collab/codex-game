@@ -1,0 +1,53 @@
+# Signal Below Design Brief
+
+## Initial Concept
+
+**Selected option:** Option 4, Atmospheric Exploration/Mystery.
+
+**Working title:** Signal Below.
+
+**Premise:** The player is a salvage cartographer descending through a drowned archive beneath a dead coastal city. The archive is full of hidden memory fragments, unstable relays, and hostile acoustic echoes left behind by a failed expedition.
+
+**Core fantasy:** The player is not fighting the ruin. They are reading it under pressure, deciding when to spend limited signal power to reveal truths before the archive closes around them.
+
+## MVP Scope
+
+The first playable slice proves one core loop:
+
+1. Explore a compact top-down archive map.
+2. Spend signal power to emit a pulse.
+3. Use the pulse to reveal hidden memory fragments and stun nearby echoes.
+4. Collect all fragments.
+5. Reach the extraction gate once the archive thread is complete.
+
+## Unique Selling Proposition
+
+The mystery mechanic is spatial and resource-bound. Evidence is not simply found by walking over glowing objects; it is revealed by choosing where and when to pulse. That gives future iterations a natural design space for harder clues, false signals, unreliable maps, and narrative risk.
+
+## Technology Stack
+
+The first slice uses vanilla HTML5 Canvas and ES modules.
+
+**Justification:** The repository started empty, so the fastest honest proof is a no-dependency browser-playable prototype with testable game-state logic. It can later be packaged for PC through Electron, Tauri, or an engine migration if the loop earns that cost.
+
+## Success Metrics
+
+- A player can load the prototype locally.
+- The world renders as a navigable, atmospheric play space.
+- The pulse consumes signal and creates a visible scan wave.
+- Hidden fragments can be revealed, collected, and counted.
+- The gate unlocks only after all fragments are collected.
+- Automated tests cover the core state transitions.
+
+## First Strategic Decision
+
+**Category:** A. Core Mechanic Deep Dive.
+
+**Reason:** The first bottleneck was the absence of a playable core loop. Adding meta-progression, multiplayer, persistence, or external services before movement and signal reveal are proven would create unearned complexity.
+
+## Known Risks
+
+- The prototype lacks onboarding and may require external instructions for controls.
+- Canvas rendering is custom and will need tooling if the art direction expands.
+- The initial map is hand-authored, so procedural mystery structure is not yet tested.
+- Echo pressure is functional but not yet tuned for interesting difficulty.

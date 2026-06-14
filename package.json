@@ -1,0 +1,10 @@
+{
+  "name": "codex-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/game-state.test.mjs",
+    "serve": "node scripts/serve.mjs"
+  }
+}
