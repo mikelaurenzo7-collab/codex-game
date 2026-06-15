@@ -31,6 +31,10 @@ const routeCount = document.querySelector("#routeCount");
 const routeList = document.querySelector("#routeList");
 const landmarkList = document.querySelector("#landmarkList");
 const restartButton = document.querySelector("#restartButton");
+const primerPanel = document.querySelector("#primerPanel");
+const primerTitle = document.querySelector("#primerTitle");
+const primerText = document.querySelector("#primerText");
+const primerDismiss = document.querySelector("#primerDismiss");
 
 const input = {
   up: false,
@@ -44,6 +48,7 @@ let state = createGameState();
 let lastTime = performance.now();
 let journalSnapshot = "";
 let atlasSnapshot = "";
+let primerDismissed = false;
 
 const keyMap = new Map([
   ["ArrowUp", "up"],
@@ -82,6 +87,10 @@ window.addEventListener("keyup", (event) => {
   }
 });
 
+primerDismiss.addEventListener("click", () => {
+  primerDismissed = true;
+  primerPanel.classList.add("is-hidden");
+});
 restartButton.addEventListener("click", restart);
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
@@ -624,6 +633,7 @@ function updateHud() {
   objectiveReadout.textContent = formatObjective(objective, analysis, traverse);
   updateJournal();
   updateAtlas();
+  updatePrimer(synthesis, analysis, traverse);
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
@@ -740,6 +750,75 @@ function updateAtlas() {
       return item;
     })
   );
+}
+
+function updatePrimer(synthesis, analysis, traverse) {
+  if (primerDismissed) {
+    primerPanel.classList.add("is-hidden");
+    return;
+  }
+
+  primerPanel.classList.remove("is-hidden");
+
+  if (state.status !== "running") {
+    primerTitle.textContent = state.status === "complete" ? "Thread recovered" : "Signal lost";
+    primerText.textContent =
+      state.status === "complete"
+        ? "You cleared the archive loop. Restart to rerun the slice or keep scanning the atlas for frontier prospects."
+        : "Echo pressure or overuse drained your signal. Restart, pulse more deliberately, and use relays to recover.";
+    return;
+  }
+
+  if (state.gate.unlocked) {
+    primerTitle.textContent = "Extraction is open";
+    primerText.textContent = "All fragments are recovered. Head for the extraction cairn to complete the archive thread.";
+    return;
+  }
+
+  if (traverse.active && traverse.complete) {
+    primerTitle.textContent = "Frontier link secured";
+    primerText.textContent = `The ${traverse.route.destinationName} route is now staged. Use the atlas to identify the next frontier gate worth linking.`;
+    return;
+  }
+
+  if (traverse.active && traverse.inRange) {
+    primerTitle.textContent = `Launch ${traverse.route.destinationName}`;
+    primerText.textContent = "Hold E at this charted gate to complete the off-map traversal link and mark the route as secured.";
+    return;
+  }
+
+  if (analysis.active && analysis.inRange && !analysis.complete) {
+    primerTitle.textContent = "Analyze the deduction";
+    primerText.textContent = "Hold E inside the analysis ring to resolve the deduced site and expose the final memory safely.";
+    return;
+  }
+
+  if (analysis.active && !analysis.complete) {
+    primerTitle.textContent = "Close the gap";
+    primerText.textContent = "The evidence points to a specific site. Move into the analysis ring, then hold E to resolve it.";
+    return;
+  }
+
+  if (synthesis.phase === "deduced") {
+    primerTitle.textContent = "The archive has a target";
+    primerText.textContent = "Two clues now agree. Follow the objective marker to the deduced site and prepare to analyze it.";
+    return;
+  }
+
+  if (synthesis.phase === "cross-check") {
+    primerTitle.textContent = "Cross-check the evidence";
+    primerText.textContent = "One fragment is not enough. Reveal and recover another memory so the archive can triangulate the missing truth.";
+    return;
+  }
+
+  if (state.fragments.some((fragment) => fragment.revealedUntil > state.time && !fragment.collected)) {
+    primerTitle.textContent = "Memory exposed";
+    primerText.textContent = "A pulse just revealed a hidden fragment. Move onto the exposed signal before the reveal window closes.";
+    return;
+  }
+
+  primerTitle.textContent = "Read the archive under pressure";
+  primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
 }
 
 function formatObjective(objective, analysis, traverse) {
