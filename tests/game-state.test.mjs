@@ -9,6 +9,7 @@ import {
   getEvidenceJournal,
   getEvidenceSynthesis,
   getFieldAnalysis,
+  getFrontierNetwork,
   getWorldAtlas,
   triggerPulse,
   updateGameState
@@ -98,6 +99,13 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(atlas.totalRegionCount, 5);
   assert.equal(atlas.discoveredLandmarkCount, 1);
   assert.equal(atlas.landmarks.find((landmark) => landmark.id === "salvager-camp").discovered, true);
+
+  const frontier = getFrontierNetwork(state);
+  assert.equal(frontier.currentRegion.name, "South Intake");
+  assert.equal(frontier.visibleRouteCount, 3);
+  assert.equal(frontier.chartedRouteCount, 2);
+  assert.equal(frontier.routes.find((route) => route.id === "intake-coastline-lift").charted, true);
+  assert.equal(frontier.routes.find((route) => route.id === "intake-sluice-causeway").charted, false);
 }
 
 {
@@ -110,6 +118,12 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(atlas.currentRegion.name, "Relay Fen");
   assert.equal(atlas.regions.find((region) => region.id === "relay-fen").visited, true);
   assert.equal(atlas.landmarks.find((landmark) => landmark.id === "east-relay-basin").discovered, true);
+
+  const frontier = getFrontierNetwork(state);
+  assert.equal(frontier.currentRegion.name, "Relay Fen");
+  assert.equal(frontier.visibleRouteCount, 6);
+  assert.equal(frontier.routes.find((route) => route.id === "fen-deep-green-verge").destinationName, "Deep Green Verge");
+  assert.equal(frontier.routes.find((route) => route.id === "fen-deep-green-verge").charted, true);
 }
 
 {
@@ -278,6 +292,11 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.ok(atlas.discoveredRegionCount >= 4, "route should survey most archive regions");
   assert.equal(atlas.landmarks.find((landmark) => landmark.id === "dead-bell-spire").discovered, true);
   assert.equal(atlas.landmarks.find((landmark) => landmark.id === "extraction-cairn").discovered, true);
+
+  const frontier = getFrontierNetwork(state);
+  assert.equal(frontier.visibleRouteCount, 7);
+  assert.ok(frontier.chartedRouteCount >= 7, "full archive survey should chart every route it actually surveys");
+  assert.equal(frontier.routes.find((route) => route.id === "bell-cairn-marches").charted, true);
 }
 
 {

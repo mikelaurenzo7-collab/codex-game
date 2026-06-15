@@ -36,6 +36,8 @@ The current `Signal Below` slice is the validated seed mechanic for the broader 
 
 The first scale bridge is the survey atlas: named regions, authored landmarks, current-region awareness, and persistent discoveries. This should grow toward a dense world structure inspired by the breadth of major open-world RPGs: many distinct holds/biomes, memorable routes, local histories, settlements, dangerous wilderness pockets, and systemic reasons to revisit places after new evidence or tools are gained.
 
+The next scale bridge is the frontier route layer: explicit region-to-region corridors, off-map prospects, travel-gate identities, hazard pressure, and settlement opportunities. This lets the current archive feel like one surveyed chunk inside a much larger world, while giving future runs a clean path toward chunk streaming, overworld travel, faction geography, and authored road stories.
+
 ## Success Metrics
 
 - A player can load the prototype locally.

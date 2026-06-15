@@ -5,6 +5,7 @@ import {
   getEvidenceJournal,
   getEvidenceSynthesis,
   getFieldAnalysis,
+  getFrontierNetwork,
   getWorldAtlas,
   getActiveObjective,
   triggerPulse,
@@ -24,6 +25,9 @@ const synthesisText = document.querySelector("#synthesisText");
 const atlasCount = document.querySelector("#atlasCount");
 const regionName = document.querySelector("#regionName");
 const regionDetail = document.querySelector("#regionDetail");
+const regionRisk = document.querySelector("#regionRisk");
+const routeCount = document.querySelector("#routeCount");
+const routeList = document.querySelector("#routeList");
 const landmarkList = document.querySelector("#landmarkList");
 const restartButton = document.querySelector("#restartButton");
 
@@ -132,6 +136,7 @@ function draw() {
   drawFragments();
   drawRecoveredMarkers();
   drawAtlasLandmarks();
+  drawFrontierGates();
   drawEchoes();
   drawObstacles();
   drawPulses();
@@ -364,6 +369,39 @@ function drawAtlasLandmarks() {
   }
 }
 
+function drawFrontierGates() {
+  const frontier = getFrontierNetwork(state);
+  for (const route of frontier.routes) {
+    ctx.save();
+    ctx.translate(route.gate.x, route.gate.y);
+    ctx.fillStyle = "rgba(6, 16, 19, 0.72)";
+    ctx.strokeStyle = route.charted ? "#e8c46d" : "rgba(98, 214, 184, 0.46)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(18, 0);
+    ctx.lineTo(-10, -12);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(-10, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = route.charted ? "rgba(232, 196, 109, 0.24)" : "rgba(98, 214, 184, 0.12)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, route.charted ? 28 : 20, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (route.charted) {
+      ctx.fillStyle = "rgba(243, 240, 220, 0.82)";
+      ctx.font = "700 12px system-ui, sans-serif";
+      ctx.fillText(route.destinationName, 24, 4);
+    }
+
+    ctx.restore();
+  }
+}
+
 function drawHiddenGlitch(fragment) {
   const flicker = Math.sin(state.time * 5 + fragment.x) > 0.88;
   if (!flicker) {
@@ -543,9 +581,16 @@ function updateHud() {
 
 function updateAtlas() {
   const atlas = getWorldAtlas(state);
+  const frontier = getFrontierNetwork(state);
   const discovered = atlas.landmarks.filter((landmark) => landmark.discovered);
+  const siteEntries =
+    discovered.filter((landmark) => landmark.regionId === atlas.currentRegion?.id).slice(-3).reverse() ||
+    [];
   const signature =
     `${atlas.currentRegion?.id || "none"}|${atlas.discoveredRegionCount}/${atlas.totalRegionCount}|` +
+    `${frontier.visibleRouteCount}/${frontier.chartedRouteCount}|` +
+    frontier.routes.map((route) => `${route.id}:${route.charted}`).join(",") +
+    "|" +
     discovered.map((landmark) => landmark.id).join(",");
   if (signature === atlasSnapshot) {
     return;
@@ -557,9 +602,44 @@ function updateAtlas() {
   regionDetail.textContent = atlas.currentRegion
     ? `${atlas.currentRegion.biome} - ${atlas.currentRegion.detail}`
     : "No survey reading.";
+  regionRisk.textContent = atlas.currentRegion
+    ? `Hazard ${atlas.currentRegion.hazardLevel}/5 · Settlement ${atlas.currentRegion.settlementPotential}/5`
+    : "No frontier metrics.";
+  routeCount.textContent = `${frontier.visibleRouteCount}/${frontier.totalRouteCount} routes`;
+
+  routeList.replaceChildren(
+    ...frontier.routes.map((route) => {
+      const item = document.createElement("li");
+
+      const top = document.createElement("div");
+      top.className = "route-top";
+
+      const title = document.createElement("span");
+      title.className = "route-title";
+      title.textContent = route.gateTitle;
+
+      const status = document.createElement("span");
+      status.className = route.charted ? "route-status is-charted" : "route-status is-rumored";
+      status.textContent = route.charted ? "Charted" : "Rumored";
+
+      const destination = document.createElement("span");
+      destination.className = "route-destination";
+      destination.textContent = `${route.destinationName} · ${route.destinationBiome}`;
+
+      const detail = document.createElement("span");
+      detail.className = "route-detail";
+      detail.textContent = route.charted
+        ? `Hazard ${route.threat}/5 · ${route.stability} · ${route.settlementProspect}`
+        : `Survey incomplete. Likely corridor toward ${route.destinationName}.`;
+
+      top.append(title, status);
+      item.append(top, destination, detail);
+      return item;
+    })
+  );
 
   landmarkList.replaceChildren(
-    ...discovered.slice(-4).map((landmark) => {
+    ...(siteEntries.length > 0 ? siteEntries : discovered.slice(-3).reverse()).map((landmark) => {
       const item = document.createElement("li");
       const title = document.createElement("span");
       title.className = "landmark-title";

@@ -20,6 +20,8 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - `docs/DESIGN_BRIEF.md` now records the open-world trajectory from the validated `Signal Below` slice toward `Frontier of the Deep Green`.
 - A survey atlas now tracks named regions, current biome, authored landmarks, visited regions, and discovered locations as the first scalable world-structure layer.
 - Atlas discovery is covered by `tests/game-state.test.mjs` and rendered in the playable HUD.
+- A frontier route network now tracks visible versus charted corridors, travel-gate identities, off-map prospects, regional hazard pressure, and settlement candidates.
+- Route discovery and charting are covered by `tests/game-state.test.mjs` and rendered in the atlas HUD.
 
 ## Operating Rules
 
@@ -141,3 +143,20 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** Browser was used for local playable UI and layout validation. GitHub remains the repository remote. Supabase, OpenAI Developers, Canva, and Linear were not used.
 - **Learned Constraints:** The in-app Browser's default visible area can be narrower than a typical desktop viewport because it depends on the app pane. Keep HUD panels responsive and verify the narrow case, not only an assumed 1280px width.
 - **Next Bottleneck:** Begin true large-world expansion by introducing chunked overworld planning: a region graph with travel gates, settlement candidates, wilderness hazards, and enough authored micro-locations to make each biome feel dense rather than merely large.
+
+### 0007 - Frontier Routes
+
+- **State Assessment:** The survey atlas added places, but the world still lacked connective tissue. Regions had names and landmarks, yet the player could not see why one frontier direction was riskier, richer, or more promising than another. The next bottleneck was to turn the atlas into a real overworld-planning surface with route identity, hazard pressure, and settlement prospects.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** A frontier route layer is the smallest durable system that makes the current archive feel like one chunk of a much larger world. It adds the beginnings of road logic, off-map destinations, and regional opportunity without breaking the working slice.
+- **Plan Critique:** Simply adding more landmarks would increase label count, not world structure. A larger map alone would still feel empty. The corrected plan is to connect regions with named corridors and let survey knowledge upgrade those corridors from rumor to charted routes.
+- **Execution Plan:**
+  - **Specific Tasks:** Define route graph data; add persistent discovered and charted route state; expose a pure `getFrontierNetwork` selector; unlock routes from visited regions and survey landmarks; render route summaries and gate markers in the atlas; extend tests for initial, relay-fen, and full-route survey outcomes.
+  - **Technology Stack Justification:** The existing vanilla Canvas plus deterministic state model remains appropriate because route graph logic is data-heavy and easy to verify without introducing an engine or UI framework change.
+  - **Success Metrics:** Starting state shows South Intake route intel; discovering Relay Fen charts the Deep Green frontier corridor; full archive traversal charts every route it actually surveys; Browser shows route status, hazards, and settlement prospects without console errors or HUD overlap.
+  - **Risk Mitigation:** The route layer is additive and does not change collision, pacing, or fragment completion rules. Route charting uses existing survey knowledge so the system deepens current play instead of creating a disconnected subgame.
+- **Work Completed:** Added regional hazard and settlement metadata, eight frontier routes including off-map prospects, persistent discovered and charted route state, `getFrontierNetwork`, route gate markers, atlas route metrics and route list UI, README and design-brief updates, and route-focused state tests.
+- **Validation Evidence:** Local state tests passed with `game-state tests passed`. Browser reload at `http://localhost:5173/` rendered `1/5 regions`, `Hazard 2/5 · Settlement 3/5`, `3/8 routes`, charted and rumored route entries, and no console errors or warnings. Responsive layout checks at the narrow in-app viewport and `390x700` mobile viewport reported no journal/restart or journal/HUD overlap. Route and site lists needed a longer post-load wait in Browser verification than the static labels, consistent with the existing animation-frame population behavior on this page.
+- **External Services Used:** Browser was used for local UI and layout validation. GitHub remains the repository remote. Supabase, OpenAI Developers, Canva, and Linear were not used.
+- **Learned Constraints:** In this Browser runtime, static HUD text may be readable before list-based atlas content is populated. When verifying live route and site lists, wait long enough for the animation loop to populate those containers.
+- **Next Bottleneck:** Make the frontier network actionable by turning at least one route into a true playable transition: a gate interaction, a new neighboring micro-chunk, or a settlement-edge encounter that proves the world can expand beyond the current archive footprint.

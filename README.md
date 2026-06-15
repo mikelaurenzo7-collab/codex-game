@@ -9,7 +9,7 @@ The automation should keep each iteration scoped, verifiable, and committed. It 
 
 ## Current Prototype
 
-**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, avoids echo interference, and unlocks the extraction gate.
+**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, and unlocks the extraction gate.
 
 Run locally:
 

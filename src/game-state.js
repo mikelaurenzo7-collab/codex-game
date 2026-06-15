@@ -96,7 +96,11 @@ const REGIONS = [
     y: 620,
     width: 650,
     height: 416,
-    detail: "A flooded maintenance approach where salvagers first cut into the buried archive."
+    detail: "A flooded maintenance approach where salvagers first cut into the buried archive.",
+    hazardLevel: 2,
+    hazard: "Sump bursts and unstable catwalks",
+    settlementPotential: 3,
+    settlementProspect: "A raised scavenger quay could anchor supply traffic."
   },
   {
     id: "northwest-hull",
@@ -106,7 +110,11 @@ const REGIONS = [
     y: 42,
     width: 430,
     height: 388,
-    detail: "Old pressure walls carry harmonic scoring from the crew that tried to hide the breach."
+    detail: "Old pressure walls carry harmonic scoring from the crew that tried to hide the breach.",
+    hazardLevel: 3,
+    hazard: "Echo resonance and falling hull plates",
+    settlementPotential: 2,
+    settlementProspect: "Only a narrow lookout settlement would hold here."
   },
   {
     id: "central-sluice",
@@ -116,7 +124,11 @@ const REGIONS = [
     y: 430,
     width: 650,
     height: 390,
-    detail: "A drowned switchyard of false routes, survey tables, and rerouted archive channels."
+    detail: "A drowned switchyard of false routes, survey tables, and rerouted archive channels.",
+    hazardLevel: 3,
+    hazard: "Flood surges through broken valve halls",
+    settlementPotential: 4,
+    settlementProspect: "A lockyard hub could connect every surviving corridor."
   },
   {
     id: "eastern-bell",
@@ -126,7 +138,11 @@ const REGIONS = [
     y: 42,
     width: 548,
     height: 688,
-    detail: "A high ruin around the dead bell, built to answer signals that should not return."
+    detail: "A high ruin around the dead bell, built to answer signals that should not return.",
+    hazardLevel: 4,
+    hazard: "Bell-fed revenants and wind-carved drops",
+    settlementPotential: 3,
+    settlementProspect: "A fortified watch bastion could tax the eastern approaches."
   },
   {
     id: "relay-fen",
@@ -136,7 +152,11 @@ const REGIONS = [
     y: 730,
     width: 760,
     height: 308,
-    detail: "A wetland of humming relays and green-black water that points toward the wider frontier."
+    detail: "A wetland of humming relays and green-black water that points toward the wider frontier.",
+    hazardLevel: 4,
+    hazard: "Reed choke, sinkwater, and relay leeches",
+    settlementPotential: 5,
+    settlementProspect: "A lantern-post colony could command the fen crossings."
   }
 ];
 
@@ -213,6 +233,111 @@ const LANDMARKS = [
   }
 ];
 
+const FRONTIER_ROUTES = [
+  {
+    id: "intake-hull-catwalk",
+    fromRegionId: "south-intake",
+    toRegionId: "northwest-hull",
+    gateTitle: "Hull Breach Catwalk",
+    gate: { x: 430, y: 250 },
+    threat: 2,
+    stability: "frayed",
+    hazard: "Loose plates and echo resonance make every crossing noisy.",
+    settlementProspect: "Cable-Roof Lookout",
+    surveyLandmarkIds: ["salvager-camp", "hull-chorus-site"]
+  },
+  {
+    id: "intake-sluice-causeway",
+    fromRegionId: "south-intake",
+    toRegionId: "central-sluice",
+    gateTitle: "Sump Causeway",
+    gate: { x: 620, y: 560 },
+    threat: 3,
+    stability: "serviceable",
+    hazard: "Machinery wakes and surgewater can cut the path without warning.",
+    settlementProspect: "Drainwatch Scaffold",
+    surveyLandmarkIds: ["south-relay-camp", "rewritten-table"]
+  },
+  {
+    id: "sluice-bell-viaduct",
+    fromRegionId: "central-sluice",
+    toRegionId: "eastern-bell",
+    gateTitle: "Bell Viaduct",
+    gate: { x: 1320, y: 260 },
+    threat: 4,
+    stability: "precarious",
+    hazard: "The upper span pulls the warden through a narrow kill corridor.",
+    settlementProspect: "Spanwatch Tollhouse",
+    surveyLandmarkIds: ["rewritten-table", "dead-bell-spire"]
+  },
+  {
+    id: "sluice-fen-spillway",
+    fromRegionId: "central-sluice",
+    toRegionId: "relay-fen",
+    gateTitle: "Fen Spillway",
+    gate: { x: 1160, y: 820 },
+    threat: 3,
+    stability: "marsh-soft",
+    hazard: "Silt blooms hide drop-offs and signal-draining growth.",
+    settlementProspect: "Mudglass Ferry Post",
+    surveyLandmarkIds: ["rewritten-table", "east-relay-basin"]
+  },
+  {
+    id: "bell-fen-marshline",
+    fromRegionId: "eastern-bell",
+    toRegionId: "relay-fen",
+    gateTitle: "Bell Marshline",
+    gate: { x: 1510, y: 730 },
+    threat: 4,
+    stability: "seasonal",
+    hazard: "Reed stairs collapse under bell shock and wet stone.",
+    settlementProspect: "Lantern Reed Hamlet",
+    surveyLandmarkIds: ["dead-bell-spire", "east-relay-basin"]
+  },
+  {
+    id: "intake-coastline-lift",
+    fromRegionId: "south-intake",
+    toRegionId: null,
+    destinationName: "Tidewalk Coast",
+    destinationBiome: "Salt Lantern Marsh",
+    gateTitle: "Coastline Lift",
+    gate: { x: 140, y: 1012 },
+    threat: 3,
+    stability: "sealed",
+    hazard: "Rust lifts and storm tides turn the descent into a salvage gamble.",
+    settlementProspect: "Raised Dock Hamlet",
+    surveyLandmarkIds: ["salvager-camp"]
+  },
+  {
+    id: "fen-deep-green-verge",
+    fromRegionId: "relay-fen",
+    toRegionId: null,
+    destinationName: "Deep Green Verge",
+    destinationBiome: "Rootbound Wilds",
+    gateTitle: "Fen Outflow Sluice",
+    gate: { x: 1685, y: 980 },
+    threat: 5,
+    stability: "wild",
+    hazard: "Predatory growth and drowned root canyons reclaim any slow traveler.",
+    settlementProspect: "Fenward Ranger Enclave",
+    surveyLandmarkIds: ["east-relay-basin"]
+  },
+  {
+    id: "bell-cairn-marches",
+    fromRegionId: "eastern-bell",
+    toRegionId: null,
+    destinationName: "Bell March",
+    destinationBiome: "Wind-Carved Cairns",
+    gateTitle: "Cairn March Steps",
+    gate: { x: 1828, y: 138 },
+    threat: 4,
+    stability: "contested",
+    hazard: "Bell-fed revenants sweep the pass whenever the weather turns thin.",
+    settlementProspect: "Stoneward Bastion",
+    surveyLandmarkIds: ["extraction-cairn", "dead-bell-spire"]
+  }
+];
+
 const DEDUCTION_RULES = new Map([
   [
     "cartographer+chorus",
@@ -268,7 +393,9 @@ export function createGameState() {
     clueLog: [],
     atlas: {
       visitedRegionIds: [],
-      discoveredLandmarkIds: []
+      discoveredLandmarkIds: [],
+      discoveredRouteIds: [],
+      chartedRouteIds: []
     }
   };
   resolveWorldSurvey(state);
@@ -413,7 +540,11 @@ export function getWorldAtlas(state) {
           id: currentRegion.id,
           name: currentRegion.name,
           biome: currentRegion.biome,
-          detail: currentRegion.detail
+          detail: currentRegion.detail,
+          hazardLevel: currentRegion.hazardLevel,
+          hazard: currentRegion.hazard,
+          settlementPotential: currentRegion.settlementPotential,
+          settlementProspect: currentRegion.settlementProspect
         }
       : null,
     discoveredRegionCount: visitedRegionIds.length,
@@ -425,6 +556,10 @@ export function getWorldAtlas(state) {
       name: region.name,
       biome: region.biome,
       detail: region.detail,
+      hazardLevel: region.hazardLevel,
+      hazard: region.hazard,
+      settlementPotential: region.settlementPotential,
+      settlementProspect: region.settlementProspect,
       visited: visitedRegionIds.includes(region.id),
       bounds: { x: region.x, y: region.y, width: region.width, height: region.height }
     })),
@@ -437,6 +572,27 @@ export function getWorldAtlas(state) {
       discovered: discoveredLandmarkIds.includes(landmark.id),
       location: { x: landmark.x, y: landmark.y }
     }))
+  };
+}
+
+export function getFrontierNetwork(state) {
+  const atlas = getWorldAtlas(state);
+  const discoveredRouteIds = state.atlas?.discoveredRouteIds || [];
+  const chartedRouteIds = state.atlas?.chartedRouteIds || [];
+  const currentRegionId = atlas.currentRegion?.id;
+
+  const visibleRoutes = FRONTIER_ROUTES.filter((route) => discoveredRouteIds.includes(route.id));
+  const currentRoutes = visibleRoutes.filter(
+    (route) => route.fromRegionId === currentRegionId || route.toRegionId === currentRegionId
+  );
+
+  return {
+    currentRegion: atlas.currentRegion,
+    visibleRouteCount: visibleRoutes.length,
+    chartedRouteCount: chartedRouteIds.length,
+    totalRouteCount: FRONTIER_ROUTES.length,
+    routes: currentRoutes.map((route) => buildRouteSummary(route, chartedRouteIds.includes(route.id))),
+    allVisibleRoutes: visibleRoutes.map((route) => buildRouteSummary(route, chartedRouteIds.includes(route.id)))
   };
 }
 
@@ -573,6 +729,35 @@ function resolveWorldSurvey(state) {
       remember(state.atlas.discoveredLandmarkIds, landmark.id);
     }
   }
+
+  resolveFrontierSurvey(state);
+}
+
+function resolveFrontierSurvey(state) {
+  const visitedRegionIds = state.atlas.visitedRegionIds;
+  const discoveredLandmarkIds = state.atlas.discoveredLandmarkIds;
+
+  for (const route of FRONTIER_ROUTES) {
+    const visible =
+      visitedRegionIds.includes(route.fromRegionId) ||
+      (route.toRegionId !== null && visitedRegionIds.includes(route.toRegionId));
+
+    if (!visible) {
+      continue;
+    }
+
+    remember(state.atlas.discoveredRouteIds, route.id);
+
+    const charted =
+      route.surveyLandmarkIds.some((id) => discoveredLandmarkIds.includes(id)) ||
+      (route.toRegionId !== null &&
+        visitedRegionIds.includes(route.fromRegionId) &&
+        visitedRegionIds.includes(route.toRegionId));
+
+    if (charted) {
+      remember(state.atlas.chartedRouteIds, route.id);
+    }
+  }
 }
 
 function resolveFieldAnalysis(state, input, dt) {
@@ -656,6 +841,24 @@ function findRegionAt(point) {
     }
     return nearest;
   }, null)?.region;
+}
+
+function buildRouteSummary(route, charted) {
+  const destinationRegion = route.toRegionId ? REGIONS.find((region) => region.id === route.toRegionId) : null;
+  return {
+    id: route.id,
+    gateTitle: route.gateTitle,
+    charted,
+    destinationName: destinationRegion?.name || route.destinationName,
+    destinationBiome: destinationRegion?.biome || route.destinationBiome,
+    destinationRegionId: destinationRegion?.id || null,
+    offMap: route.toRegionId === null,
+    threat: route.threat,
+    stability: route.stability,
+    hazard: route.hazard,
+    settlementProspect: route.settlementProspect,
+    gate: { x: route.gate.x, y: route.gate.y }
+  };
 }
 
 function remember(ids, id) {
