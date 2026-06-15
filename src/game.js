@@ -6,6 +6,7 @@ import {
   getEvidenceSynthesis,
   getFieldAnalysis,
   getFrontierNetwork,
+  getFrontierTraverse,
   getWorldAtlas,
   getActiveObjective,
   triggerPulse,
@@ -137,6 +138,7 @@ function draw() {
   drawRecoveredMarkers();
   drawAtlasLandmarks();
   drawFrontierGates();
+  drawFrontierTraverse();
   drawEchoes();
   drawObstacles();
   drawPulses();
@@ -372,10 +374,21 @@ function drawAtlasLandmarks() {
 function drawFrontierGates() {
   const frontier = getFrontierNetwork(state);
   for (const route of frontier.routes) {
+    const gateColor = route.traversed
+      ? "#62d6b8"
+      : route.charted
+        ? "#e8c46d"
+        : "rgba(98, 214, 184, 0.46)";
+    const haloColor = route.traversed
+      ? "rgba(98, 214, 184, 0.24)"
+      : route.charted
+        ? "rgba(232, 196, 109, 0.24)"
+        : "rgba(98, 214, 184, 0.12)";
+
     ctx.save();
     ctx.translate(route.gate.x, route.gate.y);
     ctx.fillStyle = "rgba(6, 16, 19, 0.72)";
-    ctx.strokeStyle = route.charted ? "#e8c46d" : "rgba(98, 214, 184, 0.46)";
+    ctx.strokeStyle = gateColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(18, 0);
@@ -386,20 +399,73 @@ function drawFrontierGates() {
     ctx.fill();
     ctx.stroke();
 
-    ctx.strokeStyle = route.charted ? "rgba(232, 196, 109, 0.24)" : "rgba(98, 214, 184, 0.12)";
+    ctx.strokeStyle = haloColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(0, 0, route.charted ? 28 : 20, 0, Math.PI * 2);
+    ctx.arc(0, 0, route.traversed ? 34 : route.charted ? 28 : 20, 0, Math.PI * 2);
     ctx.stroke();
 
-    if (route.charted) {
+    if (route.charted || route.traversed) {
       ctx.fillStyle = "rgba(243, 240, 220, 0.82)";
       ctx.font = "700 12px system-ui, sans-serif";
       ctx.fillText(route.destinationName, 24, 4);
     }
 
+    if (route.traversed) {
+      ctx.fillStyle = "rgba(98, 214, 184, 0.88)";
+      ctx.font = "700 11px system-ui, sans-serif";
+      ctx.fillText("Linked", 24, -12);
+    }
+
     ctx.restore();
   }
+}
+
+function drawFrontierTraverse() {
+  const traverse = getFrontierTraverse(state);
+  if (!traverse.active || !traverse.route) {
+    return;
+  }
+
+  const progress = traverse.progress / traverse.required;
+  ctx.save();
+  ctx.translate(traverse.route.gate.x, traverse.route.gate.y);
+
+  if (traverse.complete) {
+    ctx.strokeStyle = "rgba(98, 214, 184, 0.92)";
+    ctx.lineWidth = 6;
+    ctx.setLineDash([10, 8]);
+    ctx.beginPath();
+    ctx.arc(0, 0, WORLD.frontierTraverseRadius + 16, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(98, 214, 184, 0.18)";
+    ctx.beginPath();
+    ctx.arc(0, 0, WORLD.frontierTraverseRadius - 10, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.strokeStyle = traverse.inRange ? "rgba(98, 214, 184, 0.92)" : "rgba(98, 214, 184, 0.36)";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(
+      0,
+      0,
+      WORLD.frontierTraverseRadius,
+      -Math.PI / 2,
+      -Math.PI / 2 + Math.PI * 2 * progress
+    );
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(232, 196, 109, 0.2)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, WORLD.frontierTraverseRadius + 14, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "rgba(243, 240, 220, 0.82)";
+  ctx.font = "700 12px system-ui, sans-serif";
+  ctx.fillText(traverse.route.destinationName, 26, 22);
+  ctx.restore();
 }
 
 function drawHiddenGlitch(fragment) {
@@ -552,9 +618,10 @@ function updateHud() {
   const objective = getActiveObjective(state);
   const synthesis = getEvidenceSynthesis(state);
   const analysis = getFieldAnalysis(state);
+  const traverse = getFrontierTraverse(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = formatObjective(objective, analysis);
+  objectiveReadout.textContent = formatObjective(objective, analysis, traverse);
   updateJournal();
   updateAtlas();
 
@@ -562,6 +629,12 @@ function updateHud() {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
+  } else if (traverse.active && !traverse.complete && traverse.inRange && input.analyze) {
+    statusReadout.textContent = `Traversing ${Math.round((traverse.progress / traverse.required) * 100)}%`;
+  } else if (traverse.active && traverse.complete) {
+    statusReadout.textContent = "Frontier link secured";
+  } else if (traverse.active && traverse.inRange) {
+    statusReadout.textContent = "Frontier gate ready";
   } else if (analysis.active && !analysis.complete && analysis.inRange && input.analyze) {
     statusReadout.textContent = `Analyzing ${Math.round((analysis.progress / analysis.required) * 100)}%`;
   } else if (analysis.active && !analysis.complete && analysis.inRange) {
@@ -588,8 +661,8 @@ function updateAtlas() {
     [];
   const signature =
     `${atlas.currentRegion?.id || "none"}|${atlas.discoveredRegionCount}/${atlas.totalRegionCount}|` +
-    `${frontier.visibleRouteCount}/${frontier.chartedRouteCount}|` +
-    frontier.routes.map((route) => `${route.id}:${route.charted}`).join(",") +
+    `${frontier.visibleRouteCount}/${frontier.chartedRouteCount}/${frontier.launchedRouteCount}|` +
+    frontier.routes.map((route) => `${route.id}:${route.charted}:${route.traversed}`).join(",") +
     "|" +
     discovered.map((landmark) => landmark.id).join(",");
   if (signature === atlasSnapshot) {
@@ -605,7 +678,7 @@ function updateAtlas() {
   regionRisk.textContent = atlas.currentRegion
     ? `Hazard ${atlas.currentRegion.hazardLevel}/5 · Settlement ${atlas.currentRegion.settlementPotential}/5`
     : "No frontier metrics.";
-  routeCount.textContent = `${frontier.visibleRouteCount}/${frontier.totalRouteCount} routes`;
+  routeCount.textContent = `${frontier.visibleRouteCount}/${frontier.totalRouteCount} routes · ${frontier.launchedRouteCount} linked`;
 
   routeList.replaceChildren(
     ...frontier.routes.map((route) => {
@@ -619,8 +692,16 @@ function updateAtlas() {
       title.textContent = route.gateTitle;
 
       const status = document.createElement("span");
-      status.className = route.charted ? "route-status is-charted" : "route-status is-rumored";
-      status.textContent = route.charted ? "Charted" : "Rumored";
+      if (route.traversed) {
+        status.className = "route-status is-charted";
+        status.textContent = "Linked";
+      } else if (route.charted) {
+        status.className = "route-status is-charted";
+        status.textContent = "Charted";
+      } else {
+        status.className = "route-status is-rumored";
+        status.textContent = "Rumored";
+      }
 
       const destination = document.createElement("span");
       destination.className = "route-destination";
@@ -628,9 +709,15 @@ function updateAtlas() {
 
       const detail = document.createElement("span");
       detail.className = "route-detail";
-      detail.textContent = route.charted
-        ? `Hazard ${route.threat}/5 · ${route.stability} · ${route.settlementProspect}`
-        : `Survey incomplete. Likely corridor toward ${route.destinationName}.`;
+      if (route.traversed) {
+        detail.textContent = `Frontier link secured · ${route.destinationName} staged beyond archive edge.`;
+      } else if (route.canTraverse) {
+        detail.textContent = `Hold E at gate to launch · Hazard ${route.threat}/5 · ${route.stability} · ${route.settlementProspect}`;
+      } else if (route.charted) {
+        detail.textContent = `Hazard ${route.threat}/5 · ${route.stability} · ${route.settlementProspect}`;
+      } else {
+        detail.textContent = `Survey incomplete. Likely corridor toward ${route.destinationName}.`;
+      }
 
       top.append(title, status);
       item.append(top, destination, detail);
@@ -655,7 +742,19 @@ function updateAtlas() {
   );
 }
 
-function formatObjective(objective, analysis) {
+function formatObjective(objective, analysis, traverse) {
+  if (traverse.active && traverse.route) {
+    if (traverse.complete) {
+      return `Frontier link secured · ${traverse.route.destinationName}`;
+    }
+
+    if (traverse.inRange) {
+      return `Traverse ${traverse.route.destinationName} ${Math.round((traverse.progress / traverse.required) * 100)}%`;
+    }
+
+    return `Traverse ${traverse.route.destinationName} ${Math.round(distanceBetween(state.player, traverse.route.gate))}m`;
+  }
+
   if (!objective) {
     return "Thread resolved";
   }
@@ -698,6 +797,10 @@ function updateJournal() {
       return item;
     })
   );
+}
+
+function distanceBetween(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 function clamp(value, min, max) {
