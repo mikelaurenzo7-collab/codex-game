@@ -10,6 +10,9 @@ export const WORLD = {
   fieldAnalysisRadius: 72,
   fieldAnalysisSeconds: 1.8,
   fieldAnalysisDrainPerSecond: 8,
+  frontierTraverseRadius: 74,
+  frontierTraverseSeconds: 1.6,
+  frontierTraverseDrainPerSecond: 10,
   echoStunSeconds: 2.6,
   echoDrainPerSecond: 26,
   signalRechargePerSecond: 4.5
@@ -396,6 +399,11 @@ export function createGameState() {
       discoveredLandmarkIds: [],
       discoveredRouteIds: [],
       chartedRouteIds: []
+    },
+    frontier: {
+      traversedRouteIds: [],
+      routeProgress: {},
+      lastTraverse: null
     }
   };
   resolveWorldSurvey(state);
@@ -579,6 +587,7 @@ export function getFrontierNetwork(state) {
   const atlas = getWorldAtlas(state);
   const discoveredRouteIds = state.atlas?.discoveredRouteIds || [];
   const chartedRouteIds = state.atlas?.chartedRouteIds || [];
+  const traversedRouteIds = state.frontier?.traversedRouteIds || [];
   const currentRegionId = atlas.currentRegion?.id;
 
   const visibleRoutes = FRONTIER_ROUTES.filter((route) => discoveredRouteIds.includes(route.id));
@@ -590,9 +599,42 @@ export function getFrontierNetwork(state) {
     currentRegion: atlas.currentRegion,
     visibleRouteCount: visibleRoutes.length,
     chartedRouteCount: chartedRouteIds.length,
+    launchedRouteCount: traversedRouteIds.length,
     totalRouteCount: FRONTIER_ROUTES.length,
-    routes: currentRoutes.map((route) => buildRouteSummary(route, chartedRouteIds.includes(route.id))),
-    allVisibleRoutes: visibleRoutes.map((route) => buildRouteSummary(route, chartedRouteIds.includes(route.id)))
+    routes: currentRoutes.map((route) =>
+      buildRouteSummary(route, chartedRouteIds.includes(route.id), traversedRouteIds.includes(route.id))
+    ),
+    allVisibleRoutes: visibleRoutes.map((route) =>
+      buildRouteSummary(route, chartedRouteIds.includes(route.id), traversedRouteIds.includes(route.id))
+    )
+  };
+}
+
+export function getFrontierTraverse(state) {
+  const chartedRouteIds = state.atlas?.chartedRouteIds || [];
+  const traversedRouteIds = state.frontier?.traversedRouteIds || [];
+  const traversableRoutes = FRONTIER_ROUTES.filter(
+    (route) => route.toRegionId === null && chartedRouteIds.includes(route.id)
+  );
+  const route = findNearestRoute(state.player, traversableRoutes);
+
+  if (!route || distance(state.player, route.gate) > WORLD.frontierTraverseRadius + 42) {
+    return inactiveFrontierTraverse();
+  }
+
+  return {
+    active: true,
+    complete: traversedRouteIds.includes(route.id),
+    inRange: distance(state.player, route.gate) <= WORLD.frontierTraverseRadius,
+    progress: state.frontier?.routeProgress?.[route.id] || 0,
+    required: WORLD.frontierTraverseSeconds,
+    route: {
+      id: route.id,
+      gateTitle: route.gateTitle,
+      destinationName: route.destinationName,
+      destinationBiome: route.destinationBiome,
+      gate: { x: route.gate.x, y: route.gate.y }
+    }
   };
 }
 
@@ -656,6 +698,7 @@ export function updateGameState(state, input, deltaSeconds) {
   moveEchoes(state, dt);
   resolveWorldSurvey(state);
   resolveFieldAnalysis(state, input, dt);
+  resolveFrontierTraverse(state, input, dt);
   resolveCollection(state);
   resolveEchoPressure(state, dt);
   resolveGate(state);
@@ -788,6 +831,38 @@ function resolveFieldAnalysis(state, input, dt) {
   }
 }
 
+function resolveFrontierTraverse(state, input, dt) {
+  const traverse = getFrontierTraverse(state);
+  if (!traverse.active || !traverse.route || traverse.complete) {
+    return;
+  }
+
+  const currentProgress = state.frontier.routeProgress[traverse.route.id] || 0;
+  const holdingTraverse = Boolean(input.analyze);
+  const canTraverse = holdingTraverse && traverse.inRange && state.signal > 0;
+
+  if (!canTraverse) {
+    state.frontier.routeProgress[traverse.route.id] = Math.max(0, currentProgress - dt * 0.65);
+    return;
+  }
+
+  state.signal = Math.max(0, state.signal - WORLD.frontierTraverseDrainPerSecond * dt);
+  const nextProgress = Math.min(WORLD.frontierTraverseSeconds, currentProgress + dt);
+  state.frontier.routeProgress[traverse.route.id] = nextProgress;
+
+  if (nextProgress >= WORLD.frontierTraverseSeconds) {
+    remember(state.frontier.traversedRouteIds, traverse.route.id);
+    state.frontier.lastTraverse = {
+      routeId: traverse.route.id,
+      gateTitle: traverse.route.gateTitle,
+      destinationName: traverse.route.destinationName,
+      destinationBiome: traverse.route.destinationBiome,
+      traversedAt: state.time
+    };
+    state.clueLog.push(`Frontier link secured: ${traverse.route.destinationName}`);
+  }
+}
+
 function resolveCollection(state) {
   for (const fragment of state.fragments) {
     const revealed = fragment.revealedUntil > state.time;
@@ -843,12 +918,14 @@ function findRegionAt(point) {
   }, null)?.region;
 }
 
-function buildRouteSummary(route, charted) {
+function buildRouteSummary(route, charted, traversed) {
   const destinationRegion = route.toRegionId ? REGIONS.find((region) => region.id === route.toRegionId) : null;
   return {
     id: route.id,
     gateTitle: route.gateTitle,
     charted,
+    traversed,
+    canTraverse: charted && route.toRegionId === null,
     destinationName: destinationRegion?.name || route.destinationName,
     destinationBiome: destinationRegion?.biome || route.destinationBiome,
     destinationRegionId: destinationRegion?.id || null,
@@ -883,6 +960,26 @@ function findNearest(origin, candidates) {
     }
     return nearest;
   }, null);
+}
+
+function findNearestRoute(origin, routes) {
+  return routes.reduce((nearest, route) => {
+    if (!nearest || distance(origin, route.gate) < distance(origin, nearest.gate)) {
+      return route;
+    }
+    return nearest;
+  }, null);
+}
+
+function inactiveFrontierTraverse() {
+  return {
+    active: false,
+    complete: false,
+    inRange: false,
+    progress: 0,
+    required: WORLD.frontierTraverseSeconds,
+    route: null
+  };
 }
 
 function buildObjective(kind, label, target, state) {
