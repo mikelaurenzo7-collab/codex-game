@@ -15,6 +15,11 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Evidence journal state is covered by `tests/game-state.test.mjs`.
 - Collected evidence now feeds a synthesis system that changes objectives after one or two recovered fragments and marks deduced targets in the world.
 - Evidence synthesis phases are covered by `tests/game-state.test.mjs`.
+- Deduced targets now require field analysis before the final hidden memory can be resolved; ordinary pulse reveal alone is blocked for the synthesized target until analysis completes.
+- Field analysis progress, route completion, and pulse-blocking behavior are covered by `tests/game-state.test.mjs`.
+- `docs/DESIGN_BRIEF.md` now records the open-world trajectory from the validated `Signal Below` slice toward `Frontier of the Deep Green`.
+- A survey atlas now tracks named regions, current biome, authored landmarks, visited regions, and discovered locations as the first scalable world-structure layer.
+- Atlas discovery is covered by `tests/game-state.test.mjs` and rendered in the playable HUD.
 
 ## Operating Rules
 
@@ -102,3 +107,37 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. Canva, Supabase, OpenAI Developers, and Product Design were not used because this scoped iteration did not need external resources.
 - **Learned Constraints:** The journal entries populate during the animation-frame HUD refresh, so immediate DOM checks can see static synthesis text before the evidence list appears. Wait briefly for the first frame when verifying the live UI.
 - **Next Bottleneck:** Make deductions demand player action by adding a lightweight interaction at deduced sites, such as an analysis hold, second pulse confirmation, or echo-risk tradeoff before the final fragment resolves.
+
+### 0005 - Field Analysis
+
+- **State Assessment:** The latest playable slice had evidence synthesis and target deduction, but the deduced target still behaved too much like a passive objective marker. The logged bottleneck was to make deductions require player action before final resolution. The new automation direction also calls for open-world systems, so the safest path was to extend the validated `Signal Below` mechanic into a reusable world-survey interaction instead of deleting or renaming the current prototype.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** Field analysis is a small subsystem that enhances the core loop by turning deduction into an active, signal-costing interaction. It also creates a mechanic that can scale into `Frontier of the Deep Green` as wilderness survey, settlement diagnosis, biome reading, or faction evidence work.
+- **Plan Critique:** A full concept pivot to the new open-world title would be too destructive for this run because the existing route-tested slice is working and committed. A pure polish pass would miss the current bottleneck. The corrected plan is to bridge the existing prototype toward open-world play through a testable systemic mechanic.
+- **Execution Plan:**
+  - **Specific Tasks:** Add deterministic field-analysis state; prevent the deduced target from being revealed by pulse alone until analysis resolves; expose analysis progress to the HUD and canvas; update route tests; document the new control and open-world trajectory.
+  - **Technology Stack Justification:** The existing vanilla Canvas and ES module stack remains appropriate because the interaction is state-first, dependency-free, and directly testable. No engine migration is justified until the world scale demands it.
+  - **Success Metrics:** With two fragments recovered, the deduced target cannot be collected by pulse alone; holding analysis in range spends signal, completes progress, reveals and collects the target; the full route still completes; the local browser smoke test renders without console errors.
+  - **Risk Mitigation:** The analysis mechanic is limited to deduced targets, so early pulse discovery remains intact. Progress is deterministic and covered by tests, making future tuning low risk.
+- **Work Completed:** Added `WORLD.fieldAnalysis*` tuning constants, per-fragment analysis state, `getFieldAnalysis`, pulse blocking for unresolved deduced targets, analysis progression and reveal logic, `E` input handling, canvas progress rings, contextual HUD status/objective text, README controls, and an open-world trajectory note in `docs/DESIGN_BRIEF.md`.
+- **Validation Evidence:** Local state tests passed with `game-state tests passed`. In-app Browser smoke at `http://localhost:5173/` rendered `Signal Below`, showed `Fragments 0/3`, `Trace memory signal 778m`, `No Pattern`, a populated evidence journal, accepted Space input, reduced signal to `78%`, and reported no console errors or warnings. The Browser runtime could not import ES modules inside `playwright.evaluate`, so the full analysis route remains validated by the Node test suite.
+- **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. Supabase, OpenAI Developers, Canva, and Linear were not used because this scoped iteration did not need external resources.
+- **Learned Constraints:** The current Browser evaluate scope cannot dynamically import `/src/game-state.js`; keep rule-level validation in local Node tests and use Browser for page load, interaction smoke, DOM state, and console checks.
+- **Next Bottleneck:** Give the player an open-world-scale navigation surface: add a compact region/biome map model that turns recovered evidence and field analysis into persistent survey discoveries without bloating the current slice.
+
+### 0006 - Survey Atlas
+
+- **State Assessment:** After field analysis, the prototype had a stronger evidence action loop but still lacked a durable structure for the user's expanded ambition: a world with the breadth and density of a major open-world RPG. The immediate bottleneck was not raw map size; it was the absence of a scalable world model that can hold regions, landmarks, local histories, and discovery state.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** A survey atlas is the right systemic layer because it lets the game grow from a compact mystery slice into a large, detailed world without replacing the working mechanics. It also gives future runs a stable home for settlements, biome hazards, faction influence, route memory, and discovery rewards.
+- **Plan Critique:** Simply enlarging the Canvas dimensions would create empty space, not an expansive world. The better first step is to model meaningful regions and landmarks, then let future iterations expand geography and content density around that data.
+- **Execution Plan:**
+  - **Specific Tasks:** Define authored regions and landmarks; add persistent visited/discovered atlas state; expose a pure `getWorldAtlas` selector; discover regions and landmarks through movement; draw region contours and discovered landmark markers; render a compact atlas panel; add tests for initial discovery, relay-fen discovery, and route survey coverage.
+  - **Technology Stack Justification:** The existing state/render split remains appropriate. Atlas data is deterministic, low-risk, and dependency-free, which lets future runs scale content before choosing a heavier engine or packaging layer.
+  - **Success Metrics:** New game state starts in a named region with a discovered camp; moving into another biome records that region and landmark; the completion route surveys most archive regions; Browser renders the atlas panel with no console errors and no HUD overlap.
+  - **Risk Mitigation:** The atlas is additive and does not alter collision, combat pressure, or fragment completion. If the panel becomes crowded, the selector already separates world knowledge from presentation so the UI can become a dedicated map screen later.
+- **Work Completed:** Added five named regions, seven landmarks, atlas discovery state, `getWorldAtlas`, movement-driven survey discovery, region contour rendering, discovered landmark markers, a compact atlas HUD section, README and design-brief updates, and atlas-focused state tests.
+- **Validation Evidence:** Local state tests passed with `game-state tests passed`. Browser reload at `http://localhost:5173/` rendered `Signal Below`, `1/5 regions`, current region `South Intake`, landmark `Salvager Camp`, evidence journal `0/3`, objective `Trace memory signal 778m`, and no console errors or warnings. Responsive layout checks at the in-app narrow viewport and `390x700` mobile viewport reported no journal/restart or journal/HUD overlap.
+- **External Services Used:** Browser was used for local playable UI and layout validation. GitHub remains the repository remote. Supabase, OpenAI Developers, Canva, and Linear were not used.
+- **Learned Constraints:** The in-app Browser's default visible area can be narrower than a typical desktop viewport because it depends on the app pane. Keep HUD panels responsive and verify the narrow case, not only an assumed 1280px width.
+- **Next Bottleneck:** Begin true large-world expansion by introducing chunked overworld planning: a region graph with travel gates, settlement candidates, wilderness hazards, and enough authored micro-locations to make each biome feel dense rather than merely large.

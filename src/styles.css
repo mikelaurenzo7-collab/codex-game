@@ -99,7 +99,7 @@ body {
   left: 18px;
   bottom: 18px;
   width: min(420px, calc(100vw - 150px));
-  max-height: min(42vh, 320px);
+  max-height: min(58vh, 520px);
   padding: 12px 14px;
   border: 1px solid rgba(232, 196, 109, 0.28);
   background: rgba(6, 16, 19, 0.72);
@@ -182,6 +182,60 @@ body {
   color: rgba(243, 240, 220, 0.46);
 }
 
+.atlas {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(232, 196, 109, 0.18);
+}
+
+.atlas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #62d6b8;
+}
+
+.region-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #f3f0dc;
+}
+
+.region-detail,
+.landmark-detail {
+  font-size: 12px;
+  line-height: 1.3;
+  color: rgba(243, 240, 220, 0.72);
+}
+
+.landmark-list {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landmark-list li {
+  display: grid;
+  gap: 1px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(243, 240, 220, 0.1);
+}
+
+.landmark-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #e8c46d;
+}
+
 .restart {
   position: absolute;
   right: 18px;
@@ -220,6 +274,6 @@ body {
   .journal {
     bottom: 72px;
     width: calc(100vw - 36px);
-    max-height: 38vh;
+    max-height: 46vh;
   }
 }

@@ -4,6 +4,8 @@ import {
   createGameState,
   getEvidenceJournal,
   getEvidenceSynthesis,
+  getFieldAnalysis,
+  getWorldAtlas,
   getActiveObjective,
   triggerPulse,
   updateGameState
@@ -19,18 +21,24 @@ const journalCount = document.querySelector("#journalCount");
 const journalList = document.querySelector("#journalList");
 const synthesisTitle = document.querySelector("#synthesisTitle");
 const synthesisText = document.querySelector("#synthesisText");
+const atlasCount = document.querySelector("#atlasCount");
+const regionName = document.querySelector("#regionName");
+const regionDetail = document.querySelector("#regionDetail");
+const landmarkList = document.querySelector("#landmarkList");
 const restartButton = document.querySelector("#restartButton");
 
 const input = {
   up: false,
   down: false,
   left: false,
-  right: false
+  right: false,
+  analyze: false
 };
 
 let state = createGameState();
 let lastTime = performance.now();
 let journalSnapshot = "";
+let atlasSnapshot = "";
 
 const keyMap = new Map([
   ["ArrowUp", "up"],
@@ -40,7 +48,8 @@ const keyMap = new Map([
   ["ArrowLeft", "left"],
   ["KeyA", "left"],
   ["ArrowRight", "right"],
-  ["KeyD", "right"]
+  ["KeyD", "right"],
+  ["KeyE", "analyze"]
 ]);
 
 window.addEventListener("keydown", (event) => {
@@ -115,11 +124,14 @@ function draw() {
   ctx.translate(-camera.x, -camera.y);
 
   drawWorldFloor();
+  drawRegionContours();
   drawGate();
   drawRelays();
   drawSynthesisTarget();
+  drawFieldAnalysis();
   drawFragments();
   drawRecoveredMarkers();
+  drawAtlasLandmarks();
   drawEchoes();
   drawObstacles();
   drawPulses();
@@ -174,6 +186,18 @@ function drawWorldFloor() {
   ctx.strokeStyle = "rgba(225, 195, 108, 0.12)";
   ctx.lineWidth = 4;
   ctx.strokeRect(64, 64, WORLD.width - 128, WORLD.height - 128);
+}
+
+function drawRegionContours() {
+  const atlas = getWorldAtlas(state);
+  for (const region of atlas.regions) {
+    const opacity = region.visited ? 0.12 : 0.035;
+    ctx.fillStyle = `rgba(98, 214, 184, ${opacity})`;
+    ctx.fillRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
+    ctx.strokeStyle = region.visited ? "rgba(232, 196, 109, 0.22)" : "rgba(98, 214, 184, 0.08)";
+    ctx.lineWidth = region.visited ? 3 : 1;
+    ctx.strokeRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
+  }
 }
 
 function drawObstacles() {
@@ -269,6 +293,28 @@ function drawSynthesisTarget() {
   ctx.restore();
 }
 
+function drawFieldAnalysis() {
+  const analysis = getFieldAnalysis(state);
+  if (!analysis.active || !analysis.target || analysis.complete) {
+    return;
+  }
+
+  const progress = analysis.progress / analysis.required;
+  ctx.save();
+  ctx.translate(analysis.target.x, analysis.target.y);
+  ctx.strokeStyle = analysis.inRange ? "rgba(232, 196, 109, 0.92)" : "rgba(232, 196, 109, 0.36)";
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.arc(0, 0, WORLD.fieldAnalysisRadius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(98, 214, 184, 0.24)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, WORLD.fieldAnalysisRadius + 14, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawRecoveredMarkers() {
   const entries = getEvidenceJournal(state).filter((entry) => entry.collected);
   for (const entry of entries) {
@@ -294,6 +340,26 @@ function drawRecoveredMarkers() {
     ctx.fillStyle = "#f3f0dc";
     ctx.font = "700 18px system-ui, sans-serif";
     ctx.fillText(entry.title, 46, 6);
+    ctx.restore();
+  }
+}
+
+function drawAtlasLandmarks() {
+  const atlas = getWorldAtlas(state);
+  const discovered = atlas.landmarks.filter((landmark) => landmark.discovered);
+  for (const landmark of discovered) {
+    ctx.save();
+    ctx.translate(landmark.location.x, landmark.location.y);
+    ctx.strokeStyle = "rgba(98, 214, 184, 0.68)";
+    ctx.fillStyle = "rgba(6, 16, 19, 0.62)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.rect(-10, -10, 20, 20);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(243, 240, 220, 0.82)";
+    ctx.font = "700 13px system-ui, sans-serif";
+    ctx.fillText(landmark.title, 16, -14);
     ctx.restore();
   }
 }
@@ -447,15 +513,23 @@ function drawEndState(width, height) {
 function updateHud() {
   const objective = getActiveObjective(state);
   const synthesis = getEvidenceSynthesis(state);
+  const analysis = getFieldAnalysis(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = objective ? `${objective.label} ${objective.distance}m` : "Thread resolved";
+  objectiveReadout.textContent = formatObjective(objective, analysis);
   updateJournal();
+  updateAtlas();
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
+  } else if (analysis.active && !analysis.complete && analysis.inRange && input.analyze) {
+    statusReadout.textContent = `Analyzing ${Math.round((analysis.progress / analysis.required) * 100)}%`;
+  } else if (analysis.active && !analysis.complete && analysis.inRange) {
+    statusReadout.textContent = "Analysis ready";
+  } else if (analysis.active && !analysis.complete) {
+    statusReadout.textContent = "Analysis required";
   } else if (synthesis.phase === "deduced") {
     statusReadout.textContent = "Deduction active";
   } else if (synthesis.phase === "cross-check") {
@@ -465,6 +539,52 @@ function updateHud() {
   } else {
     statusReadout.textContent = "Sweep the archive";
   }
+}
+
+function updateAtlas() {
+  const atlas = getWorldAtlas(state);
+  const discovered = atlas.landmarks.filter((landmark) => landmark.discovered);
+  const signature =
+    `${atlas.currentRegion?.id || "none"}|${atlas.discoveredRegionCount}/${atlas.totalRegionCount}|` +
+    discovered.map((landmark) => landmark.id).join(",");
+  if (signature === atlasSnapshot) {
+    return;
+  }
+
+  atlasSnapshot = signature;
+  atlasCount.textContent = `${atlas.discoveredRegionCount}/${atlas.totalRegionCount} regions`;
+  regionName.textContent = atlas.currentRegion?.name || "Uncharted";
+  regionDetail.textContent = atlas.currentRegion
+    ? `${atlas.currentRegion.biome} - ${atlas.currentRegion.detail}`
+    : "No survey reading.";
+
+  landmarkList.replaceChildren(
+    ...discovered.slice(-4).map((landmark) => {
+      const item = document.createElement("li");
+      const title = document.createElement("span");
+      title.className = "landmark-title";
+      title.textContent = landmark.title;
+
+      const detail = document.createElement("span");
+      detail.className = "landmark-detail";
+      detail.textContent = landmark.detail;
+
+      item.append(title, detail);
+      return item;
+    })
+  );
+}
+
+function formatObjective(objective, analysis) {
+  if (!objective) {
+    return "Thread resolved";
+  }
+
+  if (analysis.active && !analysis.complete) {
+    return `${objective.label} ${Math.round((analysis.progress / analysis.required) * 100)}%`;
+  }
+
+  return `${objective.label} ${objective.distance}m`;
 }
 
 function updateJournal() {

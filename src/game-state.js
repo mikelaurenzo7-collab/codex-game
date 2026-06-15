@@ -7,6 +7,9 @@ export const WORLD = {
   pulseCost: 24,
   pulseCooldown: 1.25,
   fragmentRevealSeconds: 7.5,
+  fieldAnalysisRadius: 72,
+  fieldAnalysisSeconds: 1.8,
+  fieldAnalysisDrainPerSecond: 8,
   echoStunSeconds: 2.6,
   echoDrainPerSecond: 26,
   signalRechargePerSecond: 4.5
@@ -84,6 +87,132 @@ const BLUEPRINT = {
   ]
 };
 
+const REGIONS = [
+  {
+    id: "south-intake",
+    name: "South Intake",
+    biome: "Drowned Archive",
+    x: 42,
+    y: 620,
+    width: 650,
+    height: 416,
+    detail: "A flooded maintenance approach where salvagers first cut into the buried archive."
+  },
+  {
+    id: "northwest-hull",
+    name: "Northwest Hull",
+    biome: "Sung Metal",
+    x: 370,
+    y: 42,
+    width: 430,
+    height: 388,
+    detail: "Old pressure walls carry harmonic scoring from the crew that tried to hide the breach."
+  },
+  {
+    id: "central-sluice",
+    name: "Central Sluice",
+    biome: "Cartographer's Wake",
+    x: 610,
+    y: 430,
+    width: 650,
+    height: 390,
+    detail: "A drowned switchyard of false routes, survey tables, and rerouted archive channels."
+  },
+  {
+    id: "eastern-bell",
+    name: "Eastern Bellreach",
+    biome: "Silent Masonry",
+    x: 1330,
+    y: 42,
+    width: 548,
+    height: 688,
+    detail: "A high ruin around the dead bell, built to answer signals that should not return."
+  },
+  {
+    id: "relay-fen",
+    name: "Relay Fen",
+    biome: "Mossglass Floodplain",
+    x: 910,
+    y: 730,
+    width: 760,
+    height: 308,
+    detail: "A wetland of humming relays and green-black water that points toward the wider frontier."
+  }
+];
+
+const LANDMARKS = [
+  {
+    id: "salvager-camp",
+    title: "Salvager Camp",
+    regionId: "south-intake",
+    x: 160,
+    y: 880,
+    radius: 95,
+    type: "camp",
+    detail: "Canvas, batteries, and a half-finished regional map mark the player's first foothold."
+  },
+  {
+    id: "south-relay-camp",
+    title: "South Relay Camp",
+    regionId: "south-intake",
+    x: 260,
+    y: 710,
+    radius: 110,
+    type: "relay",
+    detail: "A relay strung through broken pipework, still able to refill a careful surveyor's signal."
+  },
+  {
+    id: "hull-chorus-site",
+    title: "Hull Chorus Site",
+    regionId: "northwest-hull",
+    x: 520,
+    y: 190,
+    radius: 120,
+    type: "memory",
+    detail: "The northwest wall vibrates with a buried work song and the first missing memory."
+  },
+  {
+    id: "rewritten-table",
+    title: "Rewritten Cartography Table",
+    regionId: "central-sluice",
+    x: 1080,
+    y: 760,
+    radius: 125,
+    type: "survey",
+    detail: "A survey table has been carved over so many times that the false routes are now deeper than the true ones."
+  },
+  {
+    id: "dead-bell-spire",
+    title: "Dead Bell Spire",
+    regionId: "eastern-bell",
+    x: 1640,
+    y: 420,
+    radius: 135,
+    type: "mystery",
+    detail: "A tower that listens more than it rings, now suitable for field analysis after enough evidence is recovered."
+  },
+  {
+    id: "extraction-cairn",
+    title: "Extraction Cairn",
+    regionId: "eastern-bell",
+    x: 1770,
+    y: 170,
+    radius: 115,
+    type: "gate",
+    detail: "The archive exit can only read a complete recovered thread."
+  },
+  {
+    id: "east-relay-basin",
+    title: "East Relay Basin",
+    regionId: "relay-fen",
+    x: 1510,
+    y: 900,
+    radius: 120,
+    type: "relay",
+    detail: "Mossglass water around the relay hints at the larger green frontier beyond the archive."
+  }
+];
+
 const DEDUCTION_RULES = new Map([
   [
     "cartographer+chorus",
@@ -112,7 +241,7 @@ const DEDUCTION_RULES = new Map([
 ]);
 
 export function createGameState() {
-  return {
+  const state = {
     time: 0,
     status: "running",
     result: null,
@@ -123,7 +252,9 @@ export function createGameState() {
       ...fragment,
       revealedUntil: 0,
       collected: false,
-      collectedAt: null
+      collectedAt: null,
+      analysisProgress: 0,
+      analysisResolved: false
     })),
     relays: BLUEPRINT.relays.map((relay) => ({ ...relay, depleted: false })),
     echoes: BLUEPRINT.echoes.map((echo) => ({
@@ -134,8 +265,14 @@ export function createGameState() {
     signal: 100,
     pulseCooldownUntil: 0,
     pulses: [],
-    clueLog: []
+    clueLog: [],
+    atlas: {
+      visitedRegionIds: [],
+      discoveredLandmarkIds: []
+    }
   };
+  resolveWorldSurvey(state);
+  return state;
 }
 
 export function distance(a, b) {
@@ -171,7 +308,9 @@ export function getActiveObjective(state) {
   }
 
   if (synthesis.phase === "deduced") {
-    return buildObjective("deduced-fragment", "Resolve deduction", target, state);
+    const analysis = getFieldAnalysis(state);
+    const label = analysis.complete ? "Recover resolved memory" : "Analyze deduction";
+    return buildObjective("deduced-fragment", label, target, state);
   }
 
   if (synthesis.phase === "cross-check") {
@@ -228,6 +367,79 @@ export function getEvidenceSynthesis(state) {
   };
 }
 
+export function getFieldAnalysis(state) {
+  const synthesis = getEvidenceSynthesis(state);
+  if (synthesis.phase !== "deduced" || !synthesis.target) {
+    return {
+      active: false,
+      complete: false,
+      inRange: false,
+      progress: 0,
+      required: WORLD.fieldAnalysisSeconds,
+      target: null
+    };
+  }
+
+  const target = state.fragments.find((fragment) => fragment.id === synthesis.target.id);
+  if (!target || target.collected) {
+    return {
+      active: false,
+      complete: false,
+      inRange: false,
+      progress: 0,
+      required: WORLD.fieldAnalysisSeconds,
+      target: null
+    };
+  }
+
+  return {
+    active: true,
+    complete: target.analysisResolved,
+    inRange: distance(state.player, target) <= WORLD.fieldAnalysisRadius,
+    progress: target.analysisProgress,
+    required: WORLD.fieldAnalysisSeconds,
+    target: { id: target.id, title: target.title, x: target.x, y: target.y }
+  };
+}
+
+export function getWorldAtlas(state) {
+  const visitedRegionIds = state.atlas?.visitedRegionIds || [];
+  const discoveredLandmarkIds = state.atlas?.discoveredLandmarkIds || [];
+  const currentRegion = findRegionAt(state.player);
+
+  return {
+    currentRegion: currentRegion
+      ? {
+          id: currentRegion.id,
+          name: currentRegion.name,
+          biome: currentRegion.biome,
+          detail: currentRegion.detail
+        }
+      : null,
+    discoveredRegionCount: visitedRegionIds.length,
+    totalRegionCount: REGIONS.length,
+    discoveredLandmarkCount: discoveredLandmarkIds.length,
+    totalLandmarkCount: LANDMARKS.length,
+    regions: REGIONS.map((region) => ({
+      id: region.id,
+      name: region.name,
+      biome: region.biome,
+      detail: region.detail,
+      visited: visitedRegionIds.includes(region.id),
+      bounds: { x: region.x, y: region.y, width: region.width, height: region.height }
+    })),
+    landmarks: LANDMARKS.map((landmark) => ({
+      id: landmark.id,
+      title: landmark.title,
+      regionId: landmark.regionId,
+      type: landmark.type,
+      detail: landmark.detail,
+      discovered: discoveredLandmarkIds.includes(landmark.id),
+      location: { x: landmark.x, y: landmark.y }
+    }))
+  };
+}
+
 export function getEvidenceJournal(state) {
   return state.fragments.map((fragment) => ({
     id: fragment.id,
@@ -253,7 +465,7 @@ export function triggerPulse(state) {
   state.pulses.push({ x: state.player.x, y: state.player.y, startedAt: state.time });
 
   for (const fragment of state.fragments) {
-    if (!fragment.collected && distance(state.player, fragment) <= WORLD.pulseRadius) {
+    if (!fragment.collected && canPulseRevealFragment(state, fragment) && distance(state.player, fragment) <= WORLD.pulseRadius) {
       fragment.revealedUntil = state.time + WORLD.fragmentRevealSeconds;
     }
   }
@@ -286,6 +498,8 @@ export function updateGameState(state, input, deltaSeconds) {
 
   movePlayer(state, input, dt);
   moveEchoes(state, dt);
+  resolveWorldSurvey(state);
+  resolveFieldAnalysis(state, input, dt);
   resolveCollection(state);
   resolveEchoPressure(state, dt);
   resolveGate(state);
@@ -348,6 +562,47 @@ function moveEchoes(state, dt) {
   }
 }
 
+function resolveWorldSurvey(state) {
+  const currentRegion = findRegionAt(state.player);
+  if (currentRegion) {
+    remember(state.atlas.visitedRegionIds, currentRegion.id);
+  }
+
+  for (const landmark of LANDMARKS) {
+    if (distance(state.player, landmark) <= landmark.radius) {
+      remember(state.atlas.discoveredLandmarkIds, landmark.id);
+    }
+  }
+}
+
+function resolveFieldAnalysis(state, input, dt) {
+  const analysis = getFieldAnalysis(state);
+  if (!analysis.active || !analysis.target) {
+    return;
+  }
+
+  const target = state.fragments.find((fragment) => fragment.id === analysis.target.id);
+  if (!target || target.analysisResolved) {
+    return;
+  }
+
+  const holdingAnalysis = Boolean(input.analyze);
+  const canAnalyze = holdingAnalysis && analysis.inRange && state.signal > 0;
+
+  if (!canAnalyze) {
+    target.analysisProgress = Math.max(0, target.analysisProgress - dt * 0.7);
+    return;
+  }
+
+  state.signal = Math.max(0, state.signal - WORLD.fieldAnalysisDrainPerSecond * dt);
+  target.analysisProgress = Math.min(WORLD.fieldAnalysisSeconds, target.analysisProgress + dt);
+
+  if (target.analysisProgress >= WORLD.fieldAnalysisSeconds) {
+    target.analysisResolved = true;
+    target.revealedUntil = Math.max(target.revealedUntil, state.time + WORLD.fragmentRevealSeconds);
+  }
+}
+
 function resolveCollection(state) {
   for (const fragment of state.fragments) {
     const revealed = fragment.revealedUntil > state.time;
@@ -379,6 +634,43 @@ function resolveGate(state) {
     state.status = "complete";
     state.result = "Archive thread recovered";
   }
+}
+
+function findRegionAt(point) {
+  const containingRegion = REGIONS.find(
+    (region) =>
+      point.x >= region.x &&
+      point.x <= region.x + region.width &&
+      point.y >= region.y &&
+      point.y <= region.y + region.height
+  );
+
+  if (containingRegion) {
+    return containingRegion;
+  }
+
+  return REGIONS.reduce((nearest, region) => {
+    const center = { x: region.x + region.width / 2, y: region.y + region.height / 2 };
+    if (!nearest || distance(point, center) < distance(point, nearest.center)) {
+      return { region, center };
+    }
+    return nearest;
+  }, null)?.region;
+}
+
+function remember(ids, id) {
+  if (!ids.includes(id)) {
+    ids.push(id);
+  }
+}
+
+function canPulseRevealFragment(state, fragment) {
+  if (fragment.analysisResolved) {
+    return true;
+  }
+
+  const synthesis = getEvidenceSynthesis(state);
+  return synthesis.phase !== "deduced" || synthesis.target?.id !== fragment.id;
 }
 
 function findNearest(origin, candidates) {

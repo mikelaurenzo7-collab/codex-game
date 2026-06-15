@@ -8,6 +8,8 @@ import {
   getActiveObjective,
   getEvidenceJournal,
   getEvidenceSynthesis,
+  getFieldAnalysis,
+  getWorldAtlas,
   triggerPulse,
   updateGameState
 } from "../src/game-state.js";
@@ -56,6 +58,20 @@ function collectFragmentAt(state, fragmentId) {
   assert.equal(fragment.collected, true, `${fragmentId} should be collected`);
 }
 
+function analyzeDeducedFragmentAt(state, fragmentId) {
+  const fragment = state.fragments.find((candidate) => candidate.id === fragmentId);
+  assert.ok(fragment, `expected fragment ${fragmentId}`);
+
+  const analysis = getFieldAnalysis(state);
+  assert.equal(analysis.active, true, "deduced fragment should require field analysis");
+  assert.equal(analysis.target.id, fragmentId);
+  assert.equal(analysis.inRange, true, `player should be close enough to analyze ${fragmentId}`);
+
+  tick(state, WORLD.fieldAnalysisSeconds + 0.12, { analyze: true });
+  assert.equal(fragment.analysisResolved, true, `${fragmentId} analysis should resolve`);
+  assert.equal(fragment.collected, true, `${fragmentId} should be collected after analysis`);
+}
+
 {
   const state = createGameState();
   assert.equal(state.status, "running");
@@ -72,6 +88,28 @@ function collectFragmentAt(state, fragmentId) {
   const synthesis = getEvidenceSynthesis(state);
   assert.equal(synthesis.phase, "unresolved");
   assert.equal(synthesis.target, null);
+
+  const analysis = getFieldAnalysis(state);
+  assert.equal(analysis.active, false);
+
+  const atlas = getWorldAtlas(state);
+  assert.equal(atlas.currentRegion.name, "South Intake");
+  assert.equal(atlas.discoveredRegionCount, 1);
+  assert.equal(atlas.totalRegionCount, 5);
+  assert.equal(atlas.discoveredLandmarkCount, 1);
+  assert.equal(atlas.landmarks.find((landmark) => landmark.id === "salvager-camp").discovered, true);
+}
+
+{
+  const state = createGameState();
+  state.player.x = 1510;
+  state.player.y = 900;
+  tick(state, 0.1);
+
+  const atlas = getWorldAtlas(state);
+  assert.equal(atlas.currentRegion.name, "Relay Fen");
+  assert.equal(atlas.regions.find((region) => region.id === "relay-fen").visited, true);
+  assert.equal(atlas.landmarks.find((landmark) => landmark.id === "east-relay-basin").discovered, true);
 }
 
 {
@@ -147,8 +185,34 @@ function collectFragmentAt(state, fragmentId) {
 
   const objective = getActiveObjective(state);
   assert.equal(objective.kind, "deduced-fragment");
-  assert.equal(objective.label, "Resolve deduction");
+  assert.equal(objective.label, "Analyze deduction");
   assert.deepEqual(objective.target, { x: 1640, y: 420 });
+
+  const analysis = getFieldAnalysis(state);
+  assert.equal(analysis.active, true);
+  assert.equal(analysis.complete, false);
+  assert.equal(analysis.target.id, "bell");
+}
+
+{
+  const state = createGameState();
+  state.fragments.find((fragment) => fragment.id === "chorus").collected = true;
+  state.fragments.find((fragment) => fragment.id === "cartographer").collected = true;
+  const bell = state.fragments.find((fragment) => fragment.id === "bell");
+  state.player.x = bell.x;
+  state.player.y = bell.y;
+
+  assert.equal(triggerPulse(state), true);
+  tick(state, 0.2);
+  assert.equal(bell.revealedUntil, 0, "deduced target should not reveal from pulse before analysis");
+  assert.equal(bell.collected, false);
+
+  const analysisBefore = getFieldAnalysis(state);
+  assert.equal(analysisBefore.inRange, true);
+  tick(state, WORLD.fieldAnalysisSeconds + 0.12, { analyze: true });
+  assert.equal(bell.analysisResolved, true);
+  assert.equal(bell.collected, true);
+  assert.equal(getActiveObjective(state).kind, "gate");
 }
 
 {
@@ -198,7 +262,7 @@ function collectFragmentAt(state, fragmentId) {
   for (const [waypoint, label] of route.slice(7, 11)) {
     moveTo(state, waypoint, label);
   }
-  collectFragmentAt(state, "bell");
+  analyzeDeducedFragmentAt(state, "bell");
 
   assert.equal(getActiveObjective(state).kind, "gate");
 
@@ -209,6 +273,11 @@ function collectFragmentAt(state, fragmentId) {
   tick(state, 0.2);
   assert.equal(state.status, "complete");
   assert.equal(state.result, "Archive thread recovered");
+
+  const atlas = getWorldAtlas(state);
+  assert.ok(atlas.discoveredRegionCount >= 4, "route should survey most archive regions");
+  assert.equal(atlas.landmarks.find((landmark) => landmark.id === "dead-bell-spire").discovered, true);
+  assert.equal(atlas.landmarks.find((landmark) => landmark.id === "extraction-cairn").discovered, true);
 }
 
 {

@@ -30,6 +30,12 @@ The first slice uses vanilla HTML5 Canvas and ES modules.
 
 **Justification:** The repository started empty, so the fastest honest proof is a no-dependency browser-playable prototype with testable game-state logic. It can later be packaged for PC through Electron, Tauri, or an engine migration if the loop earns that cost.
 
+## Open-World Trajectory
+
+The current `Signal Below` slice is the validated seed mechanic for the broader open-world direction chosen for the long-running automation: `Frontier of the Deep Green`. The signal pulse, evidence journal, and field-analysis rules should evolve into wilderness survey tools for a larger explorable world with regions, settlements, faction memory, ecological hazards, and player-authored routes. Until that larger structure exists, each run should preserve the playable slice and extend it with mechanics that can survive the transition into a systemic open-world game.
+
+The first scale bridge is the survey atlas: named regions, authored landmarks, current-region awareness, and persistent discoveries. This should grow toward a dense world structure inspired by the breadth of major open-world RPGs: many distinct holds/biomes, memorable routes, local histories, settlements, dangerous wilderness pockets, and systemic reasons to revisit places after new evidence or tools are gained.
+
 ## Success Metrics
 
 - A player can load the prototype locally.
