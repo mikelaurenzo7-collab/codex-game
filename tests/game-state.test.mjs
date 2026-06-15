@@ -10,6 +10,7 @@ import {
   getEvidenceSynthesis,
   getFieldAnalysis,
   getFrontierNetwork,
+  getFrontierTraverse,
   getWorldAtlas,
   triggerPulse,
   updateGameState
@@ -93,6 +94,9 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   const analysis = getFieldAnalysis(state);
   assert.equal(analysis.active, false);
 
+  const traverse = getFrontierTraverse(state);
+  assert.equal(traverse.active, false);
+
   const atlas = getWorldAtlas(state);
   assert.equal(atlas.currentRegion.name, "South Intake");
   assert.equal(atlas.discoveredRegionCount, 1);
@@ -104,7 +108,9 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(frontier.currentRegion.name, "South Intake");
   assert.equal(frontier.visibleRouteCount, 3);
   assert.equal(frontier.chartedRouteCount, 2);
+  assert.equal(frontier.launchedRouteCount, 0);
   assert.equal(frontier.routes.find((route) => route.id === "intake-coastline-lift").charted, true);
+  assert.equal(frontier.routes.find((route) => route.id === "intake-coastline-lift").traversed, false);
   assert.equal(frontier.routes.find((route) => route.id === "intake-sluice-causeway").charted, false);
 }
 
@@ -124,6 +130,32 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(frontier.visibleRouteCount, 6);
   assert.equal(frontier.routes.find((route) => route.id === "fen-deep-green-verge").destinationName, "Deep Green Verge");
   assert.equal(frontier.routes.find((route) => route.id === "fen-deep-green-verge").charted, true);
+}
+
+{
+  const state = createGameState();
+  state.player.x = 140;
+  state.player.y = 1012;
+  tick(state, 0.1);
+
+  const traverse = getFrontierTraverse(state);
+  assert.equal(traverse.active, true);
+  assert.equal(traverse.route.id, "intake-coastline-lift");
+  assert.equal(traverse.inRange, true);
+  assert.equal(traverse.complete, false);
+
+  tick(state, WORLD.frontierTraverseSeconds + 0.12, { analyze: true });
+
+  const resolvedTraverse = getFrontierTraverse(state);
+  assert.equal(resolvedTraverse.active, true);
+  assert.equal(resolvedTraverse.complete, true);
+  assert.equal(state.frontier.lastTraverse.routeId, "intake-coastline-lift");
+  assert.equal(state.frontier.lastTraverse.destinationName, "Tidewalk Coast");
+  assert.match(state.clueLog.at(-1), /Tidewalk Coast/);
+
+  const frontier = getFrontierNetwork(state);
+  assert.equal(frontier.launchedRouteCount, 1);
+  assert.equal(frontier.routes.find((route) => route.id === "intake-coastline-lift").traversed, true);
 }
 
 {
