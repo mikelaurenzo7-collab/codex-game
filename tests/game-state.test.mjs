@@ -9,6 +9,7 @@ import {
   getEvidenceJournal,
   getEvidenceSynthesis,
   getFieldAnalysis,
+  getFrontierArrival,
   getFrontierNetwork,
   getFrontierTraverse,
   getWorldAtlas,
@@ -97,6 +98,9 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   const traverse = getFrontierTraverse(state);
   assert.equal(traverse.active, false);
 
+  const arrival = getFrontierArrival(state);
+  assert.equal(arrival.active, false);
+
   const atlas = getWorldAtlas(state);
   assert.equal(atlas.currentRegion.name, "South Intake");
   assert.equal(atlas.discoveredRegionCount, 1);
@@ -151,7 +155,16 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(resolvedTraverse.complete, true);
   assert.equal(state.frontier.lastTraverse.routeId, "intake-coastline-lift");
   assert.equal(state.frontier.lastTraverse.destinationName, "Tidewalk Coast");
-  assert.match(state.clueLog.at(-1), /Tidewalk Coast/);
+  assert.equal(state.frontier.lastTraverse.arrivalTitle, "Raised Dock Hamlet");
+  assert.match(state.clueLog.at(-1), /Raised Dock Hamlet/);
+
+  const arrival = getFrontierArrival(state);
+  assert.equal(arrival.active, true);
+  assert.equal(arrival.routeId, "intake-coastline-lift");
+  assert.equal(arrival.destinationName, "Tidewalk Coast");
+  assert.equal(arrival.title, "Raised Dock Hamlet");
+  assert.equal(arrival.settlementName, "Tidelantern Quay");
+  assert.match(arrival.nextHook, /warehouses/i);
 
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);
