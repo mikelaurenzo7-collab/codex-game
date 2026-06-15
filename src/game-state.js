@@ -368,6 +368,57 @@ const DEDUCTION_RULES = new Map([
   ]
 ]);
 
+const FRONTIER_ARRIVALS = {
+  "intake-coastline-lift": {
+    title: "Raised Dock Hamlet",
+    summary:
+      "Beyond the archive lift, the coast opens into a lantern-strung salvage hamlet balanced over black tidewater and broken piers.",
+    encounterTitle: "First Arrival Encounter",
+    encounterText:
+      "Dock stewards demand proof that the archive route is stable before they trade batteries or sound the deeper marsh bells.",
+    settlementName: "Tidelantern Quay",
+    settlementText:
+      "A practical fishing and salvage post built on pylons, eager for archive metal and desperate for reliable inland signal routes.",
+    resourceTitle: "Immediate Resource",
+    resourceText:
+      "Salt-proof cable, brine lantern oil, and one serviceable tide map that marks two drowned warehouses further downshore.",
+    nextHook:
+      "Negotiate docking rights, then survey the drowned warehouses to learn who has been stripping the coast ahead of the hamlet."
+  },
+  "fen-deep-green-verge": {
+    title: "Fenward Ranger Enclave",
+    summary:
+      "The relay fen gives way to rootbound wilds where ranger posts cling to giant mangrove ribs above luminous green water.",
+    encounterTitle: "First Arrival Encounter",
+    encounterText:
+      "A ranger outrider mistakes the archive signal for a hostile lure and forces a tense standoff at spear range before letting you speak.",
+    settlementName: "Vergewatch Platforms",
+    settlementText:
+      "A sparse defensive enclave of scouts and reedwrights that survives by reading predator movement and burning back growth at dusk.",
+    resourceTitle: "Immediate Resource",
+    resourceText:
+      "Spore-charms, reed resin, and a partial migration sketch showing where the root canyons open into safer high ground.",
+    nextHook:
+      "Earn the enclave's trust by tracing the false signal source drawing predators toward Vergewatch after dark."
+  },
+  "bell-cairn-marches": {
+    title: "Stoneward Bastion",
+    summary:
+      "Past the cairn steps, the bell marches widen into wind-cut terraces guarded by signal fires and stacked grave-stone redoubts.",
+    encounterTitle: "First Arrival Encounter",
+    encounterText:
+      "A watch captain halts the crossing and insists the bell route is cursed unless the archive witness can prove the marches are not already lost.",
+    settlementName: "Stoneward Gatehouse",
+    settlementText:
+      "A hard frontier bastion built from collapsed cairns, where wardens ration rope, water, and high-ground shelter to proven travelers only.",
+    resourceTitle: "Immediate Resource",
+    resourceText:
+      "Wind charts, cairn rope, and a sealed ledger describing vanished patrols on the upper terraces after the last bell storm.",
+    nextHook:
+      "Climb with a patrol to the upper terraces and determine whether the vanished wardens were taken by revenants or something using the bell as cover."
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
@@ -638,6 +689,38 @@ export function getFrontierTraverse(state) {
   };
 }
 
+export function getFrontierArrival(state) {
+  const traversedRouteIds = state.frontier?.traversedRouteIds || [];
+  if (traversedRouteIds.length === 0) {
+    return inactiveFrontierArrival();
+  }
+
+  const routeId = state.frontier?.lastTraverse?.routeId || traversedRouteIds[traversedRouteIds.length - 1];
+  const route = FRONTIER_ROUTES.find((candidate) => candidate.id === routeId);
+  const arrival = FRONTIER_ARRIVALS[routeId];
+
+  if (!route || !arrival) {
+    return inactiveFrontierArrival();
+  }
+
+  return {
+    active: true,
+    routeId,
+    gateTitle: route.gateTitle,
+    destinationName: route.destinationName,
+    destinationBiome: route.destinationBiome,
+    title: arrival.title,
+    summary: arrival.summary,
+    encounterTitle: arrival.encounterTitle,
+    encounterText: arrival.encounterText,
+    settlementName: arrival.settlementName,
+    settlementText: arrival.settlementText,
+    resourceTitle: arrival.resourceTitle,
+    resourceText: arrival.resourceText,
+    nextHook: arrival.nextHook
+  };
+}
+
 export function getEvidenceJournal(state) {
   return state.fragments.map((fragment) => ({
     id: fragment.id,
@@ -663,7 +746,11 @@ export function triggerPulse(state) {
   state.pulses.push({ x: state.player.x, y: state.player.y, startedAt: state.time });
 
   for (const fragment of state.fragments) {
-    if (!fragment.collected && canPulseRevealFragment(state, fragment) && distance(state.player, fragment) <= WORLD.pulseRadius) {
+    if (
+      !fragment.collected &&
+      canPulseRevealFragment(state, fragment) &&
+      distance(state.player, fragment) <= WORLD.pulseRadius
+    ) {
       fragment.revealedUntil = state.time + WORLD.fragmentRevealSeconds;
     }
   }
@@ -851,15 +938,20 @@ function resolveFrontierTraverse(state, input, dt) {
   state.frontier.routeProgress[traverse.route.id] = nextProgress;
 
   if (nextProgress >= WORLD.frontierTraverseSeconds) {
+    const arrival = FRONTIER_ARRIVALS[traverse.route.id];
     remember(state.frontier.traversedRouteIds, traverse.route.id);
     state.frontier.lastTraverse = {
       routeId: traverse.route.id,
       gateTitle: traverse.route.gateTitle,
       destinationName: traverse.route.destinationName,
       destinationBiome: traverse.route.destinationBiome,
+      arrivalTitle: arrival?.title || traverse.route.destinationName,
       traversedAt: state.time
     };
     state.clueLog.push(`Frontier link secured: ${traverse.route.destinationName}`);
+    if (arrival?.title) {
+      state.clueLog.push(`Arrival logged: ${arrival.title}`);
+    }
   }
 }
 
@@ -979,6 +1071,25 @@ function inactiveFrontierTraverse() {
     progress: 0,
     required: WORLD.frontierTraverseSeconds,
     route: null
+  };
+}
+
+function inactiveFrontierArrival() {
+  return {
+    active: false,
+    routeId: null,
+    gateTitle: null,
+    destinationName: null,
+    destinationBiome: null,
+    title: null,
+    summary: null,
+    encounterTitle: null,
+    encounterText: null,
+    settlementName: null,
+    settlementText: null,
+    resourceTitle: null,
+    resourceText: null,
+    nextHook: null
   };
 }
 
