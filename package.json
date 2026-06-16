@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/game-state.test.mjs",
+    "test": "node tests/run-all.mjs",
     "serve": "node scripts/serve.mjs"
   }
 }
