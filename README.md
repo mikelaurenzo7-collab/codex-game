@@ -9,7 +9,7 @@ The automation should keep each iteration scoped, verifiable, and committed. It 
 
 ## Current Prototype
 
-**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, and now has a deterministic Tidewalk coastal micro-objective model for warehouse survey, hostile salvage-mark discovery, and route-choice consequences.
+**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, and now has deterministic Tidewalk coastal systems for warehouse survey, hostile Black-Keel salvage-mark discovery, route-choice consequences, and follow-on storylets.
 
 Run locally:
 
