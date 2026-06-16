@@ -1,2 +1,3 @@
 import "./game-state.test.mjs";
 import "./tidewalk-coastal-objective.test.mjs";
+import "./black-keel-storylets.test.mjs";
