@@ -66,6 +66,11 @@
           <span class="arrival-label">Next hook</span>
           <span id="arrivalNextHook" class="arrival-block-text">Linked routes should now hand off into a concrete next action.</span>
         </div>
+        <div id="arrivalAction" class="arrival-block arrival-action is-hidden">
+          <span class="arrival-label">Playable edge encounter</span>
+          <button id="arrivalActionButton" class="arrival-action-button" type="button">Secure docking rights</button>
+          <span id="arrivalActionNote" class="arrival-action-note">Confirm the linked route with the settlement.</span>
+        </div>
       </aside>
       <section class="journal" aria-label="Recovered evidence">
         <div class="journal-header">
@@ -95,7 +100,5 @@
       <button id="restartButton" class="restart" type="button">Restart</button>
     </main>
     <script type="module" src="./src/game.js"></script>
-    <script src="./src/frontier-arrival-panel.js"></script>
-    <script src="./src/frontier-edge-encounter.js"></script>
   </body>
 </html>

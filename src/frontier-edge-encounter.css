@@ -6,6 +6,10 @@
   gap: 6px;
 }
 
+.arrival-action.is-hidden {
+  display: none;
+}
+
 .arrival-action-button {
   justify-self: start;
   min-height: 34px;

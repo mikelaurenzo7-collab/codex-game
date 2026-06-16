@@ -10,9 +10,11 @@ import {
   getEvidenceSynthesis,
   getFieldAnalysis,
   getFrontierArrival,
+  getFrontierEncounter,
   getFrontierNetwork,
   getFrontierTraverse,
   getWorldAtlas,
+  resolveFrontierEncounter,
   triggerPulse,
   updateGameState
 } from "../src/game-state.js";
@@ -101,6 +103,10 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   const arrival = getFrontierArrival(state);
   assert.equal(arrival.active, false);
 
+  const encounter = getFrontierEncounter(state);
+  assert.equal(encounter.active, false);
+  assert.equal(encounter.resolved, false);
+
   const atlas = getWorldAtlas(state);
   assert.equal(atlas.currentRegion.name, "South Intake");
   assert.equal(atlas.discoveredRegionCount, 1);
@@ -165,6 +171,26 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(arrival.title, "Raised Dock Hamlet");
   assert.equal(arrival.settlementName, "Tidelantern Quay");
   assert.match(arrival.nextHook, /warehouses/i);
+
+  const encounter = getFrontierEncounter(state);
+  assert.equal(encounter.active, true);
+  assert.equal(encounter.id, "tidewalk-docking-rights");
+  assert.equal(encounter.resolved, false);
+  assert.match(encounter.pendingNote, /Tidelantern Quay/);
+  assert.equal(resolveFrontierEncounter(state, "wrong-encounter"), false);
+  assert.equal(resolveFrontierEncounter(state, encounter.id), true);
+  assert.equal(resolveFrontierEncounter(state, encounter.id), false);
+
+  const resolvedEncounter = getFrontierEncounter(state);
+  assert.equal(resolvedEncounter.resolved, true);
+  assert.match(resolvedEncounter.note, /salvage traffic/);
+  assert.equal(state.frontier.lastEncounter.id, "tidewalk-docking-rights");
+  assert.match(state.clueLog.at(-1), /Dock Steward Compact/);
+
+  const resolvedArrival = getFrontierArrival(state);
+  assert.equal(resolvedArrival.encounterTitle, "Dock Steward Compact");
+  assert.match(resolvedArrival.encounterText, /tide map/);
+  assert.match(resolvedArrival.nextHook, /drowned warehouses/);
 
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);

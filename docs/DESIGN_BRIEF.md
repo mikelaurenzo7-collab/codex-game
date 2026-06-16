@@ -38,6 +38,8 @@ The first scale bridge is the survey atlas: named regions, authored landmarks, c
 
 The next scale bridge is the frontier route layer: explicit region-to-region corridors, off-map prospects, travel-gate identities, hazard pressure, and settlement opportunities. This lets the current archive feel like one surveyed chunk inside a much larger world, while giving future runs a clean path toward chunk streaming, overworld travel, faction geography, and authored road stories.
 
+The first settlement foothold is Tidewalk Coast. Once the archive lift route is linked, the arrival dossier now exposes a state-backed edge encounter where the player secures docking rights with Tidelantern Quay. This turns traversal from a route label into a persistent world consequence and sets the next playable hook: surveying drowned warehouses along the coast.
+
 ## Success Metrics
 
 - A player can load the prototype locally.

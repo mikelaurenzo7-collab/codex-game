@@ -419,6 +419,18 @@ const FRONTIER_ARRIVALS = {
   }
 };
 
+const FRONTIER_EDGE_ENCOUNTERS = {
+  "intake-coastline-lift": {
+    id: "tidewalk-docking-rights",
+    actionLabel: "Secure docking rights",
+    pendingNote: "Ask Tidelantern Quay to open limited docking and confirm the archive route is stable.",
+    resolvedTitle: "Dock Steward Compact",
+    resolvedText: "The stewards open limited docking and hand over a tide map marking two drowned warehouses.",
+    resolvedNote: "Consequence: the hamlet now accepts the route and allows salvage traffic.",
+    resolvedHook: "Active hook: survey the drowned warehouses along the coast."
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
@@ -453,8 +465,10 @@ export function createGameState() {
     },
     frontier: {
       traversedRouteIds: [],
+      resolvedEncounterIds: [],
       routeProgress: {},
-      lastTraverse: null
+      lastTraverse: null,
+      lastEncounter: null
     }
   };
   resolveWorldSurvey(state);
@@ -703,6 +717,9 @@ export function getFrontierArrival(state) {
     return inactiveFrontierArrival();
   }
 
+  const encounter = getFrontierEncounter(state);
+  const resolvedEncounter = encounter.active && encounter.resolved;
+
   return {
     active: true,
     routeId,
@@ -711,14 +728,63 @@ export function getFrontierArrival(state) {
     destinationBiome: route.destinationBiome,
     title: arrival.title,
     summary: arrival.summary,
-    encounterTitle: arrival.encounterTitle,
-    encounterText: arrival.encounterText,
+    encounterTitle: resolvedEncounter ? encounter.resolvedTitle : arrival.encounterTitle,
+    encounterText: resolvedEncounter ? encounter.resolvedText : arrival.encounterText,
     settlementName: arrival.settlementName,
     settlementText: arrival.settlementText,
     resourceTitle: arrival.resourceTitle,
     resourceText: arrival.resourceText,
-    nextHook: arrival.nextHook
+    nextHook: resolvedEncounter ? encounter.resolvedHook : arrival.nextHook
   };
+}
+
+export function getFrontierEncounter(state) {
+  const routeId = getFrontierArrivalRouteId(state);
+  if (!routeId) {
+    return inactiveFrontierEncounter();
+  }
+
+  const encounter = FRONTIER_EDGE_ENCOUNTERS[routeId];
+  if (!encounter) {
+    return inactiveFrontierEncounter();
+  }
+
+  const resolved = (state.frontier?.resolvedEncounterIds || []).includes(encounter.id);
+  return {
+    active: true,
+    routeId,
+    id: encounter.id,
+    resolved,
+    actionLabel: encounter.actionLabel,
+    pendingNote: encounter.pendingNote,
+    resolvedTitle: encounter.resolvedTitle,
+    resolvedText: encounter.resolvedText,
+    resolvedNote: encounter.resolvedNote,
+    resolvedHook: encounter.resolvedHook,
+    note: resolved ? encounter.resolvedNote : encounter.pendingNote
+  };
+}
+
+export function resolveFrontierEncounter(state, encounterId = null) {
+  const encounter = getFrontierEncounter(state);
+  if (!encounter.active || encounter.resolved) {
+    return false;
+  }
+
+  if (encounterId && encounter.id !== encounterId) {
+    return false;
+  }
+
+  state.frontier.resolvedEncounterIds ||= [];
+  remember(state.frontier.resolvedEncounterIds, encounter.id);
+  state.frontier.lastEncounter = {
+    id: encounter.id,
+    routeId: encounter.routeId,
+    title: encounter.resolvedTitle,
+    resolvedAt: state.time
+  };
+  state.clueLog.push(`Edge encounter resolved: ${encounter.resolvedTitle}`);
+  return true;
 }
 
 export function getEvidenceJournal(state) {
@@ -1074,6 +1140,15 @@ function inactiveFrontierTraverse() {
   };
 }
 
+function getFrontierArrivalRouteId(state) {
+  const traversedRouteIds = state.frontier?.traversedRouteIds || [];
+  if (traversedRouteIds.length === 0) {
+    return null;
+  }
+
+  return state.frontier?.lastTraverse?.routeId || traversedRouteIds[traversedRouteIds.length - 1];
+}
+
 function inactiveFrontierArrival() {
   return {
     active: false,
@@ -1090,6 +1165,22 @@ function inactiveFrontierArrival() {
     resourceTitle: null,
     resourceText: null,
     nextHook: null
+  };
+}
+
+function inactiveFrontierEncounter() {
+  return {
+    active: false,
+    routeId: null,
+    id: null,
+    resolved: false,
+    actionLabel: null,
+    pendingNote: null,
+    resolvedTitle: null,
+    resolvedText: null,
+    resolvedNote: null,
+    resolvedHook: null,
+    note: null
   };
 }
 

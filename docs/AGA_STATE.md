@@ -25,6 +25,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - At least one charted off-map route now supports deterministic frontier traversal with persistent linked-route state and launch progress tracked in `src/game-state.js`.
 - Frontier traversal is surfaced in the playable client with gate progress rings, linked-route labels, route-launch guidance, and atlas messaging for charted versus linked routes.
 - The playable shell now includes a dismissible in-game archive primer with live contextual guidance so first-session players can learn controls and the current phase of the loop without leaving the game view.
+- Tidewalk Coast now has a state-backed arrival edge encounter: after linking the archive lift route, the player can secure docking rights with Tidelantern Quay and update the next coastal hook through deterministic frontier state.
 
 ## Operating Rules
 
@@ -197,3 +198,20 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** GitHub was used as the repository remote and pull request host. No other services were required.
 - **Learned Constraints:** When using connector-side repository edits, it is practical to batch small client-shell improvements but important to record explicitly when fresh runtime validation was not performed.
 - **Next Bottleneck:** Prove that a linked frontier route expands the world meaningfully by adding one neighboring micro-chunk, arrival state, or settlement-edge encounter beyond the archive boundary.
+
+### 0010 - Tidewalk Docking Rights
+
+- **State Assessment:** The latest remote head had added a Tidewalk Coast arrival dossier and a separate client-side edge encounter, but the encounter lived in DOM observers and browser `localStorage` rather than the deterministic game model. That made the first settlement consequence visible but not durable, testable, or reusable by future world systems.
+- **Strategic Choice:** C. Narrative/World Sculpting.
+- **Justification:** The immediate bottleneck was no longer route visibility; it was making the first frontier settlement feel like a persistent world consequence. A small state-backed encounter gives the linked route narrative payoff without expanding the map or destabilizing traversal.
+- **Plan Critique:** Adding another off-map destination would multiply unproven surface area. A pure UI polish pass would leave the encounter outside the simulation. The corrected plan is to persist one Tidewalk Coast consequence in `src/game-state.js`, wire the existing arrival panel to that selector, and prove it with tests.
+- **Execution Plan:**
+  - **Specific Tasks:** Add frontier encounter state; expose `getFrontierEncounter` and `resolveFrontierEncounter`; update `getFrontierArrival` after resolution; replace DOM-observer arrival scripts with state-driven rendering in `src/game.js`; add a stable action block in `index.html`; extend tests and docs.
+  - **Technology Stack Justification:** The current vanilla Canvas and ES module stack remains appropriate because this is deterministic narrative state plus a small HUD action. No framework, storage service, or engine migration is justified for one settlement foothold.
+- **Success Metrics:** Initial state has no active encounter; completing the Tidewalk route activates the docking-rights encounter; resolving it is one-way and updates the arrival title, text, next hook, last encounter state, and clue log; the browser page loads with the arrival panel hidden until traversal and no console errors.
+- **Risk Mitigation:** The change removes duplicate `localStorage` encounter logic and keeps route traversal rules unchanged. If the arrival panel becomes crowded, the encounter block is independently hideable and state selectors stay separate from presentation.
+- **Work Completed:** Added `FRONTIER_EDGE_ENCOUNTERS`, `getFrontierEncounter`, and `resolveFrontierEncounter`; tracked `resolvedEncounterIds` and `lastEncounter`; made resolved docking rights update the Tidewalk arrival; moved arrival-panel rendering into `src/game.js`; removed obsolete observer scripts; updated README and the design brief.
+- **Validation Evidence:** Fast-forward pull succeeded from `8f0fa95` to `d9013c6`. Bundled Node test run passed with `game-state tests passed`. Browser smoke at `http://localhost:5173/` confirmed `Signal Below`, Canvas presence, `Fragments 0/3`, `Trace memory signal 778m`, `1/5 regions`, `3/8 routes - 0 linked`, hidden arrival/action blocks, and no console warnings or errors.
+- **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. No other external plugins or services were used.
+- **Learned Constraints:** The first edge encounter should remain in game state, not page-local storage, so future route persistence, save/load, and settlement systems can reuse the same facts.
+- **Next Bottleneck:** Make the resolved Tidewalk foothold create a playable coastal micro-objective, such as surveying one drowned warehouse, discovering a hostile salvage mark, or unlocking a Tidewalk route choice with risk/reward consequences.

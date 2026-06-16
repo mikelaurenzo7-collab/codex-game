@@ -5,10 +5,13 @@ import {
   getEvidenceJournal,
   getEvidenceSynthesis,
   getFieldAnalysis,
+  getFrontierArrival,
+  getFrontierEncounter,
   getFrontierNetwork,
   getFrontierTraverse,
   getWorldAtlas,
   getActiveObjective,
+  resolveFrontierEncounter,
   triggerPulse,
   updateGameState
 } from "./game-state.js";
@@ -30,6 +33,20 @@ const regionRisk = document.querySelector("#regionRisk");
 const routeCount = document.querySelector("#routeCount");
 const routeList = document.querySelector("#routeList");
 const landmarkList = document.querySelector("#landmarkList");
+const arrivalPanel = document.querySelector("#arrivalPanel");
+const arrivalRoute = document.querySelector("#arrivalRoute");
+const arrivalTitle = document.querySelector("#arrivalTitle");
+const arrivalSummary = document.querySelector("#arrivalSummary");
+const arrivalEncounterTitle = document.querySelector("#arrivalEncounterTitle");
+const arrivalEncounterText = document.querySelector("#arrivalEncounterText");
+const arrivalSettlementName = document.querySelector("#arrivalSettlementName");
+const arrivalSettlementText = document.querySelector("#arrivalSettlementText");
+const arrivalResourceTitle = document.querySelector("#arrivalResourceTitle");
+const arrivalResourceText = document.querySelector("#arrivalResourceText");
+const arrivalNextHook = document.querySelector("#arrivalNextHook");
+const arrivalAction = document.querySelector("#arrivalAction");
+const arrivalActionButton = document.querySelector("#arrivalActionButton");
+const arrivalActionNote = document.querySelector("#arrivalActionNote");
 const restartButton = document.querySelector("#restartButton");
 const primerPanel = document.querySelector("#primerPanel");
 const primerTitle = document.querySelector("#primerTitle");
@@ -48,6 +65,7 @@ let state = createGameState();
 let lastTime = performance.now();
 let journalSnapshot = "";
 let atlasSnapshot = "";
+let arrivalSnapshot = "";
 let primerDismissed = false;
 
 const keyMap = new Map([
@@ -91,6 +109,13 @@ primerDismiss.addEventListener("click", () => {
   primerDismissed = true;
   primerPanel.classList.add("is-hidden");
 });
+arrivalActionButton.addEventListener("click", () => {
+  const encounter = getFrontierEncounter(state);
+  if (resolveFrontierEncounter(state, encounter.id)) {
+    arrivalSnapshot = "";
+    updateHud();
+  }
+});
 restartButton.addEventListener("click", restart);
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
@@ -99,6 +124,9 @@ requestAnimationFrame(frame);
 function restart() {
   state = createGameState();
   lastTime = performance.now();
+  journalSnapshot = "";
+  atlasSnapshot = "";
+  arrivalSnapshot = "";
 }
 
 function resizeCanvas() {
@@ -628,17 +656,24 @@ function updateHud() {
   const synthesis = getEvidenceSynthesis(state);
   const analysis = getFieldAnalysis(state);
   const traverse = getFrontierTraverse(state);
+  const arrival = getFrontierArrival(state);
+  const encounter = getFrontierEncounter(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = formatObjective(objective, analysis, traverse);
+  objectiveReadout.textContent = formatObjective(objective, analysis, traverse, encounter);
   updateJournal();
   updateAtlas();
-  updatePrimer(synthesis, analysis, traverse);
+  updateArrival(arrival, encounter);
+  updatePrimer(synthesis, analysis, traverse, encounter);
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
+  } else if (encounter.active && encounter.resolved) {
+    statusReadout.textContent = "Docking compact secured";
+  } else if (encounter.active) {
+    statusReadout.textContent = "Arrival encounter ready";
   } else if (traverse.active && !traverse.complete && traverse.inRange && input.analyze) {
     statusReadout.textContent = `Traversing ${Math.round((traverse.progress / traverse.required) * 100)}%`;
   } else if (traverse.active && traverse.complete) {
@@ -660,6 +695,53 @@ function updateHud() {
   } else {
     statusReadout.textContent = "Sweep the archive";
   }
+}
+
+function updateArrival(arrival, encounter) {
+  if (!arrival.active) {
+    arrivalPanel.classList.add("is-hidden");
+    arrivalSnapshot = "hidden";
+    return;
+  }
+
+  const signature = [
+    arrival.routeId,
+    arrival.destinationName,
+    arrival.title,
+    arrival.encounterTitle,
+    arrival.encounterText,
+    arrival.nextHook,
+    encounter.id || "none",
+    encounter.resolved,
+    encounter.note || "none"
+  ].join("|");
+
+  if (signature === arrivalSnapshot) {
+    return;
+  }
+
+  arrivalSnapshot = signature;
+  arrivalPanel.classList.remove("is-hidden");
+  arrivalRoute.textContent = `${arrival.destinationName} - ${arrival.destinationBiome}`;
+  arrivalTitle.textContent = arrival.title;
+  arrivalSummary.textContent = arrival.summary;
+  arrivalEncounterTitle.textContent = arrival.encounterTitle;
+  arrivalEncounterText.textContent = arrival.encounterText;
+  arrivalSettlementName.textContent = arrival.settlementName;
+  arrivalSettlementText.textContent = arrival.settlementText;
+  arrivalResourceTitle.textContent = arrival.resourceTitle;
+  arrivalResourceText.textContent = arrival.resourceText;
+  arrivalNextHook.textContent = arrival.nextHook;
+
+  if (!encounter.active) {
+    arrivalAction.classList.add("is-hidden");
+    return;
+  }
+
+  arrivalAction.classList.remove("is-hidden");
+  arrivalActionButton.disabled = encounter.resolved;
+  arrivalActionButton.textContent = encounter.resolved ? "Docking rights secured" : encounter.actionLabel;
+  arrivalActionNote.textContent = encounter.note;
 }
 
 function updateAtlas() {
@@ -752,7 +834,7 @@ function updateAtlas() {
   );
 }
 
-function updatePrimer(synthesis, analysis, traverse) {
+function updatePrimer(synthesis, analysis, traverse, encounter) {
   if (primerDismissed) {
     primerPanel.classList.add("is-hidden");
     return;
@@ -772,6 +854,18 @@ function updatePrimer(synthesis, analysis, traverse) {
   if (state.gate.unlocked) {
     primerTitle.textContent = "Extraction is open";
     primerText.textContent = "All fragments are recovered. Head for the extraction cairn to complete the archive thread.";
+    return;
+  }
+
+  if (encounter.active && encounter.resolved) {
+    primerTitle.textContent = "Docking rights secured";
+    primerText.textContent = "Tidelantern Quay now accepts archive salvage traffic. The coast hook points toward the drowned warehouses.";
+    return;
+  }
+
+  if (encounter.active) {
+    primerTitle.textContent = "First edge encounter";
+    primerText.textContent = "Use the arrival panel to secure docking rights and turn the linked route into a settlement foothold.";
     return;
   }
 
@@ -821,7 +915,15 @@ function updatePrimer(synthesis, analysis, traverse) {
   primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
 }
 
-function formatObjective(objective, analysis, traverse) {
+function formatObjective(objective, analysis, traverse, encounter) {
+  if (encounter.active && encounter.resolved) {
+    return "Survey drowned warehouses";
+  }
+
+  if (encounter.active) {
+    return encounter.actionLabel;
+  }
+
   if (traverse.active && traverse.route) {
     if (traverse.complete) {
       return `Frontier link secured · ${traverse.route.destinationName}`;
