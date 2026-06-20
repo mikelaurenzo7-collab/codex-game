@@ -27,4 +27,4 @@ node tests/run-all.mjs
 node scripts/serve.mjs
 ```
 
-Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, restart with `R` or the on-screen button.
+Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, use the arrival dossier buttons for settlement/coastal follow-up actions, restart with `R` or the on-screen button.

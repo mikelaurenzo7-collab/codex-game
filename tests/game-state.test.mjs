@@ -12,9 +12,11 @@ import {
   getFrontierArrival,
   getFrontierEncounter,
   getFrontierNetwork,
+  getFrontierSurvey,
   getFrontierTraverse,
   getWorldAtlas,
   resolveFrontierEncounter,
+  resolveFrontierSurveySite,
   triggerPulse,
   updateGameState
 } from "../src/game-state.js";
@@ -107,6 +109,9 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(encounter.active, false);
   assert.equal(encounter.resolved, false);
 
+  const survey = getFrontierSurvey(state);
+  assert.equal(survey.active, false);
+
   const atlas = getWorldAtlas(state);
   assert.equal(atlas.currentRegion.name, "South Intake");
   assert.equal(atlas.discoveredRegionCount, 1);
@@ -187,10 +192,38 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(state.frontier.lastEncounter.id, "tidewalk-docking-rights");
   assert.match(state.clueLog.at(-1), /Dock Steward Compact/);
 
+  const survey = getFrontierSurvey(state);
+  assert.equal(survey.active, true);
+  assert.equal(survey.complete, false);
+  assert.equal(survey.completedCount, 0);
+  assert.equal(survey.totalSiteCount, 2);
+  assert.equal(survey.nextSite.id, "north-spool-house");
+  assert.match(survey.resourceText, /two reachable warehouses/i);
+  assert.equal(resolveFrontierSurveySite(state, "wrong-site"), false);
+  assert.equal(resolveFrontierSurveySite(state, "north-spool-house"), true);
+  assert.equal(resolveFrontierSurveySite(state, "north-spool-house"), false);
+
+  const midpointSurvey = getFrontierSurvey(state);
+  assert.equal(midpointSurvey.completedCount, 1);
+  assert.equal(midpointSurvey.complete, false);
+  assert.equal(midpointSurvey.nextSite.id, "lamp-black-warehouse");
+  assert.match(midpointSurvey.resourceTitle, /North Spool House/);
+  assert.match(state.clueLog.at(-1), /upper racks/);
+  assert.equal(resolveFrontierSurveySite(state, "lamp-black-warehouse"), true);
+
+  const completedSurvey = getFrontierSurvey(state);
+  assert.equal(completedSurvey.complete, true);
+  assert.equal(completedSurvey.hostileSalvageMarked, true);
+  assert.equal(completedSurvey.nextSite, null);
+  assert.match(completedSurvey.resourceTitle, /Hostile Salvage Mark/);
+  assert.match(completedSurvey.nextHook, /intercept, bargain, or shadow/i);
+  assert.match(state.clueLog.at(-1), /Hostile Salvage Mark/);
+
   const resolvedArrival = getFrontierArrival(state);
   assert.equal(resolvedArrival.encounterTitle, "Dock Steward Compact");
   assert.match(resolvedArrival.encounterText, /tide map/);
-  assert.match(resolvedArrival.nextHook, /drowned warehouses/);
+  assert.match(resolvedArrival.resourceTitle, /Hostile Salvage Mark/);
+  assert.match(resolvedArrival.nextHook, /hostile salvage mark/i);
 
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);

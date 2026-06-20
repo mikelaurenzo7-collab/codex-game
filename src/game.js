@@ -8,10 +8,12 @@ import {
   getFrontierArrival,
   getFrontierEncounter,
   getFrontierNetwork,
+  getFrontierSurvey,
   getFrontierTraverse,
   getWorldAtlas,
   getActiveObjective,
   resolveFrontierEncounter,
+  resolveFrontierSurveySite,
   triggerPulse,
   updateGameState
 } from "./game-state.js";
@@ -47,6 +49,10 @@ const arrivalNextHook = document.querySelector("#arrivalNextHook");
 const arrivalAction = document.querySelector("#arrivalAction");
 const arrivalActionButton = document.querySelector("#arrivalActionButton");
 const arrivalActionNote = document.querySelector("#arrivalActionNote");
+const arrivalSurvey = document.querySelector("#arrivalSurvey");
+const arrivalSurveyTitle = document.querySelector("#arrivalSurveyTitle");
+const arrivalSurveyText = document.querySelector("#arrivalSurveyText");
+const arrivalSurveyList = document.querySelector("#arrivalSurveyList");
 const restartButton = document.querySelector("#restartButton");
 const primerPanel = document.querySelector("#primerPanel");
 const primerTitle = document.querySelector("#primerTitle");
@@ -112,6 +118,17 @@ primerDismiss.addEventListener("click", () => {
 arrivalActionButton.addEventListener("click", () => {
   const encounter = getFrontierEncounter(state);
   if (resolveFrontierEncounter(state, encounter.id)) {
+    arrivalSnapshot = "";
+    updateHud();
+  }
+});
+arrivalSurveyList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-site-id]");
+  if (!button) {
+    return;
+  }
+
+  if (resolveFrontierSurveySite(state, button.dataset.siteId)) {
     arrivalSnapshot = "";
     updateHud();
   }
@@ -658,18 +675,23 @@ function updateHud() {
   const traverse = getFrontierTraverse(state);
   const arrival = getFrontierArrival(state);
   const encounter = getFrontierEncounter(state);
+  const survey = getFrontierSurvey(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = formatObjective(objective, analysis, traverse, encounter);
+  objectiveReadout.textContent = formatObjective(objective, analysis, traverse, encounter, survey);
   updateJournal();
   updateAtlas();
-  updateArrival(arrival, encounter);
-  updatePrimer(synthesis, analysis, traverse, encounter);
+  updateArrival(arrival, encounter, survey);
+  updatePrimer(synthesis, analysis, traverse, encounter, survey);
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
+  } else if (survey.active && survey.complete) {
+    statusReadout.textContent = "Coastal threat mapped";
+  } else if (survey.active) {
+    statusReadout.textContent = "Coastal survey ready";
   } else if (encounter.active && encounter.resolved) {
     statusReadout.textContent = "Docking compact secured";
   } else if (encounter.active) {
@@ -697,7 +719,7 @@ function updateHud() {
   }
 }
 
-function updateArrival(arrival, encounter) {
+function updateArrival(arrival, encounter, survey) {
   if (!arrival.active) {
     arrivalPanel.classList.add("is-hidden");
     arrivalSnapshot = "hidden";
@@ -713,7 +735,10 @@ function updateArrival(arrival, encounter) {
     arrival.nextHook,
     encounter.id || "none",
     encounter.resolved,
-    encounter.note || "none"
+    encounter.note || "none",
+    survey.active,
+    survey.complete,
+    survey.sites.map((site) => `${site.id}:${site.completed}`).join(",")
   ].join("|");
 
   if (signature === arrivalSnapshot) {
@@ -735,6 +760,7 @@ function updateArrival(arrival, encounter) {
 
   if (!encounter.active) {
     arrivalAction.classList.add("is-hidden");
+    arrivalSurvey.classList.add("is-hidden");
     return;
   }
 
@@ -742,6 +768,35 @@ function updateArrival(arrival, encounter) {
   arrivalActionButton.disabled = encounter.resolved;
   arrivalActionButton.textContent = encounter.resolved ? "Docking rights secured" : encounter.actionLabel;
   arrivalActionNote.textContent = encounter.note;
+
+  if (!survey.active) {
+    arrivalSurvey.classList.add("is-hidden");
+    return;
+  }
+
+  arrivalSurvey.classList.remove("is-hidden");
+  arrivalSurveyTitle.textContent = `${survey.title} ${survey.completedCount}/${survey.totalSiteCount}`;
+  arrivalSurveyText.textContent = survey.complete ? survey.resourceText : survey.summary;
+  arrivalSurveyList.replaceChildren(
+    ...survey.sites.map((site) => {
+      const item = document.createElement("li");
+      item.className = "arrival-survey-item";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "arrival-action-button";
+      button.dataset.siteId = site.id;
+      button.disabled = site.completed || survey.complete;
+      button.textContent = site.completed ? `${site.title} surveyed` : `Survey ${site.title}`;
+
+      const detail = document.createElement("span");
+      detail.className = "arrival-survey-detail";
+      detail.textContent = site.completed ? site.result : site.briefing;
+
+      item.append(button, detail);
+      return item;
+    })
+  );
 }
 
 function updateAtlas() {
@@ -834,7 +889,7 @@ function updateAtlas() {
   );
 }
 
-function updatePrimer(synthesis, analysis, traverse, encounter) {
+function updatePrimer(synthesis, analysis, traverse, encounter, survey) {
   if (primerDismissed) {
     primerPanel.classList.add("is-hidden");
     return;
@@ -854,6 +909,18 @@ function updatePrimer(synthesis, analysis, traverse, encounter) {
   if (state.gate.unlocked) {
     primerTitle.textContent = "Extraction is open";
     primerText.textContent = "All fragments are recovered. Head for the extraction cairn to complete the archive thread.";
+    return;
+  }
+
+  if (survey.active && survey.complete) {
+    primerTitle.textContent = "Coastal threat identified";
+    primerText.textContent = "The warehouse survey exposed a hostile salvage mark. Tidewalk Coast now has a concrete faction trail for a later field slice.";
+    return;
+  }
+
+  if (survey.active && survey.nextSite) {
+    primerTitle.textContent = "Continue the coastal survey";
+    primerText.textContent = `Use the arrival dossier to survey ${survey.nextSite.title} and turn the hamlet foothold into a real lead.`;
     return;
   }
 
@@ -915,9 +982,17 @@ function updatePrimer(synthesis, analysis, traverse, encounter) {
   primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
 }
 
-function formatObjective(objective, analysis, traverse, encounter) {
+function formatObjective(objective, analysis, traverse, encounter, survey) {
+  if (survey.active && survey.complete) {
+    return "Track hostile salvage mark";
+  }
+
+  if (survey.active && survey.nextSite) {
+    return `Survey ${survey.nextSite.title}`;
+  }
+
   if (encounter.active && encounter.resolved) {
-    return "Survey drowned warehouses";
+    return "Review coastal survey map";
   }
 
   if (encounter.active) {

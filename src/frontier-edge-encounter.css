@@ -41,3 +41,22 @@
   line-height: 1.35;
   color: rgba(243, 240, 220, 0.78);
 }
+
+.arrival-survey-list {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arrival-survey-item {
+  display: grid;
+  gap: 4px;
+}
+
+.arrival-survey-detail {
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(243, 240, 220, 0.78);
+}

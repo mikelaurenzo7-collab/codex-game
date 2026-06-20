@@ -431,6 +431,35 @@ const FRONTIER_EDGE_ENCOUNTERS = {
   }
 };
 
+const FRONTIER_SURVEY_OPERATIONS = {
+  "intake-coastline-lift": {
+    title: "Drowned Warehouse Survey",
+    summary:
+      "Two tide-marked warehouses sit downshore from Tidelantern Quay. The stewards want proof of what remains useful and who reached them first.",
+    completionTitle: "Hostile Salvage Mark",
+    completionText:
+      "Comparing both warehouse logs reveals a painted salvage mark used by an unknown crew stripping the coast ahead of the hamlet.",
+    sites: [
+      {
+        id: "north-spool-house",
+        title: "North Spool House",
+        briefing:
+          "Survey the cable store built over the old winch trench and check whether the lifted crates were opened by stormwater or tools.",
+        result:
+          "Recovered salt-proof cable manifests and fresh pry scars, which proves someone competent stripped the upper racks before the tide returned."
+      },
+      {
+        id: "lamp-black-warehouse",
+        title: "Lampblack Storehouse",
+        briefing:
+          "Inspect the lantern-oil warehouse on the outer pilings and compare the missing stock against the stewards' last intact tide ledger.",
+        result:
+          "Recovered a lamp ledger and a black tar salvage mark, showing the same crew is taking fuel, mapping routes, and moving deeper along the coast."
+      }
+    ]
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
@@ -466,9 +495,11 @@ export function createGameState() {
     frontier: {
       traversedRouteIds: [],
       resolvedEncounterIds: [],
+      surveyedSiteIds: [],
       routeProgress: {},
       lastTraverse: null,
-      lastEncounter: null
+      lastEncounter: null,
+      lastSurvey: null
     }
   };
   resolveWorldSurvey(state);
@@ -718,6 +749,7 @@ export function getFrontierArrival(state) {
   }
 
   const encounter = getFrontierEncounter(state);
+  const survey = getFrontierSurvey(state);
   const resolvedEncounter = encounter.active && encounter.resolved;
 
   return {
@@ -732,9 +764,9 @@ export function getFrontierArrival(state) {
     encounterText: resolvedEncounter ? encounter.resolvedText : arrival.encounterText,
     settlementName: arrival.settlementName,
     settlementText: arrival.settlementText,
-    resourceTitle: arrival.resourceTitle,
-    resourceText: arrival.resourceText,
-    nextHook: resolvedEncounter ? encounter.resolvedHook : arrival.nextHook
+    resourceTitle: survey.active ? survey.resourceTitle : arrival.resourceTitle,
+    resourceText: survey.active ? survey.resourceText : arrival.resourceText,
+    nextHook: survey.active ? survey.nextHook : resolvedEncounter ? encounter.resolvedHook : arrival.nextHook
   };
 }
 
@@ -784,6 +816,91 @@ export function resolveFrontierEncounter(state, encounterId = null) {
     resolvedAt: state.time
   };
   state.clueLog.push(`Edge encounter resolved: ${encounter.resolvedTitle}`);
+  return true;
+}
+
+export function getFrontierSurvey(state) {
+  const routeId = getFrontierArrivalRouteId(state);
+  const encounter = getFrontierEncounter(state);
+  if (!routeId || !encounter.active || !encounter.resolved) {
+    return inactiveFrontierSurvey();
+  }
+
+  const operation = FRONTIER_SURVEY_OPERATIONS[routeId];
+  if (!operation) {
+    return inactiveFrontierSurvey();
+  }
+
+  const surveyedSiteIds = state.frontier?.surveyedSiteIds || [];
+  const sites = operation.sites.map((site) => ({
+    id: site.id,
+    title: site.title,
+    briefing: site.briefing,
+    result: site.result,
+    completed: surveyedSiteIds.includes(site.id)
+  }));
+  const completedCount = sites.filter((site) => site.completed).length;
+  const nextSite = sites.find((site) => !site.completed) || null;
+  const complete = completedCount === sites.length;
+  const lastSurveyId = state.frontier?.lastSurvey?.siteId || null;
+  const lastSite = sites.find((site) => site.id === lastSurveyId) || null;
+
+  return {
+    active: true,
+    complete,
+    routeId,
+    title: operation.title,
+    summary: operation.summary,
+    completedCount,
+    totalSiteCount: sites.length,
+    hostileSalvageMarked: complete,
+    resourceTitle: complete
+      ? operation.completionTitle
+      : lastSite
+        ? `Surveyed: ${lastSite.title}`
+        : "Coastal survey map",
+    resourceText: complete
+      ? operation.completionText
+      : lastSite
+        ? lastSite.result
+        : "The stewards marked two reachable warehouses. Survey both to identify what can still feed the hamlet and what threat is moving ahead of it.",
+    nextHook: complete
+      ? "Track the hostile salvage mark deeper along Tidewalk Coast and decide whether to intercept, bargain, or shadow the crew."
+      : nextSite
+        ? `Next survey target: ${nextSite.title}. ${nextSite.briefing}`
+        : "Survey complete.",
+    sites,
+    nextSite
+  };
+}
+
+export function resolveFrontierSurveySite(state, siteId) {
+  const survey = getFrontierSurvey(state);
+  if (!survey.active || survey.complete) {
+    return false;
+  }
+
+  const site = survey.sites.find((candidate) => candidate.id === siteId);
+  if (!site || site.completed) {
+    return false;
+  }
+
+  state.frontier.surveyedSiteIds ||= [];
+  remember(state.frontier.surveyedSiteIds, site.id);
+  state.frontier.lastSurvey = {
+    routeId: survey.routeId,
+    siteId: site.id,
+    title: site.title,
+    surveyedAt: state.time
+  };
+  state.clueLog.push(`Warehouse surveyed: ${site.title}`);
+  state.clueLog.push(site.result);
+
+  const nextSurvey = getFrontierSurvey(state);
+  if (nextSurvey.complete) {
+    state.clueLog.push(`Threat marked: ${FRONTIER_SURVEY_OPERATIONS[survey.routeId].completionTitle}`);
+  }
+
   return true;
 }
 
@@ -1181,6 +1298,24 @@ function inactiveFrontierEncounter() {
     resolvedNote: null,
     resolvedHook: null,
     note: null
+  };
+}
+
+function inactiveFrontierSurvey() {
+  return {
+    active: false,
+    complete: false,
+    routeId: null,
+    title: null,
+    summary: null,
+    completedCount: 0,
+    totalSiteCount: 0,
+    hostileSalvageMarked: false,
+    resourceTitle: null,
+    resourceText: null,
+    nextHook: null,
+    sites: [],
+    nextSite: null
   };
 }
 

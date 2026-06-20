@@ -26,6 +26,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Frontier traversal is surfaced in the playable client with gate progress rings, linked-route labels, route-launch guidance, and atlas messaging for charted versus linked routes.
 - The playable shell now includes a dismissible in-game archive primer with live contextual guidance so first-session players can learn controls and the current phase of the loop without leaving the game view.
 - Tidewalk Coast now has a state-backed arrival edge encounter: after linking the archive lift route, the player can secure docking rights with Tidelantern Quay and update the next coastal hook through deterministic frontier state.
+- Resolved Tidewalk docking rights now unlock a state-backed coastal survey operation with two drowned warehouse leads, persistent survey progress, and a hostile salvage mark that becomes the next frontier consequence.
 
 ## Operating Rules
 
@@ -215,3 +216,20 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** Browser was used for local playable UI validation. GitHub remains the repository remote. No other external plugins or services were used.
 - **Learned Constraints:** The first edge encounter should remain in game state, not page-local storage, so future route persistence, save/load, and settlement systems can reuse the same facts.
 - **Next Bottleneck:** Make the resolved Tidewalk foothold create a playable coastal micro-objective, such as surveying one drowned warehouse, discovering a hostile salvage mark, or unlocking a Tidewalk route choice with risk/reward consequences.
+
+### 0011 - Tidewalk Warehouse Survey
+
+- **State Assessment:** Tidewalk Coast had a durable arrival and settlement consequence, but the route still stopped at a greeting. The single greatest bottleneck was the lack of a follow-up action that converted the new foothold into playable frontier intelligence.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** The right next step was a compact follow-up subsystem, not a larger map chunk or a prose-only world note. A state-backed coastal survey extends the existing frontier loop with one player-facing choice surface and durable consequences.
+- **Plan Critique:** Building a full coastal map slice in one run would spread effort across traversal, rendering, collision, and content authoring without proving the next frontier handoff. A narrower dossier-driven survey loop is more pragmatic: it is testable now and can later point into a true coastal field scene.
+- **Execution Plan:**
+  - **Specific Tasks:** Add a Tidewalk coastal survey state model; expose pure selectors and resolution actions for warehouse leads; update the arrival dossier to render survey choices and results; extend tests for survey progression and final hostile-mark discovery; update design and README docs.
+  - **Technology Stack Justification:** The current vanilla Canvas plus deterministic state model remains appropriate because the new work is frontier simulation and HUD interaction, not scene streaming. Keeping the survey in `src/game-state.js` preserves future reuse for save/load, faction trails, and later coastal scenes.
+  - **Success Metrics:** After securing docking rights, the arrival dossier exposes two survey targets; each target can be resolved exactly once; the dossier resource and hook text update after each survey; completing both sites reveals a hostile salvage mark and a new forward hook; local state tests pass.
+  - **Risk Mitigation:** The survey loop stays additive and off-map, so it does not destabilize the archive route. The outcome is stored in deterministic frontier state, which avoids another one-off DOM-only branch.
+- **Work Completed:** Added `FRONTIER_SURVEY_OPERATIONS`, `getFrontierSurvey`, and `resolveFrontierSurveySite`; tracked persistent surveyed-site state and last-survey records; updated arrival dossier rendering with coastal survey actions; added survey-specific styles and markup; updated README and design brief text.
+- **Validation Evidence:** Bundled Node test run passed with `game-state tests passed` using `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe`. Local server smoke via `node scripts/serve.mjs` plus `Invoke-WebRequest http://127.0.0.1:5173` returned the updated arrival dossier markup including the new `arrivalSurvey` block. The in-app Browser tool was not exposed in this run, so live browser interaction was not available.
+- **External Services Used:** GitHub remains the repository remote. No other external services were required for this iteration.
+- **Learned Constraints:** When the Browser tool is unavailable, keep the iteration state-first and verify local page delivery with the built-in server plus deterministic tests rather than deferring the feature entirely.
+- **Next Bottleneck:** Turn the hostile salvage mark into an in-world consequence, such as a coastal faction track, route choice, or confrontation that feeds back into traversal and settlement trust.
