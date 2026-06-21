@@ -8,9 +8,12 @@ import {
   getFrontierArrival,
   getFrontierEncounter,
   getFrontierNetwork,
+  getFrontierRouteChoice,
   getFrontierSurvey,
   getFrontierTraverse,
   getWorldAtlas,
+  getBlackKeelStorylet,
+  chooseFrontierRoute,
   getActiveObjective,
   resolveFrontierEncounter,
   resolveFrontierSurveySite,
@@ -53,6 +56,17 @@ const arrivalSurvey = document.querySelector("#arrivalSurvey");
 const arrivalSurveyTitle = document.querySelector("#arrivalSurveyTitle");
 const arrivalSurveyText = document.querySelector("#arrivalSurveyText");
 const arrivalSurveyList = document.querySelector("#arrivalSurveyList");
+const arrivalRouteChoice = document.querySelector("#arrivalRouteChoice");
+const arrivalRouteChoiceTitle = document.querySelector("#arrivalRouteChoiceTitle");
+const arrivalRouteChoiceText = document.querySelector("#arrivalRouteChoiceText");
+const arrivalRouteChoiceList = document.querySelector("#arrivalRouteChoiceList");
+const arrivalStorylet = document.querySelector("#arrivalStorylet");
+const arrivalStoryletTitle = document.querySelector("#arrivalStoryletTitle");
+const arrivalStoryletHeadline = document.querySelector("#arrivalStoryletHeadline");
+const arrivalStoryletOpening = document.querySelector("#arrivalStoryletOpening");
+const arrivalStoryletTwist = document.querySelector("#arrivalStoryletTwist");
+const arrivalStoryletReward = document.querySelector("#arrivalStoryletReward");
+const arrivalStoryletNextHook = document.querySelector("#arrivalStoryletNextHook");
 const restartButton = document.querySelector("#restartButton");
 const primerPanel = document.querySelector("#primerPanel");
 const primerTitle = document.querySelector("#primerTitle");
@@ -129,6 +143,17 @@ arrivalSurveyList.addEventListener("click", (event) => {
   }
 
   if (resolveFrontierSurveySite(state, button.dataset.siteId)) {
+    arrivalSnapshot = "";
+    updateHud();
+  }
+});
+arrivalRouteChoiceList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-choice-id]");
+  if (!button) {
+    return;
+  }
+
+  if (chooseFrontierRoute(state, button.dataset.choiceId)) {
     arrivalSnapshot = "";
     updateHud();
   }
@@ -676,18 +701,24 @@ function updateHud() {
   const arrival = getFrontierArrival(state);
   const encounter = getFrontierEncounter(state);
   const survey = getFrontierSurvey(state);
+  const routeChoice = getFrontierRouteChoice(state);
+  const storylet = getBlackKeelStorylet(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = formatObjective(objective, analysis, traverse, encounter, survey);
+  objectiveReadout.textContent = formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet);
   updateJournal();
   updateAtlas();
-  updateArrival(arrival, encounter, survey);
-  updatePrimer(synthesis, analysis, traverse, encounter, survey);
+  updateArrival(arrival, encounter, survey, routeChoice, storylet);
+  updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet);
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
+  } else if (storylet.active) {
+    statusReadout.textContent = "Black-Keel fallout active";
+  } else if (routeChoice.active && !routeChoice.selectedChoice) {
+    statusReadout.textContent = "Choose Tidewalk route";
   } else if (survey.active && survey.complete) {
     statusReadout.textContent = "Coastal threat mapped";
   } else if (survey.active) {
@@ -719,7 +750,7 @@ function updateHud() {
   }
 }
 
-function updateArrival(arrival, encounter, survey) {
+function updateArrival(arrival, encounter, survey, routeChoice, storylet) {
   if (!arrival.active) {
     arrivalPanel.classList.add("is-hidden");
     arrivalSnapshot = "hidden";
@@ -738,7 +769,11 @@ function updateArrival(arrival, encounter, survey) {
     encounter.note || "none",
     survey.active,
     survey.complete,
-    survey.sites.map((site) => `${site.id}:${site.completed}`).join(",")
+    survey.sites.map((site) => `${site.id}:${site.completed}`).join(","),
+    routeChoice.active,
+    routeChoice.selectedChoice?.id || "none",
+    storylet.active,
+    storylet.id || "none"
   ].join("|");
 
   if (signature === arrivalSnapshot) {
@@ -761,6 +796,8 @@ function updateArrival(arrival, encounter, survey) {
   if (!encounter.active) {
     arrivalAction.classList.add("is-hidden");
     arrivalSurvey.classList.add("is-hidden");
+    arrivalRouteChoice.classList.add("is-hidden");
+    arrivalStorylet.classList.add("is-hidden");
     return;
   }
 
@@ -771,6 +808,8 @@ function updateArrival(arrival, encounter, survey) {
 
   if (!survey.active) {
     arrivalSurvey.classList.add("is-hidden");
+    arrivalRouteChoice.classList.add("is-hidden");
+    arrivalStorylet.classList.add("is-hidden");
     return;
   }
 
@@ -797,6 +836,55 @@ function updateArrival(arrival, encounter, survey) {
       return item;
     })
   );
+
+  if (!routeChoice.active) {
+    arrivalRouteChoice.classList.add("is-hidden");
+    arrivalStorylet.classList.add("is-hidden");
+    return;
+  }
+
+  arrivalRouteChoice.classList.remove("is-hidden");
+  arrivalRouteChoiceTitle.textContent = routeChoice.selectedChoice
+    ? `Selected: ${routeChoice.selectedChoice.label}`
+    : "Choose a coastal line";
+  arrivalRouteChoiceText.textContent = routeChoice.prompt;
+  arrivalRouteChoiceList.replaceChildren(
+    ...routeChoice.choices.map((choice) => {
+      const item = document.createElement("li");
+      item.className = "arrival-survey-item";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "arrival-action-button";
+      button.dataset.choiceId = choice.id;
+      button.disabled = Boolean(routeChoice.selectedChoice);
+      button.textContent = routeChoice.selectedChoice
+        ? choice.selected
+          ? `${choice.label} selected`
+          : choice.label
+        : `Choose ${choice.label}`;
+
+      const detail = document.createElement("span");
+      detail.className = "arrival-choice-detail";
+      detail.textContent = `Risk ${choice.risk}/5 | ${choice.reward} | ${choice.consequence}`;
+
+      item.append(button, detail);
+      return item;
+    })
+  );
+
+  if (!storylet.active) {
+    arrivalStorylet.classList.add("is-hidden");
+    return;
+  }
+
+  arrivalStorylet.classList.remove("is-hidden");
+  arrivalStoryletTitle.textContent = storylet.title;
+  arrivalStoryletHeadline.textContent = storylet.headline;
+  arrivalStoryletOpening.textContent = storylet.opening;
+  arrivalStoryletTwist.textContent = storylet.twist;
+  arrivalStoryletReward.textContent = `Reward: ${storylet.reward}`;
+  arrivalStoryletNextHook.textContent = `Next hook: ${storylet.nextHook}`;
 }
 
 function updateAtlas() {
@@ -889,7 +977,7 @@ function updateAtlas() {
   );
 }
 
-function updatePrimer(synthesis, analysis, traverse, encounter, survey) {
+function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet) {
   if (primerDismissed) {
     primerPanel.classList.add("is-hidden");
     return;
@@ -912,9 +1000,21 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey) {
     return;
   }
 
+  if (storylet.active) {
+    primerTitle.textContent = storylet.title;
+    primerText.textContent = `Tidewalk Coast now has consequence. ${storylet.nextHook}`;
+    return;
+  }
+
+  if (routeChoice.active && !routeChoice.selectedChoice) {
+    primerTitle.textContent = "Choose the Tidewalk line";
+    primerText.textContent = "The hostile salvage mark is confirmed. Use the arrival dossier to commit to the safer lantern line or the riskier countermark pursuit.";
+    return;
+  }
+
   if (survey.active && survey.complete) {
     primerTitle.textContent = "Coastal threat identified";
-    primerText.textContent = "The warehouse survey exposed a hostile salvage mark. Tidewalk Coast now has a concrete faction trail for a later field slice.";
+    primerText.textContent = "The warehouse survey exposed a hostile salvage mark. Choose a Tidewalk route so the coast produces real faction fallout instead of a stalled lead.";
     return;
   }
 
@@ -982,9 +1082,19 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey) {
   primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
 }
 
-function formatObjective(objective, analysis, traverse, encounter, survey) {
+function formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet) {
+  if (storylet.active) {
+    return storylet.selectedChoice.id === "black-keel-countermark"
+      ? "Shadow Black-Keel cache lead"
+      : "Question lantern tender witness";
+  }
+
+  if (routeChoice.active && !routeChoice.selectedChoice) {
+    return "Choose Tidewalk route";
+  }
+
   if (survey.active && survey.complete) {
-    return "Track hostile salvage mark";
+    return "Commit Tidewalk route";
   }
 
   if (survey.active && survey.nextSite) {

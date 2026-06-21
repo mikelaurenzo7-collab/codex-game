@@ -12,9 +12,12 @@ import {
   getFrontierArrival,
   getFrontierEncounter,
   getFrontierNetwork,
+  getFrontierRouteChoice,
   getFrontierSurvey,
   getFrontierTraverse,
   getWorldAtlas,
+  getBlackKeelStorylet,
+  chooseFrontierRoute,
   resolveFrontierEncounter,
   resolveFrontierSurveySite,
   triggerPulse,
@@ -111,6 +114,12 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
 
   const survey = getFrontierSurvey(state);
   assert.equal(survey.active, false);
+
+  const routeChoice = getFrontierRouteChoice(state);
+  assert.equal(routeChoice.active, false);
+
+  const storylet = getBlackKeelStorylet(state);
+  assert.equal(storylet.active, false);
 
   const atlas = getWorldAtlas(state);
   assert.equal(atlas.currentRegion.name, "South Intake");
@@ -215,15 +224,40 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(completedSurvey.complete, true);
   assert.equal(completedSurvey.hostileSalvageMarked, true);
   assert.equal(completedSurvey.nextSite, null);
+  assert.deepEqual(new Set(completedSurvey.discoveredClueIds), new Set(["warehouse-ledger", "black-keel-mark"]));
   assert.match(completedSurvey.resourceTitle, /Hostile Salvage Mark/);
   assert.match(completedSurvey.nextHook, /intercept, bargain, or shadow/i);
   assert.match(state.clueLog.at(-1), /Hostile Salvage Mark/);
 
+  const routeChoice = getFrontierRouteChoice(state);
+  assert.equal(routeChoice.active, true);
+  assert.equal(routeChoice.selectedChoice, null);
+  assert.equal(routeChoice.choices.length, 2);
+  assert.match(routeChoice.prompt, /Choose whether Tidewalk Coast stabilizes/i);
+  assert.equal(chooseFrontierRoute(state, "wrong-choice"), false);
+  assert.equal(chooseFrontierRoute(state, "black-keel-countermark"), true);
+  assert.equal(chooseFrontierRoute(state, "quay-safe-lantern-line"), false);
+  assert.match(state.clueLog.at(-1), /hostile salvage network/i);
+
+  const selectedRouteChoice = getFrontierRouteChoice(state);
+  assert.equal(selectedRouteChoice.selectedChoice.id, "black-keel-countermark");
+
+  const storylet = getBlackKeelStorylet(state);
+  assert.equal(storylet.active, true);
+  assert.equal(storylet.id, "countermark-pursuit");
+  assert.equal(storylet.selectedChoice.id, "black-keel-countermark");
+  assert.equal(storylet.knowsBlackKeel, true);
+  assert.equal(storylet.factionPressure, 5);
+  assert.equal(storylet.settlementTrust, 2);
+  assert.match(storylet.nextHook, /ambush the cache crew|shadow them/i);
+  assert.ok(storylet.unlockedFlags.includes("black-keel-cache"));
+
   const resolvedArrival = getFrontierArrival(state);
   assert.equal(resolvedArrival.encounterTitle, "Dock Steward Compact");
   assert.match(resolvedArrival.encounterText, /tide map/);
-  assert.match(resolvedArrival.resourceTitle, /Hostile Salvage Mark/);
-  assert.match(resolvedArrival.nextHook, /hostile salvage mark/i);
+  assert.match(resolvedArrival.resourceTitle, /Countermark Pursuit/);
+  assert.match(resolvedArrival.resourceText, /hidden salvage cache/i);
+  assert.match(resolvedArrival.nextHook, /ambush the cache crew|shadow them/i);
 
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);

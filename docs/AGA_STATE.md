@@ -27,6 +27,8 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - The playable shell now includes a dismissible in-game archive primer with live contextual guidance so first-session players can learn controls and the current phase of the loop without leaving the game view.
 - Tidewalk Coast now has a state-backed arrival edge encounter: after linking the archive lift route, the player can secure docking rights with Tidelantern Quay and update the next coastal hook through deterministic frontier state.
 - Resolved Tidewalk docking rights now unlock a state-backed coastal survey operation with two drowned warehouse leads, persistent survey progress, and a hostile salvage mark that becomes the next frontier consequence.
+- Completed Tidewalk warehouse surveys now unlock a live route-choice step in the arrival dossier, with persistent clue state, chosen coastal line memory, and Black-Keel fallout surfaced directly in the playable HUD.
+- Tidewalk route-choice consequences now expose deterministic faction pressure, settlement trust, rewards, unlocked flags, and next hooks so the first coastal foothold produces authored world fallout instead of a dead-end clue.
 
 ## Operating Rules
 
@@ -233,3 +235,20 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** GitHub remains the repository remote. No other external services were required for this iteration.
 - **Learned Constraints:** When the Browser tool is unavailable, keep the iteration state-first and verify local page delivery with the built-in server plus deterministic tests rather than deferring the feature entirely.
 - **Next Bottleneck:** Turn the hostile salvage mark into an in-world consequence, such as a coastal faction track, route choice, or confrontation that feeds back into traversal and settlement trust.
+
+### 0012 - Tidewalk Route Consequences
+
+- **State Assessment:** The repository already contained detached Tidewalk route-choice and Black-Keel storylet modules plus newer automation notes, but the live `src/game-state.js` and arrival dossier still stopped at warehouse survey completion. The single greatest bottleneck was integration: the first coastal faction consequence existed on the side, not in the playable state model.
+- **Strategic Choice:** D. Technical/Polish Overhaul.
+- **Justification:** The next high-leverage move was not another new subsystem. The game needed to make its existing Tidewalk consequence layer playable, persistent, and visible inside the real vertical slice before adding more frontier geography.
+- **Plan Critique:** A deeper coast confrontation this run would compound content on top of a disconnected UI/state seam. The corrected plan was to fold route choice and fallout into the core frontier model first, then let a later run turn the chosen consequence into a field scene or faction encounter.
+- **Execution Plan:**
+  - **Specific Tasks:** Add persistent coastal clue and route-choice fields to frontier state; expose pure selectors/actions for Tidewalk route choice and Black-Keel fallout; wire the arrival dossier to render route-choice buttons and consequence copy; extend the core state suite to validate the full traversal -> docking rights -> warehouse survey -> route choice -> fallout chain.
+  - **Technology Stack Justification:** The existing vanilla Canvas plus deterministic state model remains the right stack because the missing work was integration and UI readability, not rendering scale. Keeping the consequence layer in `src/game-state.js` preserves save/load and future faction reuse without adding dependencies.
+  - **Success Metrics:** Completing both warehouse surveys exposes a selectable Tidewalk route choice; the chosen route persists in frontier state; the arrival dossier shows the selected consequence and next hook; full local tests pass; the served page contains the new dossier sections.
+  - **Risk Mitigation:** The new work is additive and scoped to Tidewalk Coast. Existing traversal, encounter, and survey flows remain in place, and the main state test now protects the entire consequence chain from regression.
+- **Work Completed:** Added persistent `discoveredCoastalClueIds`, `selectedRouteChoiceId`, and `lastRouteChoice` frontier state; added exported Tidewalk route choices plus `getFrontierRouteChoice`, `chooseFrontierRoute`, and `getBlackKeelStorylet`; upgraded `getFrontierArrival` and `getFrontierSurvey` to reflect selected fallout; wired new route-choice and Black-Keel dossier sections into `index.html`, `src/game.js`, and `src/styles.css`; updated README copy and extended `tests/game-state.test.mjs` to cover the full coastal consequence flow.
+- **Validation Evidence:** `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe tests/run-all.mjs` passed with `game-state tests passed`, `tidewalk coastal objective tests passed`, and `black-keel storylet tests passed`. Local server smoke via `node scripts/serve.mjs` plus `Invoke-WebRequest http://127.0.0.1:5173` returned the new `arrivalRouteChoice` and `arrivalStorylet` dossier markup.
+- **External Services Used:** GitHub remains the repository remote. No other external services were required for this iteration.
+- **Learned Constraints:** Detached prototype modules can drift ahead of the live vertical slice; when that happens, the next safe move is to consolidate the working path into the core state model before authoring more frontier content.
+- **Next Bottleneck:** Turn one Tidewalk consequence into a spatially playable coastal scene or encounter so the chosen route changes where the player goes next, not just what the dossier says.

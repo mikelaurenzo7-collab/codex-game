@@ -460,6 +460,58 @@ const FRONTIER_SURVEY_OPERATIONS = {
   }
 };
 
+export const TIDEWALK_ROUTE_CHOICES = [
+  {
+    id: "quay-safe-lantern-line",
+    label: "Lantern Line",
+    risk: 2,
+    reward: "Reliable batteries and a safer return path to the archive lift.",
+    consequence: "The quay trusts the route, but rival salvagers gain time to erase their next mark."
+  },
+  {
+    id: "black-keel-countermark",
+    label: "Countermark Trail",
+    risk: 4,
+    reward: "A direct lead toward the Black-Keel crew and their hidden salvage cache.",
+    consequence: "The player becomes visible to a hostile salvage network before the coast is secure."
+  }
+];
+
+const BLACK_KEEL_STORYLETS = {
+  "quay-safe-lantern-line": {
+    id: "lantern-line-afterglow",
+    title: "Lantern Line Afterglow",
+    factionPressure: 1,
+    settlementTrust: 4,
+    opening:
+      "By dawn, Tidelantern Quay has strung a low lantern chain from the archive lift to Brinehook Warehouse.",
+    twist:
+      "The safer route steadies the dock stewards, but Black-Keel runners use the delay to lift their freshest marks from the lower piers.",
+    reward:
+      "Salt-proof batteries and a lantern escort are now available to any archive crew returning inland.",
+    nextHook:
+      "Question the lantern tender who saw a black-painted skiff leave before the route was lit.",
+    unlockedFlags: ["quay-battery-cache", "lantern-tender-witness"],
+    riskTags: ["low-threat", "lost-time", "settlement-favor"]
+  },
+  "black-keel-countermark": {
+    id: "countermark-pursuit",
+    title: "Countermark Pursuit",
+    factionPressure: 4,
+    settlementTrust: 2,
+    opening:
+      "The countermark trail leads under the warehouse pilings, where wet black paint is still bleeding into the tide.",
+    twist:
+      "Black-Keel spotters now know someone from the archive can read their route language and follow it on purpose.",
+    reward:
+      "A hidden salvage cache can be reached before the crew strips it clean.",
+    nextHook:
+      "Choose whether to ambush the cache crew or shadow them back to the captain who ordered the marks.",
+    unlockedFlags: ["black-keel-cache", "hostile-network-aware"],
+    riskTags: ["high-threat", "faction-exposure", "direct-lead"]
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
@@ -496,10 +548,13 @@ export function createGameState() {
       traversedRouteIds: [],
       resolvedEncounterIds: [],
       surveyedSiteIds: [],
+      discoveredCoastalClueIds: [],
+      selectedRouteChoiceId: null,
       routeProgress: {},
       lastTraverse: null,
       lastEncounter: null,
-      lastSurvey: null
+      lastSurvey: null,
+      lastRouteChoice: null
     }
   };
   resolveWorldSurvey(state);
@@ -750,6 +805,8 @@ export function getFrontierArrival(state) {
 
   const encounter = getFrontierEncounter(state);
   const survey = getFrontierSurvey(state);
+  const routeChoice = getFrontierRouteChoice(state);
+  const storylet = getBlackKeelStorylet(state);
   const resolvedEncounter = encounter.active && encounter.resolved;
 
   return {
@@ -764,9 +821,25 @@ export function getFrontierArrival(state) {
     encounterText: resolvedEncounter ? encounter.resolvedText : arrival.encounterText,
     settlementName: arrival.settlementName,
     settlementText: arrival.settlementText,
-    resourceTitle: survey.active ? survey.resourceTitle : arrival.resourceTitle,
-    resourceText: survey.active ? survey.resourceText : arrival.resourceText,
-    nextHook: survey.active ? survey.nextHook : resolvedEncounter ? encounter.resolvedHook : arrival.nextHook
+    resourceTitle: storylet.active
+      ? `Fallout: ${storylet.title}`
+      : survey.active
+        ? survey.resourceTitle
+        : arrival.resourceTitle,
+    resourceText: storylet.active
+      ? storylet.reward
+      : survey.active
+        ? survey.resourceText
+        : arrival.resourceText,
+    nextHook: storylet.active
+      ? storylet.nextHook
+      : routeChoice.active && routeChoice.selectedChoice
+        ? routeChoice.selectedChoice.consequence
+        : survey.active
+          ? survey.nextHook
+          : resolvedEncounter
+            ? encounter.resolvedHook
+            : arrival.nextHook
   };
 }
 
@@ -832,6 +905,7 @@ export function getFrontierSurvey(state) {
   }
 
   const surveyedSiteIds = state.frontier?.surveyedSiteIds || [];
+  const discoveredCoastalClueIds = state.frontier?.discoveredCoastalClueIds || [];
   const sites = operation.sites.map((site) => ({
     id: site.id,
     title: site.title,
@@ -854,6 +928,7 @@ export function getFrontierSurvey(state) {
     completedCount,
     totalSiteCount: sites.length,
     hostileSalvageMarked: complete,
+    discoveredClueIds: [...discoveredCoastalClueIds],
     resourceTitle: complete
       ? operation.completionTitle
       : lastSite
@@ -887,12 +962,19 @@ export function resolveFrontierSurveySite(state, siteId) {
 
   state.frontier.surveyedSiteIds ||= [];
   remember(state.frontier.surveyedSiteIds, site.id);
+  state.frontier.discoveredCoastalClueIds ||= [];
   state.frontier.lastSurvey = {
     routeId: survey.routeId,
     siteId: site.id,
     title: site.title,
     surveyedAt: state.time
   };
+  if (site.id === "north-spool-house") {
+    remember(state.frontier.discoveredCoastalClueIds, "warehouse-ledger");
+  }
+  if (site.id === "lamp-black-warehouse") {
+    remember(state.frontier.discoveredCoastalClueIds, "black-keel-mark");
+  }
   state.clueLog.push(`Warehouse surveyed: ${site.title}`);
   state.clueLog.push(site.result);
 
@@ -902,6 +984,77 @@ export function resolveFrontierSurveySite(state, siteId) {
   }
 
   return true;
+}
+
+export function getFrontierRouteChoice(state) {
+  const survey = getFrontierSurvey(state);
+  if (!survey.active || !survey.complete || survey.routeId !== "intake-coastline-lift") {
+    return inactiveFrontierRouteChoice();
+  }
+
+  const selectedChoiceId = state.frontier?.selectedRouteChoiceId || null;
+  const selectedChoice = TIDEWALK_ROUTE_CHOICES.find((choice) => choice.id === selectedChoiceId) || null;
+  return {
+    active: true,
+    routeId: survey.routeId,
+    selectedChoice,
+    choices: TIDEWALK_ROUTE_CHOICES.map((choice) => ({
+      ...choice,
+      selected: choice.id === selectedChoiceId
+    })),
+    prompt: selectedChoice
+      ? `${selectedChoice.label} selected: ${selectedChoice.consequence}`
+      : "Choose whether Tidewalk Coast stabilizes behind lanterns or presses the hostile countermark deeper into Black-Keel territory."
+  };
+}
+
+export function chooseFrontierRoute(state, choiceId) {
+  const routeChoice = getFrontierRouteChoice(state);
+  if (!routeChoice.active || routeChoice.selectedChoice) {
+    return false;
+  }
+
+  const choice = TIDEWALK_ROUTE_CHOICES.find((candidate) => candidate.id === choiceId);
+  if (!choice) {
+    return false;
+  }
+
+  state.frontier.selectedRouteChoiceId = choice.id;
+  state.frontier.lastRouteChoice = {
+    routeId: routeChoice.routeId,
+    choiceId: choice.id,
+    label: choice.label,
+    chosenAt: state.time
+  };
+  state.clueLog.push(`Tidewalk route chosen: ${choice.label}`);
+  state.clueLog.push(choice.consequence);
+  return true;
+}
+
+export function getBlackKeelStorylet(state) {
+  const routeChoice = getFrontierRouteChoice(state);
+  if (!routeChoice.active || !routeChoice.selectedChoice) {
+    return inactiveBlackKeelStorylet();
+  }
+
+  const baseStorylet = BLACK_KEEL_STORYLETS[routeChoice.selectedChoice.id];
+  if (!baseStorylet) {
+    return inactiveBlackKeelStorylet();
+  }
+
+  const knowsBlackKeel = (state.frontier?.discoveredCoastalClueIds || []).includes("black-keel-mark");
+  const factionPressure = baseStorylet.factionPressure + (knowsBlackKeel ? 1 : 0);
+  return {
+    active: true,
+    ...baseStorylet,
+    selectedChoice: routeChoice.selectedChoice,
+    knowsBlackKeel,
+    factionPressure,
+    headline: `${baseStorylet.title} | Pressure ${factionPressure}/5 | Trust ${baseStorylet.settlementTrust}/5`,
+    nextHook: knowsBlackKeel
+      ? baseStorylet.nextHook
+      : "Recover the Black-Keel mark before this consequence can point to a named enemy."
+  };
 }
 
 export function getEvidenceJournal(state) {
@@ -1316,6 +1469,35 @@ function inactiveFrontierSurvey() {
     nextHook: null,
     sites: [],
     nextSite: null
+  };
+}
+
+function inactiveFrontierRouteChoice() {
+  return {
+    active: false,
+    routeId: null,
+    selectedChoice: null,
+    choices: [],
+    prompt: null
+  };
+}
+
+function inactiveBlackKeelStorylet() {
+  return {
+    active: false,
+    id: null,
+    title: null,
+    headline: null,
+    opening: null,
+    twist: null,
+    reward: null,
+    nextHook: null,
+    unlockedFlags: [],
+    riskTags: [],
+    selectedChoice: null,
+    knowsBlackKeel: false,
+    factionPressure: 0,
+    settlementTrust: 0
   };
 }
 

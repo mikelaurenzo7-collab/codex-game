@@ -261,6 +261,12 @@ body {
   color: #f3f0dc;
 }
 
+.arrival-choice-detail {
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(243, 240, 220, 0.78);
+}
+
 .journal {
   position: absolute;
   left: 18px;
