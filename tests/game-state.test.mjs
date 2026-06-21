@@ -83,6 +83,27 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   assert.equal(fragment.collected, true, `${fragmentId} should be collected after analysis`);
 }
 
+function unlockTidewalkRouteChoice(state) {
+  state.player.x = 140;
+  state.player.y = 1012;
+  tick(state, 0.1);
+
+  const traverse = getFrontierTraverse(state);
+  assert.equal(traverse.active, true);
+  tick(state, WORLD.frontierTraverseSeconds + 0.12, { analyze: true });
+
+  const encounter = getFrontierEncounter(state);
+  assert.equal(encounter.active, true);
+  assert.equal(resolveFrontierEncounter(state, encounter.id), true);
+
+  assert.equal(resolveFrontierSurveySite(state, "north-spool-house"), true);
+  assert.equal(resolveFrontierSurveySite(state, "lamp-black-warehouse"), true);
+
+  const routeChoice = getFrontierRouteChoice(state);
+  assert.equal(routeChoice.active, true);
+  assert.equal(routeChoice.selectedChoice, null);
+}
+
 {
   const state = createGameState();
   assert.equal(state.status, "running");
@@ -290,6 +311,57 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);
   assert.equal(frontier.routes.find((route) => route.id === "intake-coastline-lift").traversed, true);
+}
+
+{
+  const state = createGameState();
+  unlockTidewalkRouteChoice(state);
+
+  assert.equal(chooseFrontierRoute(state, "quay-safe-lantern-line"), true);
+
+  const storylet = getBlackKeelStorylet(state);
+  assert.equal(storylet.active, true);
+  assert.equal(storylet.id, "lantern-line-afterglow");
+  assert.equal(storylet.selectedChoice.id, "quay-safe-lantern-line");
+  assert.equal(storylet.factionPressure, 2);
+  assert.equal(storylet.settlementTrust, 4);
+
+  const coastalOperation = getFrontierCoastalOperation(state);
+  assert.equal(coastalOperation.active, true);
+  assert.equal(coastalOperation.complete, false);
+  assert.equal(coastalOperation.gateTitle, "South Relay Camp");
+  assert.equal(coastalOperation.mapLabel, "Lantern witness");
+  assert.deepEqual(coastalOperation.gate, { x: 260, y: 710 });
+
+  const objective = getActiveObjective(state);
+  assert.equal(objective.kind, "coastal-operation");
+  assert.equal(objective.label, "Sync the lantern witness line");
+  assert.deepEqual(objective.target, { x: 260, y: 710 });
+
+  const arrival = getFrontierArrival(state);
+  assert.match(arrival.resourceTitle, /Field op: Sync the lantern witness line/);
+  assert.match(arrival.resourceText, /witness timing back across the lantern chain/i);
+  assert.match(arrival.nextHook, /South Relay Camp/i);
+
+  state.signal = 30;
+  state.player.x = 260;
+  state.player.y = 710;
+  tick(state, 0.1);
+
+  const inRangeOperation = getFrontierCoastalOperation(state);
+  assert.equal(inRangeOperation.inRange, true);
+  tick(state, WORLD.coastalOperationSeconds + 0.12, { analyze: true });
+
+  const completedOperation = getFrontierCoastalOperation(state);
+  assert.equal(completedOperation.complete, true);
+  assert.equal(state.frontier.lastCoastalOperation.id, "lantern-line-witness-sync");
+  assert.ok(state.signal > 30, "lantern line should pay back signal support");
+  assert.match(state.clueLog.at(-1), /Brinehook piers/i);
+
+  const resolvedArrival = getFrontierArrival(state);
+  assert.match(resolvedArrival.resourceTitle, /Witness heading logged/);
+  assert.match(resolvedArrival.resourceText, /battery crate/i);
+  assert.match(resolvedArrival.nextHook, /Brinehook heading/i);
 }
 
 {

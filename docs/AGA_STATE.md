@@ -30,6 +30,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Completed Tidewalk warehouse surveys now unlock a live route-choice step in the arrival dossier, with persistent clue state, chosen coastal line memory, and Black-Keel fallout surfaced directly in the playable HUD.
 - Tidewalk route-choice consequences now expose deterministic faction pressure, settlement trust, rewards, unlocked flags, and next hooks so the first coastal foothold produces authored world fallout instead of a dead-end clue.
 - Choosing the `black-keel-countermark` Tidewalk branch now unlocks a state-backed return-to-gate field operation at the Coastline Lift, with in-world progress, signal drain, completion fallout, and test coverage proving one coastal consequence changes physical play space.
+- Choosing the safer `quay-safe-lantern-line` Tidewalk branch now unlocks a state-backed return-to-relay field operation at South Relay Camp, with battery support, witness-heading fallout, and test coverage proving both Tidewalk route choices now redirect physical play to different anchors.
 
 ## Operating Rules
 
@@ -270,3 +271,20 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** GitHub remains the repository remote. No external services were needed for this scoped state-and-client iteration.
 - **Learned Constraints:** The safest way to prove open-world consequence right now is to let route choices reuse known physical anchors, then expand into new chunks once those field operations feel good and remain testable.
 - **Next Bottleneck:** Give the safer `Lantern Line` branch an equally physical payoff or promote the newly scoped Black-Keel cache into its own coastal micro-scene so both consequence branches become playable destinations rather than mixed dossier/field hybrids.
+
+### 0014 - Lantern Line Witness Sync
+
+- **State Assessment:** Tidewalk Coast finally had one physical route consequence, but the safer `Lantern Line` choice still collapsed back into dossier text. The single greatest bottleneck was branch asymmetry: the player could commit to two coastal lines, yet only one changed where they physically had to go next.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** The highest-value follow-up was to turn the safer branch into a real field action instead of expanding into a whole new coastal chunk. That closes the current consequence gap and makes the route-choice system feel systemic rather than one-sided.
+- **Plan Critique:** Jumping straight to a Brinehook micro-scene would create more map and content surface than the current validation stack can safely cover in one run. The corrected plan was to generalize the coastal-operation layer so different route choices can target different existing anchors, then spatialize the safer branch with a compact witness-and-battery follow-up.
+- **Execution Plan:**
+  - **Specific Tasks:** Let coastal operations resolve against either route gates or authored landmarks; add a `Lantern Line` operation at South Relay Camp; make the HUD, objective text, arrival dossier, and primer read branch-specific operation text instead of Black-Keel-only copy; extend the state suite to prove the safe branch redirects the objective and rewards signal support.
+  - **Technology Stack Justification:** The current vanilla Canvas plus deterministic state model remains appropriate because this is a state-and-affordance expansion, not an engine problem. Reusing existing anchors keeps the increment playable and directly testable.
+- **Success Metrics:** Choosing `quay-safe-lantern-line` activates a physical objective at South Relay Camp; the active objective and arrival dossier point there; holding `E` completes the operation and updates arrival fallout; local tests pass across both Tidewalk branches.
+- **Risk Mitigation:** The change stays inside the existing Tidewalk route-choice loop and reuses known map anchors, so rollback scope is narrow. The operation framework remains generic enough to support later branch follow-ups without committing to a full scene system yet.
+- **Work Completed:** Added landmark-backed coastal-operation anchors and branch-specific labels in `src/game-state.js`; created the `Sync the lantern witness line` follow-up with a signal-support reward at South Relay Camp; generalized operation-driven HUD/objective/primer text in `src/game.js`; updated `README.md` and `docs/DESIGN_BRIEF.md`; extended `tests/game-state.test.mjs` with a Lantern Line branch scenario that proves the objective moves to a different anchor and completes with distinct fallout.
+- **Validation Evidence:** `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe tests/run-all.mjs` passed with `game-state tests passed`, `tidewalk coastal objective tests passed`, and `black-keel storylet tests passed`.
+- **External Services Used:** GitHub remains the repository remote. No external services were required for this iteration.
+- **Learned Constraints:** Branch consequence loops stay manageable when the world-state selector owns the destination anchor and the client only renders the currently active field instruction. That keeps route fallout scalable without multiplying bespoke UI branches.
+- **Next Bottleneck:** Promote one resolved Tidewalk field lead into a true coastal micro-scene beyond the archive map, so the next frontier step is not just a return-to-anchor operation but a short destination slice with its own hazards or social contact.

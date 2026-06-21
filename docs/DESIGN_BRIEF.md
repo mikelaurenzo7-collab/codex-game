@@ -40,7 +40,7 @@ The next scale bridge is the frontier route layer: explicit region-to-region cor
 
 The first settlement foothold is Tidewalk Coast. Once the archive lift route is linked, the arrival dossier now exposes a state-backed edge encounter where the player secures docking rights with Tidelantern Quay. That handoff now continues into a state-backed coastal survey operation with two drowned warehouses, turning the route into a small follow-up loop that surfaces resources, traces a hostile salvage mark, and seeds the first coastal faction trail for later field slices.
 
-The first spatial frontier consequence now branches out of the Tidewalk dossier: choosing `black-keel-countermark` creates a physical return-to-gate field operation at the Coastline Lift. This keeps scope pragmatic while proving a key open-world principle for `Frontier of the Deep Green`: authored route choices should change not just text, but where the player must go next and what they must physically stabilize in the world.
+The first spatial frontier consequences now branch out of the Tidewalk dossier: choosing `black-keel-countermark` creates a physical return-to-gate field operation at the Coastline Lift, while choosing `quay-safe-lantern-line` sends the player back inland to sync a witness relay at South Relay Camp. This keeps scope pragmatic while proving a key open-world principle for `Frontier of the Deep Green`: authored route choices should change not just text, but where the player must go next and what they must physically stabilize in the world.
 
 ## Success Metrics
 

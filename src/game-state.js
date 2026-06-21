@@ -516,10 +516,27 @@ const BLACK_KEEL_STORYLETS = {
 };
 
 const FRONTIER_COASTAL_OPERATIONS = {
+  "quay-safe-lantern-line": {
+    id: "lantern-line-witness-sync",
+    routeId: "intake-coastline-lift",
+    landmarkId: "south-relay-camp",
+    gateTitle: "South Relay Camp",
+    mapLabel: "Lantern witness",
+    title: "Sync the lantern witness line",
+    briefing:
+      "Return to South Relay Camp and hold the relay steady while Tidelantern Quay walks the tender's witness timing back across the lantern chain.",
+    completionTitle: "Witness heading logged",
+    completionText:
+      "The witness timing resolves into a skiff heading toward the lower Brinehook piers, and the relay rack yields a fresh battery crate for inland runs.",
+    nextHook:
+      "Next hook: carry the Brinehook heading back down the lantern line once Tidewalk Coast opens into a true field scene.",
+    signalReward: 24
+  },
   "black-keel-countermark": {
     id: "black-keel-cache-scout",
     routeId: "intake-coastline-lift",
     gateTitle: "Coastline Lift",
+    mapLabel: "Black-Keel lead",
     title: "Scout the Black-Keel cache route",
     briefing:
       "Return to the Coastline Lift and hold the countermark line steady before the tide scrubs the paint away.",
@@ -870,7 +887,7 @@ export function getFrontierArrival(state) {
     nextHook: coastalOperation.active
       ? coastalOperation.complete
         ? coastalOperation.nextHook
-        : `Return to ${coastalOperation.gateTitle} and hold E to keep the countermark trail readable.`
+        : `Return to ${coastalOperation.gateTitle} and hold E to advance the live frontier lead.`
       : storylet.active
       ? storylet.nextHook
       : routeChoice.active && routeChoice.selectedChoice
@@ -1113,6 +1130,19 @@ export function getFrontierCoastalOperation(state) {
     return inactiveFrontierCoastalOperation();
   }
 
+  let gate = { x: route.gate.x, y: route.gate.y };
+  let gateTitle = operation.gateTitle || route.gateTitle;
+
+  if (operation.landmarkId) {
+    const landmark = LANDMARKS.find((candidate) => candidate.id === operation.landmarkId);
+    if (!landmark) {
+      return inactiveFrontierCoastalOperation();
+    }
+
+    gate = { x: landmark.x, y: landmark.y };
+    gateTitle = operation.gateTitle || landmark.title;
+  }
+
   const resolvedIds = state.frontier?.resolvedCoastalOperationIds || [];
   const complete = resolvedIds.includes(operation.id);
   return {
@@ -1120,17 +1150,19 @@ export function getFrontierCoastalOperation(state) {
     id: operation.id,
     routeId: operation.routeId,
     choiceId: routeChoice.selectedChoice.id,
-    gateTitle: operation.gateTitle,
+    gateTitle,
+    mapLabel: operation.mapLabel || gateTitle,
     title: operation.title,
     briefing: operation.briefing,
     completionTitle: operation.completionTitle,
     completionText: operation.completionText,
     nextHook: operation.nextHook,
     complete,
-    inRange: distance(state.player, route.gate) <= WORLD.coastalOperationRadius,
+    inRange: distance(state.player, gate) <= WORLD.coastalOperationRadius,
     progress: state.frontier?.coastalOperationProgress?.[operation.id] || 0,
     required: WORLD.coastalOperationSeconds,
-    gate: { x: route.gate.x, y: route.gate.y }
+    signalReward: operation.signalReward || 0,
+    gate
   };
 }
 
@@ -1396,6 +1428,9 @@ function resolveFrontierCoastalOperation(state, input, dt) {
       title: operation.completionTitle,
       resolvedAt: state.time
     };
+    if (operation.signalReward > 0) {
+      state.signal = Math.min(100, state.signal + operation.signalReward);
+    }
     state.clueLog.push(`Coastal route scoped: ${operation.completionTitle}`);
     state.clueLog.push(operation.completionText);
   }

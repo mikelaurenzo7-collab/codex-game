@@ -587,7 +587,7 @@ function drawFrontierCoastalOperation() {
 
   ctx.fillStyle = "rgba(243, 240, 220, 0.86)";
   ctx.font = "700 12px system-ui, sans-serif";
-  ctx.fillText("Black-Keel lead", 26, -14);
+  ctx.fillText(operation.mapLabel, 26, -14);
   ctx.restore();
 }
 
@@ -762,7 +762,7 @@ function updateHud() {
   );
   updateJournal();
   updateAtlas();
-  updateArrival(arrival, encounter, survey, routeChoice, storylet);
+  updateArrival(arrival, encounter, survey, routeChoice, storylet, coastalOperation);
   updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation);
 
   if (state.status !== "running") {
@@ -770,13 +770,13 @@ function updateHud() {
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
   } else if (coastalOperation.active && coastalOperation.complete) {
-    statusReadout.textContent = "Cache route scoped";
+    statusReadout.textContent = coastalOperation.completionTitle;
   } else if (coastalOperation.active && coastalOperation.inRange && input.analyze) {
-    statusReadout.textContent = `Scouting cache ${Math.round((coastalOperation.progress / coastalOperation.required) * 100)}%`;
+    statusReadout.textContent = `${coastalOperation.title} ${Math.round((coastalOperation.progress / coastalOperation.required) * 100)}%`;
   } else if (coastalOperation.active && coastalOperation.inRange) {
-    statusReadout.textContent = "Cache lead ready";
+    statusReadout.textContent = `${coastalOperation.gateTitle} field op ready`;
   } else if (coastalOperation.active) {
-    statusReadout.textContent = "Return to Coastline Lift";
+    statusReadout.textContent = `Return to ${coastalOperation.gateTitle}`;
   } else if (storylet.active) {
     statusReadout.textContent = "Black-Keel fallout active";
   } else if (routeChoice.active && !routeChoice.selectedChoice) {
@@ -812,7 +812,7 @@ function updateHud() {
   }
 }
 
-function updateArrival(arrival, encounter, survey, routeChoice, storylet) {
+function updateArrival(arrival, encounter, survey, routeChoice, storylet, coastalOperation) {
   if (!arrival.active) {
     arrivalPanel.classList.add("is-hidden");
     arrivalSnapshot = "hidden";
@@ -825,6 +825,8 @@ function updateArrival(arrival, encounter, survey, routeChoice, storylet) {
     arrival.title,
     arrival.encounterTitle,
     arrival.encounterText,
+    arrival.resourceTitle,
+    arrival.resourceText,
     arrival.nextHook,
     encounter.id || "none",
     encounter.resolved,
@@ -835,7 +837,10 @@ function updateArrival(arrival, encounter, survey, routeChoice, storylet) {
     routeChoice.active,
     routeChoice.selectedChoice?.id || "none",
     storylet.active,
-    storylet.id || "none"
+    storylet.id || "none",
+    coastalOperation.active,
+    coastalOperation.id || "none",
+    coastalOperation.complete
   ].join("|");
 
   if (signature === arrivalSnapshot) {
@@ -1063,20 +1068,20 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
   }
 
   if (coastalOperation.active && coastalOperation.complete) {
-    primerTitle.textContent = "Cache route scoped";
+    primerTitle.textContent = coastalOperation.completionTitle;
     primerText.textContent = coastalOperation.nextHook;
     return;
   }
 
   if (coastalOperation.active && coastalOperation.inRange) {
-    primerTitle.textContent = "Shadow the countermark";
-    primerText.textContent = "Hold E at the Coastline Lift to keep the wet mark readable and lock the Black-Keel cache route.";
+    primerTitle.textContent = coastalOperation.title;
+    primerText.textContent = `Hold E at ${coastalOperation.gateTitle} to advance this frontier lead.`;
     return;
   }
 
   if (coastalOperation.active) {
-    primerTitle.textContent = "Return to the lift";
-    primerText.textContent = "The countermark branch is now physical. Go back to the Coastline Lift and hold E on the new field ring.";
+    primerTitle.textContent = `Return to ${coastalOperation.gateTitle}`;
+    primerText.textContent = coastalOperation.briefing;
     return;
   }
 
@@ -1165,14 +1170,14 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
 function formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation) {
   if (coastalOperation.active) {
     if (coastalOperation.complete) {
-      return "Black-Keel cache route scoped";
+      return coastalOperation.completionTitle;
     }
 
     if (coastalOperation.inRange) {
-      return `Scout Black-Keel cache ${Math.round((coastalOperation.progress / coastalOperation.required) * 100)}%`;
+      return `${coastalOperation.title} ${Math.round((coastalOperation.progress / coastalOperation.required) * 100)}%`;
     }
 
-    return `Return to Coastline Lift ${Math.round(distanceBetween(state.player, coastalOperation.gate))}m`;
+    return `${coastalOperation.title} ${Math.round(distanceBetween(state.player, coastalOperation.gate))}m`;
   }
 
   if (storylet.active) {
