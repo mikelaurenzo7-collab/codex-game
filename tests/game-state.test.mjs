@@ -10,6 +10,7 @@ import {
   getEvidenceSynthesis,
   getFieldAnalysis,
   getFrontierArrival,
+  getFrontierCoastalOperation,
   getFrontierEncounter,
   getFrontierNetwork,
   getFrontierRouteChoice,
@@ -111,6 +112,9 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   const encounter = getFrontierEncounter(state);
   assert.equal(encounter.active, false);
   assert.equal(encounter.resolved, false);
+
+  const coastalOperation = getFrontierCoastalOperation(state);
+  assert.equal(coastalOperation.active, false);
 
   const survey = getFrontierSurvey(state);
   assert.equal(survey.active, false);
@@ -242,6 +246,12 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   const selectedRouteChoice = getFrontierRouteChoice(state);
   assert.equal(selectedRouteChoice.selectedChoice.id, "black-keel-countermark");
 
+  const coastalOperation = getFrontierCoastalOperation(state);
+  assert.equal(coastalOperation.active, true);
+  assert.equal(coastalOperation.complete, false);
+  assert.equal(coastalOperation.gateTitle, "Coastline Lift");
+  assert.match(coastalOperation.briefing, /hold the countermark line steady/i);
+
   const storylet = getBlackKeelStorylet(state);
   assert.equal(storylet.active, true);
   assert.equal(storylet.id, "countermark-pursuit");
@@ -255,9 +265,27 @@ function analyzeDeducedFragmentAt(state, fragmentId) {
   const resolvedArrival = getFrontierArrival(state);
   assert.equal(resolvedArrival.encounterTitle, "Dock Steward Compact");
   assert.match(resolvedArrival.encounterText, /tide map/);
-  assert.match(resolvedArrival.resourceTitle, /Countermark Pursuit/);
-  assert.match(resolvedArrival.resourceText, /hidden salvage cache/i);
-  assert.match(resolvedArrival.nextHook, /ambush the cache crew|shadow them/i);
+  assert.match(resolvedArrival.resourceTitle, /Field op: Scout the Black-Keel cache route/);
+  assert.match(resolvedArrival.resourceText, /Return to the Coastline Lift/i);
+  assert.match(resolvedArrival.nextHook, /hold E/i);
+
+  state.player.x = 140;
+  state.player.y = 1012;
+  tick(state, 0.1);
+
+  const inRangeOperation = getFrontierCoastalOperation(state);
+  assert.equal(inRangeOperation.inRange, true);
+  tick(state, WORLD.coastalOperationSeconds + 0.12, { analyze: true });
+
+  const completedOperation = getFrontierCoastalOperation(state);
+  assert.equal(completedOperation.complete, true);
+  assert.equal(state.frontier.lastCoastalOperation.id, "black-keel-cache-scout");
+  assert.match(state.clueLog.at(-1), /underpier cache/i);
+
+  const postOperationArrival = getFrontierArrival(state);
+  assert.match(postOperationArrival.resourceTitle, /Cache route scoped/);
+  assert.match(postOperationArrival.resourceText, /Black-Keel underpier cache/i);
+  assert.match(postOperationArrival.nextHook, /ambush the cache crew|shadow them/i);
 
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);

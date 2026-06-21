@@ -6,6 +6,7 @@ import {
   getEvidenceSynthesis,
   getFieldAnalysis,
   getFrontierArrival,
+  getFrontierCoastalOperation,
   getFrontierEncounter,
   getFrontierNetwork,
   getFrontierRouteChoice,
@@ -218,6 +219,7 @@ function draw() {
   drawAtlasLandmarks();
   drawFrontierGates();
   drawFrontierTraverse();
+  drawFrontierCoastalOperation();
   drawEchoes();
   drawObstacles();
   drawPulses();
@@ -547,6 +549,48 @@ function drawFrontierTraverse() {
   ctx.restore();
 }
 
+function drawFrontierCoastalOperation() {
+  const operation = getFrontierCoastalOperation(state);
+  if (!operation.active) {
+    return;
+  }
+
+  const progress = operation.progress / operation.required;
+  ctx.save();
+  ctx.translate(operation.gate.x, operation.gate.y);
+
+  if (operation.complete) {
+    ctx.strokeStyle = "rgba(232, 196, 109, 0.9)";
+    ctx.lineWidth = 6;
+    ctx.setLineDash([12, 10]);
+    ctx.beginPath();
+    ctx.arc(0, 0, WORLD.coastalOperationRadius + 18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(232, 196, 109, 0.14)";
+    ctx.beginPath();
+    ctx.arc(0, 0, WORLD.coastalOperationRadius - 10, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.strokeStyle = operation.inRange ? "rgba(232, 196, 109, 0.92)" : "rgba(232, 196, 109, 0.38)";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(
+      0,
+      0,
+      WORLD.coastalOperationRadius,
+      -Math.PI / 2,
+      -Math.PI / 2 + Math.PI * 2 * progress
+    );
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "rgba(243, 240, 220, 0.86)";
+  ctx.font = "700 12px system-ui, sans-serif";
+  ctx.fillText("Black-Keel lead", 26, -14);
+  ctx.restore();
+}
+
 function drawHiddenGlitch(fragment) {
   const flicker = Math.sin(state.time * 5 + fragment.x) > 0.88;
   if (!flicker) {
@@ -703,18 +747,36 @@ function updateHud() {
   const survey = getFrontierSurvey(state);
   const routeChoice = getFrontierRouteChoice(state);
   const storylet = getBlackKeelStorylet(state);
+  const coastalOperation = getFrontierCoastalOperation(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet);
+  objectiveReadout.textContent = formatObjective(
+    objective,
+    analysis,
+    traverse,
+    encounter,
+    survey,
+    routeChoice,
+    storylet,
+    coastalOperation
+  );
   updateJournal();
   updateAtlas();
   updateArrival(arrival, encounter, survey, routeChoice, storylet);
-  updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet);
+  updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation);
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
+  } else if (coastalOperation.active && coastalOperation.complete) {
+    statusReadout.textContent = "Cache route scoped";
+  } else if (coastalOperation.active && coastalOperation.inRange && input.analyze) {
+    statusReadout.textContent = `Scouting cache ${Math.round((coastalOperation.progress / coastalOperation.required) * 100)}%`;
+  } else if (coastalOperation.active && coastalOperation.inRange) {
+    statusReadout.textContent = "Cache lead ready";
+  } else if (coastalOperation.active) {
+    statusReadout.textContent = "Return to Coastline Lift";
   } else if (storylet.active) {
     statusReadout.textContent = "Black-Keel fallout active";
   } else if (routeChoice.active && !routeChoice.selectedChoice) {
@@ -977,7 +1039,7 @@ function updateAtlas() {
   );
 }
 
-function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet) {
+function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation) {
   if (primerDismissed) {
     primerPanel.classList.add("is-hidden");
     return;
@@ -997,6 +1059,24 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
   if (state.gate.unlocked) {
     primerTitle.textContent = "Extraction is open";
     primerText.textContent = "All fragments are recovered. Head for the extraction cairn to complete the archive thread.";
+    return;
+  }
+
+  if (coastalOperation.active && coastalOperation.complete) {
+    primerTitle.textContent = "Cache route scoped";
+    primerText.textContent = coastalOperation.nextHook;
+    return;
+  }
+
+  if (coastalOperation.active && coastalOperation.inRange) {
+    primerTitle.textContent = "Shadow the countermark";
+    primerText.textContent = "Hold E at the Coastline Lift to keep the wet mark readable and lock the Black-Keel cache route.";
+    return;
+  }
+
+  if (coastalOperation.active) {
+    primerTitle.textContent = "Return to the lift";
+    primerText.textContent = "The countermark branch is now physical. Go back to the Coastline Lift and hold E on the new field ring.";
     return;
   }
 
@@ -1082,7 +1162,19 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
   primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
 }
 
-function formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet) {
+function formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation) {
+  if (coastalOperation.active) {
+    if (coastalOperation.complete) {
+      return "Black-Keel cache route scoped";
+    }
+
+    if (coastalOperation.inRange) {
+      return `Scout Black-Keel cache ${Math.round((coastalOperation.progress / coastalOperation.required) * 100)}%`;
+    }
+
+    return `Return to Coastline Lift ${Math.round(distanceBetween(state.player, coastalOperation.gate))}m`;
+  }
+
   if (storylet.active) {
     return storylet.selectedChoice.id === "black-keel-countermark"
       ? "Shadow Black-Keel cache lead"

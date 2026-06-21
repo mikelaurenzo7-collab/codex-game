@@ -13,6 +13,9 @@ export const WORLD = {
   frontierTraverseRadius: 74,
   frontierTraverseSeconds: 1.6,
   frontierTraverseDrainPerSecond: 10,
+  coastalOperationRadius: 76,
+  coastalOperationSeconds: 1.9,
+  coastalOperationDrainPerSecond: 11,
   echoStunSeconds: 2.6,
   echoDrainPerSecond: 26,
   signalRechargePerSecond: 4.5
@@ -512,6 +515,22 @@ const BLACK_KEEL_STORYLETS = {
   }
 };
 
+const FRONTIER_COASTAL_OPERATIONS = {
+  "black-keel-countermark": {
+    id: "black-keel-cache-scout",
+    routeId: "intake-coastline-lift",
+    gateTitle: "Coastline Lift",
+    title: "Scout the Black-Keel cache route",
+    briefing:
+      "Return to the Coastline Lift and hold the countermark line steady before the tide scrubs the paint away.",
+    completionTitle: "Cache route scoped",
+    completionText:
+      "The countermark under the lift braces leads to a Black-Keel underpier cache hidden below Brinehook Warehouse.",
+    nextHook:
+      "Next hook: ambush the cache crew at the underpier or shadow them back to the captain who ordered the marks."
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
@@ -547,14 +566,17 @@ export function createGameState() {
     frontier: {
       traversedRouteIds: [],
       resolvedEncounterIds: [],
+      resolvedCoastalOperationIds: [],
       surveyedSiteIds: [],
       discoveredCoastalClueIds: [],
       selectedRouteChoiceId: null,
       routeProgress: {},
+      coastalOperationProgress: {},
       lastTraverse: null,
       lastEncounter: null,
       lastSurvey: null,
-      lastRouteChoice: null
+      lastRouteChoice: null,
+      lastCoastalOperation: null
     }
   };
   resolveWorldSurvey(state);
@@ -577,6 +599,11 @@ export function getActiveObjective(state) {
   const openFragments = state.fragments.filter((fragment) => !fragment.collected);
   if (openFragments.length === 0) {
     return buildObjective("gate", "Reach extraction", state.gate, state);
+  }
+
+  const coastalOperation = getFrontierCoastalOperation(state);
+  if (coastalOperation.active && !coastalOperation.complete) {
+    return buildObjective("coastal-operation", coastalOperation.title, coastalOperation.gate, state);
   }
 
   const revealedFragments = openFragments.filter((fragment) => fragment.revealedUntil > state.time);
@@ -807,6 +834,7 @@ export function getFrontierArrival(state) {
   const survey = getFrontierSurvey(state);
   const routeChoice = getFrontierRouteChoice(state);
   const storylet = getBlackKeelStorylet(state);
+  const coastalOperation = getFrontierCoastalOperation(state);
   const resolvedEncounter = encounter.active && encounter.resolved;
 
   return {
@@ -821,17 +849,29 @@ export function getFrontierArrival(state) {
     encounterText: resolvedEncounter ? encounter.resolvedText : arrival.encounterText,
     settlementName: arrival.settlementName,
     settlementText: arrival.settlementText,
-    resourceTitle: storylet.active
+    resourceTitle: coastalOperation.active
+      ? coastalOperation.complete
+        ? coastalOperation.completionTitle
+        : `Field op: ${coastalOperation.title}`
+      : storylet.active
       ? `Fallout: ${storylet.title}`
       : survey.active
         ? survey.resourceTitle
         : arrival.resourceTitle,
-    resourceText: storylet.active
+    resourceText: coastalOperation.active
+      ? coastalOperation.complete
+        ? coastalOperation.completionText
+        : coastalOperation.briefing
+      : storylet.active
       ? storylet.reward
       : survey.active
         ? survey.resourceText
         : arrival.resourceText,
-    nextHook: storylet.active
+    nextHook: coastalOperation.active
+      ? coastalOperation.complete
+        ? coastalOperation.nextHook
+        : `Return to ${coastalOperation.gateTitle} and hold E to keep the countermark trail readable.`
+      : storylet.active
       ? storylet.nextHook
       : routeChoice.active && routeChoice.selectedChoice
         ? routeChoice.selectedChoice.consequence
@@ -1057,6 +1097,43 @@ export function getBlackKeelStorylet(state) {
   };
 }
 
+export function getFrontierCoastalOperation(state) {
+  const routeChoice = getFrontierRouteChoice(state);
+  if (!routeChoice.active || !routeChoice.selectedChoice) {
+    return inactiveFrontierCoastalOperation();
+  }
+
+  const operation = FRONTIER_COASTAL_OPERATIONS[routeChoice.selectedChoice.id];
+  if (!operation) {
+    return inactiveFrontierCoastalOperation();
+  }
+
+  const route = FRONTIER_ROUTES.find((candidate) => candidate.id === operation.routeId);
+  if (!route) {
+    return inactiveFrontierCoastalOperation();
+  }
+
+  const resolvedIds = state.frontier?.resolvedCoastalOperationIds || [];
+  const complete = resolvedIds.includes(operation.id);
+  return {
+    active: true,
+    id: operation.id,
+    routeId: operation.routeId,
+    choiceId: routeChoice.selectedChoice.id,
+    gateTitle: operation.gateTitle,
+    title: operation.title,
+    briefing: operation.briefing,
+    completionTitle: operation.completionTitle,
+    completionText: operation.completionText,
+    nextHook: operation.nextHook,
+    complete,
+    inRange: distance(state.player, route.gate) <= WORLD.coastalOperationRadius,
+    progress: state.frontier?.coastalOperationProgress?.[operation.id] || 0,
+    required: WORLD.coastalOperationSeconds,
+    gate: { x: route.gate.x, y: route.gate.y }
+  };
+}
+
 export function getEvidenceJournal(state) {
   return state.fragments.map((fragment) => ({
     id: fragment.id,
@@ -1122,6 +1199,7 @@ export function updateGameState(state, input, deltaSeconds) {
   resolveWorldSurvey(state);
   resolveFieldAnalysis(state, input, dt);
   resolveFrontierTraverse(state, input, dt);
+  resolveFrontierCoastalOperation(state, input, dt);
   resolveCollection(state);
   resolveEchoPressure(state, dt);
   resolveGate(state);
@@ -1288,6 +1366,38 @@ function resolveFrontierTraverse(state, input, dt) {
     if (arrival?.title) {
       state.clueLog.push(`Arrival logged: ${arrival.title}`);
     }
+  }
+}
+
+function resolveFrontierCoastalOperation(state, input, dt) {
+  const operation = getFrontierCoastalOperation(state);
+  if (!operation.active || operation.complete) {
+    return;
+  }
+
+  const currentProgress = state.frontier.coastalOperationProgress[operation.id] || 0;
+  const holdingAction = Boolean(input.analyze);
+  const canAdvance = holdingAction && operation.inRange && state.signal > 0;
+
+  if (!canAdvance) {
+    state.frontier.coastalOperationProgress[operation.id] = Math.max(0, currentProgress - dt * 0.7);
+    return;
+  }
+
+  state.signal = Math.max(0, state.signal - WORLD.coastalOperationDrainPerSecond * dt);
+  const nextProgress = Math.min(WORLD.coastalOperationSeconds, currentProgress + dt);
+  state.frontier.coastalOperationProgress[operation.id] = nextProgress;
+
+  if (nextProgress >= WORLD.coastalOperationSeconds) {
+    remember(state.frontier.resolvedCoastalOperationIds, operation.id);
+    state.frontier.lastCoastalOperation = {
+      id: operation.id,
+      routeId: operation.routeId,
+      title: operation.completionTitle,
+      resolvedAt: state.time
+    };
+    state.clueLog.push(`Coastal route scoped: ${operation.completionTitle}`);
+    state.clueLog.push(operation.completionText);
   }
 }
 
@@ -1498,6 +1608,26 @@ function inactiveBlackKeelStorylet() {
     knowsBlackKeel: false,
     factionPressure: 0,
     settlementTrust: 0
+  };
+}
+
+function inactiveFrontierCoastalOperation() {
+  return {
+    active: false,
+    id: null,
+    routeId: null,
+    choiceId: null,
+    gateTitle: null,
+    title: null,
+    briefing: null,
+    completionTitle: null,
+    completionText: null,
+    nextHook: null,
+    complete: false,
+    inRange: false,
+    progress: 0,
+    required: WORLD.coastalOperationSeconds,
+    gate: null
   };
 }
 

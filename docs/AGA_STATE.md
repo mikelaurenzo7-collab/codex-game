@@ -29,6 +29,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Resolved Tidewalk docking rights now unlock a state-backed coastal survey operation with two drowned warehouse leads, persistent survey progress, and a hostile salvage mark that becomes the next frontier consequence.
 - Completed Tidewalk warehouse surveys now unlock a live route-choice step in the arrival dossier, with persistent clue state, chosen coastal line memory, and Black-Keel fallout surfaced directly in the playable HUD.
 - Tidewalk route-choice consequences now expose deterministic faction pressure, settlement trust, rewards, unlocked flags, and next hooks so the first coastal foothold produces authored world fallout instead of a dead-end clue.
+- Choosing the `black-keel-countermark` Tidewalk branch now unlocks a state-backed return-to-gate field operation at the Coastline Lift, with in-world progress, signal drain, completion fallout, and test coverage proving one coastal consequence changes physical play space.
 
 ## Operating Rules
 
@@ -252,3 +253,20 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** GitHub remains the repository remote. No other external services were required for this iteration.
 - **Learned Constraints:** Detached prototype modules can drift ahead of the live vertical slice; when that happens, the next safe move is to consolidate the working path into the core state model before authoring more frontier content.
 - **Next Bottleneck:** Turn one Tidewalk consequence into a spatially playable coastal scene or encounter so the chosen route changes where the player goes next, not just what the dossier says.
+
+### 0013 - Countermark Field Operation
+
+- **State Assessment:** Tidewalk Coast had a working route-choice and fallout layer, but the strongest logged bottleneck remained spatial: choosing a coastal line still changed only dossier text, not the player's next physical action in the world.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** The highest-value next step was a small, state-backed field operation that turns one branch into navigable space. This materially advances the open-world promise without taking on scene streaming or a second full biome slice.
+- **Plan Critique:** Building both Tidewalk branches as full physical scenes in one run would spread effort across content, rendering, and UI without enough validation surface. The corrected plan is to spatialize the riskier `black-keel-countermark` branch first because it naturally fits a pursuit loop and can reuse the existing Coastline Lift gate.
+- **Execution Plan:**
+  - **Specific Tasks:** Add a deterministic coastal-operation selector and resolver tied to the `black-keel-countermark` route choice; track progress, range, completion, and clue-log fallout in `src/game-state.js`; surface the operation ring and objective states in `src/game.js`; extend the main state suite to cover route-choice activation, in-range scouting, and completion.
+  - **Technology Stack Justification:** The current vanilla Canvas plus deterministic state model remains appropriate because this is a world-state and affordance pass, not a rendering-technology problem. Reusing the existing route gate keeps the increment small, testable, and aligned with future open-world travel logic.
+  - **Success Metrics:** Choosing `black-keel-countermark` activates a new in-world objective at the Coastline Lift; holding `E` in range advances the operation and drains signal; completion persists a scoped cache route and updates arrival copy; full local tests pass.
+  - **Risk Mitigation:** Only the countermark branch is spatialized in this run, which limits content sprawl. The operation is additive and sits on top of existing route/arrival/survey logic, so rollback scope stays narrow if the field interaction proves confusing.
+- **Work Completed:** Added coastal operation tuning and `getFrontierCoastalOperation`; tracked operation progress and completion in frontier state; prioritized the new operation in active objectives; updated arrival resource/hook text to reflect the live field step; rendered a Coastline Lift operation ring and supporting HUD/primer statuses in `src/game.js`; updated README and design brief text; extended `tests/game-state.test.mjs` to validate the full Tidewalk chain through countermark scouting completion.
+- **Validation Evidence:** `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe tests/run-all.mjs` passed with `game-state tests passed`, `tidewalk coastal objective tests passed`, and `black-keel storylet tests passed`.
+- **External Services Used:** GitHub remains the repository remote. No external services were needed for this scoped state-and-client iteration.
+- **Learned Constraints:** The safest way to prove open-world consequence right now is to let route choices reuse known physical anchors, then expand into new chunks once those field operations feel good and remain testable.
+- **Next Bottleneck:** Give the safer `Lantern Line` branch an equally physical payoff or promote the newly scoped Black-Keel cache into its own coastal micro-scene so both consequence branches become playable destinations rather than mixed dossier/field hybrids.

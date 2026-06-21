@@ -9,7 +9,7 @@ The automation should keep each iteration scoped, verifiable, and committed. It 
 
 ## Current Prototype
 
-**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, surveys drowned warehouses, chooses a Tidewalk coastal route, and reads the resulting Black-Keel fallout directly in the live dossier.
+**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, surveys drowned warehouses, chooses a Tidewalk coastal route, and can now physically return to the Coastline Lift to scout the Black-Keel countermark cache lead in-world.
 
 Run locally:
 
@@ -27,4 +27,4 @@ node tests/run-all.mjs
 node scripts/serve.mjs
 ```
 
-Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, use the arrival dossier buttons for settlement/coastal follow-up actions and Tidewalk route choice, restart with `R` or the on-screen button.
+Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, scout the Black-Keel countermark field ring with `E` after choosing that route, use the arrival dossier buttons for settlement/coastal follow-up actions and Tidewalk route choice, restart with `R` or the on-screen button.
