@@ -15,6 +15,7 @@ import {
   getFrontierNetwork,
   getFrontierRouteChoice,
   getFrontierSurvey,
+  getTidewalkExpedition,
   getFrontierTraverse,
   getWorldAtlas,
   getBlackKeelStorylet,
@@ -308,6 +309,11 @@ function unlockTidewalkRouteChoice(state) {
   assert.match(postOperationArrival.resourceText, /Black-Keel underpier cache/i);
   assert.match(postOperationArrival.nextHook, /ambush the cache crew|shadow them/i);
 
+  const expedition = getTidewalkExpedition(state);
+  assert.equal(expedition.active, true);
+  assert.equal(expedition.phase, "launch");
+  assert.deepEqual(expedition.leadTarget, { x: 1570, y: 860 });
+
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);
   assert.equal(frontier.routes.find((route) => route.id === "intake-coastline-lift").traversed, true);
@@ -362,6 +368,50 @@ function unlockTidewalkRouteChoice(state) {
   assert.match(resolvedArrival.resourceTitle, /Witness heading logged/);
   assert.match(resolvedArrival.resourceText, /battery crate/i);
   assert.match(resolvedArrival.nextHook, /Brinehook heading/i);
+
+  state.signal = 100;
+  state.player.x = 140;
+  state.player.y = 1012;
+  tick(state, 0.1);
+
+  const launch = getTidewalkExpedition(state);
+  assert.equal(launch.active, true);
+  assert.equal(launch.phase, "launch");
+  assert.equal(launch.inRange, true);
+  assert.deepEqual(launch.leadTarget, { x: 1580, y: 260 });
+  assert.equal(getActiveObjective(state).kind, "tidewalk-expedition");
+
+  tick(state, WORLD.tidewalkExpeditionSeconds + 0.12, { analyze: true });
+  assert.equal(state.scene, "tidewalk");
+
+  const fieldLead = getTidewalkExpedition(state);
+  assert.equal(fieldLead.phase, "field");
+  assert.equal(fieldLead.title, "Meet the Brinehook lantern tender");
+  assert.deepEqual(fieldLead.target, { x: 1580, y: 260 });
+
+  state.player.x = fieldLead.hazards[0].x;
+  state.player.y = fieldLead.hazards[0].y;
+  const signalBeforeHazard = state.signal;
+  tick(state, 0.5);
+  assert.ok(state.signal < signalBeforeHazard, "black tide should drain signal");
+
+  assert.equal(triggerPulse(state), true);
+  const signalAfterPulse = state.signal;
+  assert.equal(getTidewalkExpedition(state).tideStilled, true);
+  tick(state, 0.5);
+  assert.ok(state.signal >= signalAfterPulse, "pulse should suppress tide drain during its stun window");
+
+  state.signal = 100;
+  moveTo(state, { x: 200, y: 100 }, "low-piers western walk", 8);
+  moveTo(state, { x: 1100, y: 100 }, "low-piers north walk", 8);
+  moveTo(state, { x: 1300, y: 100 }, "low-piers wall crossing", 4);
+  moveTo(state, fieldLead.target, "lantern tender", 6);
+  tick(state, WORLD.tidewalkExpeditionSeconds + 0.12, { analyze: true });
+
+  const completedExpedition = getTidewalkExpedition(state);
+  assert.equal(completedExpedition.complete, true);
+  assert.equal(state.scene, "archive");
+  assert.match(state.clueLog.at(-1), /black-painted skiff/i);
 }
 
 {

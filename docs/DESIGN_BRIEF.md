@@ -42,6 +42,8 @@ The first settlement foothold is Tidewalk Coast. Once the archive lift route is 
 
 The first spatial frontier consequences now branch out of the Tidewalk dossier: choosing `black-keel-countermark` creates a physical return-to-gate field operation at the Coastline Lift, while choosing `quay-safe-lantern-line` sends the player back inland to sync a witness relay at South Relay Camp. This keeps scope pragmatic while proving a key open-world principle for `Frontier of the Deep Green`: authored route choices should change not just text, but where the player must go next and what they must physically stabilize in the world.
 
+The first world-boundary payoff is Brinehook Low Piers, a separate Tidewalk Coast micro-scene reached after either coastal field operation. It reuses the signal economy as a survival tool: black-tide pools drain signal, pulses suppress them temporarily, and each route choice resolves at a different authored destination before returning persistent evidence inland.
+
 ## Success Metrics
 
 - A player can load the prototype locally.

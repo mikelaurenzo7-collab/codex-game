@@ -16,6 +16,9 @@ export const WORLD = {
   coastalOperationRadius: 76,
   coastalOperationSeconds: 1.9,
   coastalOperationDrainPerSecond: 11,
+  tidewalkExpeditionSeconds: 1.5,
+  tidewalkExpeditionDrainPerSecond: 9,
+  tideHazardDrainPerSecond: 18,
   echoStunSeconds: 2.6,
   echoDrainPerSecond: 26,
   signalRechargePerSecond: 4.5
@@ -548,9 +551,47 @@ const FRONTIER_COASTAL_OPERATIONS = {
   }
 };
 
+const TIDEWALK_SCENE = {
+  entry: { x: 170, y: 850 },
+  launchGate: { x: 140, y: 1012 },
+  obstacles: [
+    { x: 0, y: 0, width: 1920, height: 42 },
+    { x: 0, y: 1038, width: 1920, height: 42 },
+    { x: 0, y: 0, width: 42, height: 1080 },
+    { x: 1878, y: 0, width: 42, height: 1080 },
+    { x: 360, y: 150, width: 90, height: 650 },
+    { x: 670, y: 430, width: 470, height: 76 },
+    { x: 1160, y: 170, width: 72, height: 610 },
+    { x: 1420, y: 520, width: 300, height: 68 },
+    { x: 720, y: 820, width: 480, height: 72 }
+  ],
+  hazards: [
+    { id: "brine-mouth", x: 585, y: 770, radius: 118 },
+    { id: "undertow-cut", x: 990, y: 300, radius: 105 },
+    { id: "blackwater-sump", x: 1390, y: 850, radius: 125 }
+  ],
+  leads: {
+    "quay-safe-lantern-line": {
+      title: "Meet the Brinehook lantern tender",
+      label: "Lantern tender",
+      target: { x: 1580, y: 260 },
+      completionTitle: "Tender witness secured",
+      completionText: "The tender names a black-painted skiff and marks the low-tide channel back to Tidelantern Quay."
+    },
+    "black-keel-countermark": {
+      title: "Reach the Black-Keel underpier cache",
+      label: "Underpier cache",
+      target: { x: 1570, y: 860 },
+      completionTitle: "Black-Keel cache breached",
+      completionText: "The cache is stripped, but a wet captain's tally points toward the next Black-Keel staging pier."
+    }
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
+    scene: "archive",
     status: "running",
     result: null,
     player: { ...BLUEPRINT.player, radius: WORLD.playerRadius },
@@ -589,6 +630,12 @@ export function createGameState() {
       selectedRouteChoiceId: null,
       routeProgress: {},
       coastalOperationProgress: {},
+      tidewalkExpedition: {
+        launched: false,
+        complete: false,
+        progress: 0,
+        tideStilledUntil: 0
+      },
       lastTraverse: null,
       lastEncounter: null,
       lastSurvey: null,
@@ -611,6 +658,11 @@ export function collectedFragmentCount(state) {
 export function getActiveObjective(state) {
   if (state.status !== "running") {
     return null;
+  }
+
+  const expedition = getTidewalkExpedition(state);
+  if (expedition.active && !expedition.complete) {
+    return buildObjective("tidewalk-expedition", expedition.title, expedition.target, state);
   }
 
   const openFragments = state.fragments.filter((fragment) => !fragment.collected);
@@ -1166,6 +1218,41 @@ export function getFrontierCoastalOperation(state) {
   };
 }
 
+export function getTidewalkExpedition(state) {
+  const operation = getFrontierCoastalOperation(state);
+  const choiceId = state.frontier?.selectedRouteChoiceId;
+  const lead = TIDEWALK_SCENE.leads[choiceId];
+  if (!operation.active || !operation.complete || !lead) {
+    return inactiveTidewalkExpedition();
+  }
+
+  const progressState = state.frontier?.tidewalkExpedition || {};
+  const launched = Boolean(progressState.launched);
+  const complete = Boolean(progressState.complete);
+  const target = launched && !complete ? lead.target : TIDEWALK_SCENE.launchGate;
+  const phase = complete ? "complete" : launched ? "field" : "launch";
+  const radius = launched ? WORLD.coastalOperationRadius : WORLD.frontierTraverseRadius;
+  return {
+    active: true,
+    phase,
+    launched,
+    complete,
+    choiceId,
+    title: phase === "launch" ? "Descend to Tidewalk Coast" : lead.title,
+    label: lead.label,
+    completionTitle: lead.completionTitle,
+    completionText: lead.completionText,
+    leadTarget: { ...lead.target },
+    target: { ...target },
+    inRange: distance(state.player, target) <= radius,
+    progress: progressState.progress || 0,
+    required: WORLD.tidewalkExpeditionSeconds,
+    tideStilled: (progressState.tideStilledUntil || 0) > state.time,
+    hazards: TIDEWALK_SCENE.hazards.map((hazard) => ({ ...hazard })),
+    obstacles: TIDEWALK_SCENE.obstacles.map((obstacle) => ({ ...obstacle }))
+  };
+}
+
 export function getEvidenceJournal(state) {
   return state.fragments.map((fragment) => ({
     id: fragment.id,
@@ -1189,6 +1276,11 @@ export function triggerPulse(state) {
   state.signal = Math.max(0, state.signal - WORLD.pulseCost);
   state.pulseCooldownUntil = state.time + WORLD.pulseCooldown;
   state.pulses.push({ x: state.player.x, y: state.player.y, startedAt: state.time });
+
+  if (state.scene === "tidewalk") {
+    state.frontier.tidewalkExpedition.tideStilledUntil = state.time + WORLD.echoStunSeconds;
+    return true;
+  }
 
   for (const fragment of state.fragments) {
     if (
@@ -1227,14 +1319,17 @@ export function updateGameState(state, input, deltaSeconds) {
   state.pulses = state.pulses.filter((pulse) => state.time - pulse.startedAt < 0.72);
 
   movePlayer(state, input, dt);
-  moveEchoes(state, dt);
-  resolveWorldSurvey(state);
-  resolveFieldAnalysis(state, input, dt);
-  resolveFrontierTraverse(state, input, dt);
-  resolveFrontierCoastalOperation(state, input, dt);
-  resolveCollection(state);
-  resolveEchoPressure(state, dt);
-  resolveGate(state);
+  if (state.scene === "archive") {
+    moveEchoes(state, dt);
+    resolveWorldSurvey(state);
+    resolveFieldAnalysis(state, input, dt);
+    resolveFrontierTraverse(state, input, dt);
+    resolveFrontierCoastalOperation(state, input, dt);
+    resolveCollection(state);
+    resolveEchoPressure(state, dt);
+    resolveGate(state);
+  }
+  resolveTidewalkExpedition(state, input, dt);
 
   return state;
 }
@@ -1249,8 +1344,61 @@ function movePlayer(state, input, dt) {
   }
 
   const distanceToMove = WORLD.playerSpeed * dt;
-  moveCircleWithCollision(state.player, dx * distanceToMove, 0, state.obstacles);
-  moveCircleWithCollision(state.player, 0, dy * distanceToMove, state.obstacles);
+  const obstacles = state.scene === "tidewalk" ? TIDEWALK_SCENE.obstacles : state.obstacles;
+  moveCircleWithCollision(state.player, dx * distanceToMove, 0, obstacles);
+  moveCircleWithCollision(state.player, 0, dy * distanceToMove, obstacles);
+}
+
+function resolveTidewalkExpedition(state, input, dt) {
+  const expedition = getTidewalkExpedition(state);
+  if (!expedition.active || expedition.complete) {
+    return;
+  }
+
+  const progressState = state.frontier.tidewalkExpedition;
+  const holdingAction = Boolean(input.analyze);
+  if (!holdingAction || !expedition.inRange || state.signal <= 0) {
+    progressState.progress = Math.max(0, progressState.progress - dt * 0.7);
+  } else {
+    state.signal = Math.max(0, state.signal - WORLD.tidewalkExpeditionDrainPerSecond * dt);
+    progressState.progress = Math.min(expedition.required, progressState.progress + dt);
+  }
+
+  if (progressState.progress >= expedition.required) {
+    progressState.progress = 0;
+    if (expedition.phase === "launch") {
+      progressState.launched = true;
+      state.scene = "tidewalk";
+      state.player.x = TIDEWALK_SCENE.entry.x;
+      state.player.y = TIDEWALK_SCENE.entry.y;
+      state.pulses = [];
+      state.clueLog.push("Tidewalk excursion launched: Brinehook Low Piers");
+      return;
+    }
+
+    progressState.complete = true;
+    state.scene = "archive";
+    state.player.x = TIDEWALK_SCENE.launchGate.x;
+    state.player.y = TIDEWALK_SCENE.launchGate.y;
+    state.clueLog.push(expedition.completionTitle);
+    state.clueLog.push(expedition.completionText);
+    return;
+  }
+
+  if (state.scene !== "tidewalk" || expedition.tideStilled) {
+    return;
+  }
+
+  const insideHazard = expedition.hazards.some(
+    (hazard) => distance(state.player, hazard) <= hazard.radius + state.player.radius
+  );
+  if (insideHazard) {
+    state.signal = Math.max(0, state.signal - WORLD.tideHazardDrainPerSecond * dt);
+    if (state.signal <= 0) {
+      state.status = "failed";
+      state.result = "Lost to the black tide";
+    }
+  }
 }
 
 function moveCircleWithCollision(circle, dx, dy, obstacles) {
@@ -1657,12 +1805,34 @@ function inactiveFrontierCoastalOperation() {
     briefing: null,
     completionTitle: null,
     completionText: null,
+    leadTarget: null,
     nextHook: null,
     complete: false,
     inRange: false,
     progress: 0,
     required: WORLD.coastalOperationSeconds,
     gate: null
+  };
+}
+
+function inactiveTidewalkExpedition() {
+  return {
+    active: false,
+    phase: null,
+    launched: false,
+    complete: false,
+    choiceId: null,
+    title: null,
+    label: null,
+    completionTitle: null,
+    completionText: null,
+    target: null,
+    inRange: false,
+    progress: 0,
+    required: WORLD.tidewalkExpeditionSeconds,
+    tideStilled: false,
+    hazards: [],
+    obstacles: []
   };
 }
 

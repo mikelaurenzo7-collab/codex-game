@@ -11,6 +11,7 @@ import {
   getFrontierNetwork,
   getFrontierRouteChoice,
   getFrontierSurvey,
+  getTidewalkExpedition,
   getFrontierTraverse,
   getWorldAtlas,
   getBlackKeelStorylet,
@@ -208,20 +209,24 @@ function draw() {
   ctx.scale(camera.scale, camera.scale);
   ctx.translate(-camera.x, -camera.y);
 
-  drawWorldFloor();
-  drawRegionContours();
-  drawGate();
-  drawRelays();
-  drawSynthesisTarget();
-  drawFieldAnalysis();
-  drawFragments();
-  drawRecoveredMarkers();
-  drawAtlasLandmarks();
-  drawFrontierGates();
-  drawFrontierTraverse();
-  drawFrontierCoastalOperation();
-  drawEchoes();
-  drawObstacles();
+  if (state.scene === "tidewalk") {
+    drawTidewalkScene();
+  } else {
+    drawWorldFloor();
+    drawRegionContours();
+    drawGate();
+    drawRelays();
+    drawSynthesisTarget();
+    drawFieldAnalysis();
+    drawFragments();
+    drawRecoveredMarkers();
+    drawAtlasLandmarks();
+    drawFrontierGates();
+    drawFrontierTraverse();
+    drawFrontierCoastalOperation();
+    drawEchoes();
+    drawObstacles();
+  }
   drawPulses();
   drawPlayer();
   drawFog(camera, width, height);
@@ -549,6 +554,65 @@ function drawFrontierTraverse() {
   ctx.restore();
 }
 
+function drawTidewalkScene() {
+  const expedition = getTidewalkExpedition(state);
+  ctx.fillStyle = "#102a30";
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  const tide = ctx.createLinearGradient(0, 0, WORLD.width, WORLD.height);
+  tide.addColorStop(0, "rgba(40, 112, 118, 0.18)");
+  tide.addColorStop(0.55, "rgba(5, 18, 23, 0.68)");
+  tide.addColorStop(1, "rgba(44, 92, 86, 0.2)");
+  ctx.fillStyle = tide;
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  ctx.strokeStyle = "rgba(232, 196, 109, 0.16)";
+  ctx.lineWidth = 5;
+  for (let y = 110; y < WORLD.height; y += 135) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(440, y - 70, 980, y + 75, WORLD.width, y - 20);
+    ctx.stroke();
+  }
+
+  for (const hazard of expedition.hazards) {
+    const suppressed = expedition.tideStilled;
+    ctx.save();
+    ctx.translate(hazard.x, hazard.y);
+    ctx.fillStyle = suppressed ? "rgba(98, 214, 184, 0.08)" : "rgba(4, 8, 13, 0.62)";
+    ctx.strokeStyle = suppressed ? "rgba(98, 214, 184, 0.46)" : "rgba(217, 102, 102, 0.48)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius + Math.sin(state.time * 3 + hazard.x) * 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (const obstacle of expedition.obstacles) {
+    ctx.fillStyle = "#334344";
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    ctx.fillStyle = "rgba(232, 196, 109, 0.09)";
+    ctx.fillRect(obstacle.x + 6, obstacle.y + 6, obstacle.width - 12, obstacle.height - 12);
+  }
+
+  const progress = expedition.progress / expedition.required;
+  ctx.save();
+  ctx.translate(expedition.target.x, expedition.target.y);
+  ctx.fillStyle = "rgba(6, 16, 19, 0.76)";
+  ctx.strokeStyle = expedition.inRange ? "#e8c46d" : "rgba(232, 196, 109, 0.48)";
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.arc(0, 0, WORLD.coastalOperationRadius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+  ctx.lineTo(0, 0);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#f3f0dc";
+  ctx.font = "700 14px system-ui, sans-serif";
+  ctx.fillText(expedition.label, 28, -18);
+  ctx.restore();
+}
+
 function drawFrontierCoastalOperation() {
   const operation = getFrontierCoastalOperation(state);
   if (!operation.active) {
@@ -748,8 +812,11 @@ function updateHud() {
   const routeChoice = getFrontierRouteChoice(state);
   const storylet = getBlackKeelStorylet(state);
   const coastalOperation = getFrontierCoastalOperation(state);
+  const expedition = getTidewalkExpedition(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
-  fragmentReadout.textContent = `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
+  fragmentReadout.textContent = state.scene === "tidewalk"
+    ? "Brinehook Low Piers"
+    : `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
   objectiveReadout.textContent = formatObjective(
     objective,
     analysis,
@@ -758,15 +825,29 @@ function updateHud() {
     survey,
     routeChoice,
     storylet,
-    coastalOperation
+    coastalOperation,
+    expedition
   );
   updateJournal();
   updateAtlas();
-  updateArrival(arrival, encounter, survey, routeChoice, storylet, coastalOperation);
-  updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation);
+  if (state.scene === "tidewalk") {
+    arrivalPanel.classList.add("is-hidden");
+    arrivalSnapshot = "tidewalk-hidden";
+  } else {
+    updateArrival(arrival, encounter, survey, routeChoice, storylet, coastalOperation);
+  }
+  updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation, expedition);
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
+  } else if (expedition.active && !expedition.complete && expedition.inRange && input.analyze) {
+    statusReadout.textContent = `${expedition.title} ${Math.round((expedition.progress / expedition.required) * 100)}%`;
+  } else if (expedition.active && !expedition.complete && expedition.phase === "field") {
+    statusReadout.textContent = expedition.tideStilled ? "Black tide suppressed" : "Brinehook Low Piers";
+  } else if (expedition.active && !expedition.complete) {
+    statusReadout.textContent = "Tidewalk descent ready";
+  } else if (expedition.active && expedition.complete) {
+    statusReadout.textContent = expedition.completionTitle;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
   } else if (coastalOperation.active && coastalOperation.complete) {
@@ -1044,7 +1125,7 @@ function updateAtlas() {
   );
 }
 
-function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation) {
+function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation, expedition) {
   if (primerDismissed) {
     primerPanel.classList.add("is-hidden");
     return;
@@ -1064,6 +1145,28 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
   if (state.gate.unlocked) {
     primerTitle.textContent = "Extraction is open";
     primerText.textContent = "All fragments are recovered. Head for the extraction cairn to complete the archive thread.";
+    return;
+  }
+
+  if (expedition.active && expedition.complete) {
+    primerTitle.textContent = expedition.completionTitle;
+    primerText.textContent = expedition.completionText;
+    return;
+  }
+
+  if (expedition.active && expedition.phase === "field") {
+    primerTitle.textContent = expedition.title;
+    primerText.textContent = expedition.inRange
+      ? "Hold E to resolve the lead and return inland."
+      : "Cross the low piers. Black tide drains signal; Space suppresses it briefly.";
+    return;
+  }
+
+  if (expedition.active && expedition.phase === "launch") {
+    primerTitle.textContent = "Descend to Tidewalk Coast";
+    primerText.textContent = expedition.inRange
+      ? "Hold E to enter the Brinehook Low Piers micro-scene."
+      : "Return to the Coastline Lift to launch the resolved coastal lead.";
     return;
   }
 
@@ -1167,7 +1270,18 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
   primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
 }
 
-function formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation) {
+function formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation, expedition) {
+  if (expedition.active && !expedition.complete) {
+    const progress = Math.round((expedition.progress / expedition.required) * 100);
+    return expedition.inRange
+      ? `${expedition.title} ${progress}%`
+      : `${expedition.title} ${Math.round(distanceBetween(state.player, expedition.target))}m`;
+  }
+
+  if (expedition.active && expedition.complete) {
+    return expedition.completionTitle;
+  }
+
   if (coastalOperation.active) {
     if (coastalOperation.complete) {
       return coastalOperation.completionTitle;

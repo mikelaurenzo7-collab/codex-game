@@ -31,6 +31,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Tidewalk route-choice consequences now expose deterministic faction pressure, settlement trust, rewards, unlocked flags, and next hooks so the first coastal foothold produces authored world fallout instead of a dead-end clue.
 - Choosing the `black-keel-countermark` Tidewalk branch now unlocks a state-backed return-to-gate field operation at the Coastline Lift, with in-world progress, signal drain, completion fallout, and test coverage proving one coastal consequence changes physical play space.
 - Choosing the safer `quay-safe-lantern-line` Tidewalk branch now unlocks a state-backed return-to-relay field operation at South Relay Camp, with battery support, witness-heading fallout, and test coverage proving both Tidewalk route choices now redirect physical play to different anchors.
+- Resolving either Tidewalk field operation now unlocks the Brinehook Low Piers micro-scene beyond the archive map, with branch-specific objectives, signal-draining tide hazards, pulse-based suppression, and a deterministic return carrying persistent coastal evidence.
 
 ## Operating Rules
 
@@ -288,3 +289,20 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** GitHub remains the repository remote. No external services were required for this iteration.
 - **Learned Constraints:** Branch consequence loops stay manageable when the world-state selector owns the destination anchor and the client only renders the currently active field instruction. That keeps route fallout scalable without multiplying bespoke UI branches.
 - **Next Bottleneck:** Promote one resolved Tidewalk field lead into a true coastal micro-scene beyond the archive map, so the next frontier step is not just a return-to-anchor operation but a short destination slice with its own hazards or social contact.
+
+### 0015 - Brinehook Low Piers Excursion
+
+- **State Assessment:** Both Tidewalk choices had physical return-to-anchor operations, but neither crossed the archive boundary. The greatest bottleneck was that frontier travel still produced dossier fallout without a distinct destination space.
+- **Strategic Choice:** A. Core Mechanic Deep Dive.
+- **Justification:** A compact cross-zone excursion proves scene transition, navigation, survival pressure, and persistent return fallout before the project commits to a larger second biome.
+- **Plan Critique:** A full Tidewalk Coast biome would add too much geometry and content before scene transitions and cross-zone objectives were validated. The corrected scope was one shared coastal pocket with branch-specific destinations and one legible hazard rule.
+- **Execution Plan:**
+  - **Specific Tasks:** Add deterministic Tidewalk expedition state; launch it from the Coastline Lift after a resolved field lead; render a separate Brinehook Low Piers scene; add signal-draining black-tide hazards that pulse suppresses; resolve branch-specific objectives and return inland with persistent evidence; extend tests and docs.
+  - **Technology Stack Justification:** The current vanilla Canvas and ES module state model remain appropriate because the iteration tests world-transition architecture rather than rendering scale. No engine migration or external service is required for one bounded micro-scene.
+  - **Success Metrics:** Both route choices select different coastal destinations; holding E launches and resolves the excursion; tide hazards measurably drain signal; Space temporarily suppresses that drain; completion returns to the archive and persists authored fallout; all local checks pass.
+  - **Risk Mitigation:** The scene reuses the existing world dimensions, input grammar, camera, signal economy, and deterministic update loop. It does not alter the archive map, so rollback remains isolated to the expedition layer and scene renderer.
+- **Work Completed:** Added `getTidewalkExpedition`, cross-zone scene state, branch-specific Brinehook targets, coastal collision geometry, black-tide hazard pressure, pulse suppression, launch/completion transitions, a dedicated Canvas scene renderer, contextual HUD/primer guidance, tests, and documentation.
+- **Validation Evidence:** `tests/run-all.mjs` passed all game-state, Tidewalk objective, and Black-Keel storylet suites, including a collision-aware route across the coastal pocket. `node --check` passed for `src/game.js` and `src/game-state.js`; `git diff --check` found no whitespace errors beyond Git's existing line-ending notices. Browser smoke at `http://localhost:5173/` confirmed the Canvas, initial HUD, objective, primer, and atlas rendered with no game-page warnings or errors.
+- **External Services Used:** Browser was used for the final local UI smoke. GitHub remains the project remote. Canva and other external services were not needed because this increment is systemic gameplay and authored Canvas presentation.
+- **Learned Constraints:** A second world pocket can remain low-risk when it shares input, camera, and deterministic state conventions but owns its obstacles, hazards, objective, and visual language.
+- **Next Bottleneck:** Make the Tidewalk excursion reachable through normal first-session progression without dossier-only survey buttons, or add a save/load checkpoint so the growing multi-stage vertical slice can be resumed and browser-tested efficiently.
