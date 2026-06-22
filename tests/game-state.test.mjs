@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   WORLD,
   canPulse,
+  createGameCheckpoint,
   collectedFragmentCount,
   createGameState,
   distance,
@@ -22,6 +23,7 @@ import {
   chooseFrontierRoute,
   resolveFrontierEncounter,
   resolveFrontierSurveySite,
+  restoreGameCheckpoint,
   triggerPulse,
   updateGameState
 } from "../src/game-state.js";
@@ -103,6 +105,39 @@ function unlockTidewalkRouteChoice(state) {
   const routeChoice = getFrontierRouteChoice(state);
   assert.equal(routeChoice.active, true);
   assert.equal(routeChoice.selectedChoice, null);
+}
+
+{
+  const state = createGameState();
+  state.player.x = 777;
+  state.player.y = 612;
+  state.signal = 43;
+  state.atlas.discoveredLandmarkIds.push("relay-fen");
+  state.frontier.tidewalkExpedition.launched = true;
+  state.scene = "tidewalk";
+
+  const checkpoint = createGameCheckpoint(state);
+  const restored = restoreGameCheckpoint(checkpoint);
+  assert.notEqual(restored, state, "checkpoint restore should create a new object graph");
+  assert.deepEqual(restored, state, "checkpoint should preserve the complete deterministic state");
+  restored.player.x = 900;
+  assert.equal(state.player.x, 777, "restored state should not alias the live state");
+
+  assert.throws(() => restoreGameCheckpoint("not-json"), /valid JSON/);
+  assert.throws(
+    () => restoreGameCheckpoint(JSON.stringify({ version: 999, state })),
+    /version is not supported/
+  );
+  assert.throws(
+    () => restoreGameCheckpoint(JSON.stringify({ version: 1, state: { scene: "archive" } })),
+    /state is invalid/
+  );
+  const damagedState = JSON.parse(JSON.stringify(state));
+  delete damagedState.echoes[0].path;
+  assert.throws(
+    () => restoreGameCheckpoint(JSON.stringify({ version: 1, state: damagedState })),
+    /world data is invalid/
+  );
 }
 
 {

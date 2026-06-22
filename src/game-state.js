@@ -24,6 +24,8 @@ export const WORLD = {
   signalRechargePerSecond: 4.5
 };
 
+export const GAME_SAVE_VERSION = 1;
+
 const BLUEPRINT = {
   player: { x: 160, y: 880 },
   gate: { x: 1770, y: 170, radius: 54 },
@@ -645,6 +647,145 @@ export function createGameState() {
   };
   resolveWorldSurvey(state);
   return state;
+}
+
+export function createGameCheckpoint(state) {
+  validateCheckpointState(state);
+  return JSON.stringify({
+    version: GAME_SAVE_VERSION,
+    savedAt: new Date().toISOString(),
+    state
+  });
+}
+
+export function restoreGameCheckpoint(serialized) {
+  if (typeof serialized !== "string" || serialized.length === 0 || serialized.length > 100_000) {
+    throw new Error("Checkpoint data is missing or too large");
+  }
+
+  let checkpoint;
+  try {
+    checkpoint = JSON.parse(serialized);
+  } catch {
+    throw new Error("Checkpoint data is not valid JSON");
+  }
+
+  if (!isRecord(checkpoint) || checkpoint.version !== GAME_SAVE_VERSION) {
+    throw new Error("Checkpoint version is not supported");
+  }
+
+  validateCheckpointState(checkpoint.state);
+  return checkpoint.state;
+}
+
+function validateCheckpointState(state) {
+  const validStatus = ["running", "complete", "failed"];
+  if (
+    !isRecord(state) ||
+    !["archive", "tidewalk"].includes(state.scene) ||
+    !validStatus.includes(state.status) ||
+    !isFiniteNumber(state.time) ||
+    !isFiniteNumber(state.signal) ||
+    !isFiniteNumber(state.pulseCooldownUntil) ||
+    !isPoint(state.player) ||
+    !isPoint(state.gate)
+  ) {
+    throw new Error("Checkpoint state is invalid");
+  }
+
+  const expectedFragmentIds = BLUEPRINT.fragments.map(({ id }) => id);
+  const expectedRelayIds = BLUEPRINT.relays.map(({ id }) => id);
+  const expectedEchoIds = BLUEPRINT.echoes.map(({ id }) => id);
+  if (
+    !hasExactEntityIds(state.fragments, expectedFragmentIds) ||
+    !hasExactEntityIds(state.relays, expectedRelayIds) ||
+    !hasExactEntityIds(state.echoes, expectedEchoIds) ||
+    !state.fragments.every(
+      (fragment) =>
+        isPoint(fragment) &&
+        typeof fragment.collected === "boolean" &&
+        typeof fragment.analysisResolved === "boolean" &&
+        isFiniteNumber(fragment.revealedUntil) &&
+        isFiniteNumber(fragment.analysisProgress)
+    ) ||
+    !state.relays.every((relay) => isPoint(relay) && typeof relay.depleted === "boolean") ||
+    !state.echoes.every(
+      (echo) =>
+        isPoint(echo) &&
+        Array.isArray(echo.path) &&
+        echo.path.every(isPoint) &&
+        Number.isInteger(echo.targetIndex) &&
+        isFiniteNumber(echo.stunnedUntil)
+    ) ||
+    !Array.isArray(state.obstacles) ||
+    !state.obstacles.every(isRectangle) ||
+    !Array.isArray(state.pulses) ||
+    !state.pulses.every((pulse) => isPoint(pulse) && isFiniteNumber(pulse.startedAt)) ||
+    !isStringArray(state.clueLog)
+  ) {
+    throw new Error("Checkpoint world data is invalid");
+  }
+
+  if (
+    !isRecord(state.atlas) ||
+    !isStringArray(state.atlas.visitedRegionIds) ||
+    !isStringArray(state.atlas.discoveredLandmarkIds) ||
+    !isStringArray(state.atlas.discoveredRouteIds) ||
+    !isStringArray(state.atlas.chartedRouteIds)
+  ) {
+    throw new Error("Checkpoint atlas data is invalid");
+  }
+
+  const frontier = state.frontier;
+  if (
+    !isRecord(frontier) ||
+    !isStringArray(frontier.traversedRouteIds) ||
+    !isStringArray(frontier.resolvedEncounterIds) ||
+    !isStringArray(frontier.resolvedCoastalOperationIds) ||
+    !isStringArray(frontier.surveyedSiteIds) ||
+    !isStringArray(frontier.discoveredCoastalClueIds) ||
+    !isNumberRecord(frontier.routeProgress) ||
+    !isNumberRecord(frontier.coastalOperationProgress) ||
+    !isRecord(frontier.tidewalkExpedition) ||
+    typeof frontier.tidewalkExpedition.launched !== "boolean" ||
+    typeof frontier.tidewalkExpedition.complete !== "boolean" ||
+    !isFiniteNumber(frontier.tidewalkExpedition.progress) ||
+    !isFiniteNumber(frontier.tidewalkExpedition.tideStilledUntil)
+  ) {
+    throw new Error("Checkpoint frontier data is invalid");
+  }
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isPoint(value) {
+  return isRecord(value) && isFiniteNumber(value.x) && isFiniteNumber(value.y);
+}
+
+function isRectangle(value) {
+  return isPoint(value) && isFiniteNumber(value.width) && isFiniteNumber(value.height);
+}
+
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function hasExactEntityIds(value, expectedIds) {
+  return (
+    Array.isArray(value) &&
+    value.length === expectedIds.length &&
+    expectedIds.every((id) => value.some((item) => isRecord(item) && item.id === id))
+  );
+}
+
+function isNumberRecord(value) {
+  return isRecord(value) && Object.values(value).every(isFiniteNumber);
 }
 
 export function distance(a, b) {

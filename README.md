@@ -27,4 +27,4 @@ node tests/run-all.mjs
 node scripts/serve.mjs
 ```
 
-Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, advance Tidewalk field rings and coastal objectives with `E`, suppress black-tide hazards with `Space`, use the arrival dossier buttons for settlement/coastal follow-up actions and Tidewalk route choice, restart with `R` or the on-screen button.
+Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, advance Tidewalk field rings and coastal objectives with `E`, suppress black-tide hazards with `Space`, use the arrival dossier buttons for settlement/coastal follow-up actions and Tidewalk route choice, save the current expedition with `Save checkpoint`, and restart with `R` or the on-screen button. A valid checkpoint resumes automatically on the next load; restarting clears it.

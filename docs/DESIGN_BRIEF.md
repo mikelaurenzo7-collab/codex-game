@@ -44,6 +44,8 @@ The first spatial frontier consequences now branch out of the Tidewalk dossier: 
 
 The first world-boundary payoff is Brinehook Low Piers, a separate Tidewalk Coast micro-scene reached after either coastal field operation. It reuses the signal economy as a survival tool: black-tide pools drain signal, pulses suppress them temporarily, and each route choice resolves at a different authored destination before returning persistent evidence inland.
 
+The growing vertical slice now supports one versioned local checkpoint. Saving captures archive or Brinehook progress and automatically resumes it on reload; restarting deliberately clears the checkpoint. The format is validated before use so stale or malformed browser data falls back to a fresh expedition instead of breaking the game loop.
+
 ## Success Metrics
 
 - A player can load the prototype locally.

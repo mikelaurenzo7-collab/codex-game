@@ -460,10 +460,22 @@ body {
   color: #f3f0dc;
 }
 
-.restart {
+.session-controls {
   position: absolute;
   right: 18px;
   bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkpoint-status {
+  color: #b8c7bd;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.session-button {
   min-width: 96px;
   min-height: 38px;
   border: 1px solid rgba(243, 240, 220, 0.28);
@@ -474,8 +486,8 @@ body {
   cursor: pointer;
 }
 
-.restart:hover,
-.restart:focus-visible {
+.session-button:hover,
+.session-button:focus-visible {
   border-color: #e8c46d;
   outline: none;
 }

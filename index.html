@@ -118,7 +118,11 @@
         <ol id="landmarkList" class="landmark-list"></ol>
       </div>
       </section>
-      <button id="restartButton" class="restart" type="button">Restart</button>
+      <div class="session-controls" aria-label="Session controls">
+        <span id="checkpointStatus" class="checkpoint-status" aria-live="polite">Fresh expedition</span>
+        <button id="checkpointButton" class="session-button" type="button">Save checkpoint</button>
+        <button id="restartButton" class="session-button" type="button">Restart</button>
+      </div>
     </main>
     <script type="module" src="./src/game.js"></script>
   </body>

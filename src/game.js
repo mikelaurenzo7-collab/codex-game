@@ -1,5 +1,6 @@
 import {
   WORLD,
+  createGameCheckpoint,
   collectedFragmentCount,
   createGameState,
   getEvidenceJournal,
@@ -19,6 +20,7 @@ import {
   getActiveObjective,
   resolveFrontierEncounter,
   resolveFrontierSurveySite,
+  restoreGameCheckpoint,
   triggerPulse,
   updateGameState
 } from "./game-state.js";
@@ -70,6 +72,8 @@ const arrivalStoryletTwist = document.querySelector("#arrivalStoryletTwist");
 const arrivalStoryletReward = document.querySelector("#arrivalStoryletReward");
 const arrivalStoryletNextHook = document.querySelector("#arrivalStoryletNextHook");
 const restartButton = document.querySelector("#restartButton");
+const checkpointButton = document.querySelector("#checkpointButton");
+const checkpointStatus = document.querySelector("#checkpointStatus");
 const primerPanel = document.querySelector("#primerPanel");
 const primerTitle = document.querySelector("#primerTitle");
 const primerText = document.querySelector("#primerText");
@@ -83,7 +87,9 @@ const input = {
   analyze: false
 };
 
-let state = createGameState();
+const CHECKPOINT_KEY = "frontier-deep-green.checkpoint";
+let checkpointMessage = "Fresh expedition";
+let state = loadCheckpoint();
 let lastTime = performance.now();
 let journalSnapshot = "";
 let atlasSnapshot = "";
@@ -161,12 +167,15 @@ arrivalRouteChoiceList.addEventListener("click", (event) => {
   }
 });
 restartButton.addEventListener("click", restart);
+checkpointButton.addEventListener("click", saveCheckpoint);
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 requestAnimationFrame(frame);
 
 function restart() {
+  localStorage.removeItem(CHECKPOINT_KEY);
   state = createGameState();
+  checkpointMessage = "Checkpoint cleared";
   lastTime = performance.now();
   journalSnapshot = "";
   atlasSnapshot = "";
@@ -554,6 +563,34 @@ function drawFrontierTraverse() {
   ctx.restore();
 }
 
+function loadCheckpoint() {
+  const serialized = localStorage.getItem(CHECKPOINT_KEY);
+  if (!serialized) {
+    return createGameState();
+  }
+
+  try {
+    checkpointMessage = "Checkpoint resumed";
+    return restoreGameCheckpoint(serialized);
+  } catch (error) {
+    console.warn("Discarding invalid game checkpoint", error);
+    localStorage.removeItem(CHECKPOINT_KEY);
+    checkpointMessage = "Invalid checkpoint cleared";
+    return createGameState();
+  }
+}
+
+function saveCheckpoint() {
+  try {
+    localStorage.setItem(CHECKPOINT_KEY, createGameCheckpoint(state));
+    checkpointMessage = state.scene === "tidewalk" ? "Brinehook checkpoint saved" : "Archive checkpoint saved";
+  } catch (error) {
+    console.warn("Unable to save game checkpoint", error);
+    checkpointMessage = "Checkpoint unavailable";
+  }
+  updateHud();
+}
+
 function drawTidewalkScene() {
   const expedition = getTidewalkExpedition(state);
   ctx.fillStyle = "#102a30";
@@ -802,6 +839,7 @@ function drawEndState(width, height) {
 }
 
 function updateHud() {
+  checkpointStatus.textContent = checkpointMessage;
   const objective = getActiveObjective(state);
   const synthesis = getEvidenceSynthesis(state);
   const analysis = getFieldAnalysis(state);
