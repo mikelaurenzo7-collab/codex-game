@@ -12,6 +12,7 @@ import {
   getFrontierNetwork,
   getFrontierRouteChoice,
   getFrontierSurvey,
+  getTidewalkSurveyField,
   getTidewalkExpedition,
   getFrontierTraverse,
   getWorldAtlas,
@@ -19,7 +20,6 @@ import {
   chooseFrontierRoute,
   getActiveObjective,
   resolveFrontierEncounter,
-  resolveFrontierSurveySite,
   restoreGameCheckpoint,
   triggerPulse,
   updateGameState
@@ -144,17 +144,6 @@ arrivalActionButton.addEventListener("click", () => {
     updateHud();
   }
 });
-arrivalSurveyList.addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-site-id]");
-  if (!button) {
-    return;
-  }
-
-  if (resolveFrontierSurveySite(state, button.dataset.siteId)) {
-    arrivalSnapshot = "";
-    updateHud();
-  }
-});
 arrivalRouteChoiceList.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-choice-id]");
   if (!button) {
@@ -210,6 +199,7 @@ function draw() {
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const camera = makeCamera(width, height);
+  const tidewalkSurvey = getTidewalkSurveyField(state);
 
   ctx.clearRect(0, 0, width, height);
   drawBackground(width, height);
@@ -218,7 +208,9 @@ function draw() {
   ctx.scale(camera.scale, camera.scale);
   ctx.translate(-camera.x, -camera.y);
 
-  if (state.scene === "tidewalk") {
+  if (state.scene === "tidewalk" && tidewalkSurvey.active && tidewalkSurvey.phase === "field") {
+    drawTidewalkSurveyScene(tidewalkSurvey);
+  } else if (state.scene === "tidewalk") {
     drawTidewalkScene();
   } else {
     drawWorldFloor();
@@ -650,6 +642,103 @@ function drawTidewalkScene() {
   ctx.restore();
 }
 
+function drawTidewalkSurveyScene(tidewalkSurvey) {
+  ctx.fillStyle = "#11292c";
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  const tide = ctx.createLinearGradient(0, 0, WORLD.width, WORLD.height);
+  tide.addColorStop(0, "rgba(28, 108, 104, 0.16)");
+  tide.addColorStop(0.55, "rgba(4, 17, 21, 0.7)");
+  tide.addColorStop(1, "rgba(58, 95, 80, 0.2)");
+  ctx.fillStyle = tide;
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  ctx.strokeStyle = "rgba(98, 214, 184, 0.12)";
+  ctx.lineWidth = 4;
+  for (let y = 120; y < WORLD.height; y += 140) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(380, y - 90, 960, y + 72, WORLD.width, y - 24);
+    ctx.stroke();
+  }
+
+  for (const hazard of tidewalkSurvey.hazards) {
+    const suppressed = tidewalkSurvey.tideStilled;
+    ctx.save();
+    ctx.translate(hazard.x, hazard.y);
+    ctx.fillStyle = suppressed ? "rgba(98, 214, 184, 0.08)" : "rgba(4, 8, 13, 0.62)";
+    ctx.strokeStyle = suppressed ? "rgba(98, 214, 184, 0.46)" : "rgba(217, 102, 102, 0.48)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius + Math.sin(state.time * 3 + hazard.x) * 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (const obstacle of tidewalkSurvey.obstacles) {
+    ctx.fillStyle = "#334344";
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    ctx.fillStyle = "rgba(98, 214, 184, 0.1)";
+    ctx.fillRect(obstacle.x + 6, obstacle.y + 6, obstacle.width - 12, obstacle.height - 12);
+  }
+
+  const activeSiteId = tidewalkSurvey.nextSite?.id || null;
+  for (const site of tidewalkSurvey.sites) {
+    if (!site.target) {
+      continue;
+    }
+
+    const active = site.id === activeSiteId;
+    const progress = active ? tidewalkSurvey.progress / tidewalkSurvey.required : 0;
+    ctx.save();
+    ctx.translate(site.target.x, site.target.y);
+
+    if (site.completed) {
+      ctx.strokeStyle = "rgba(98, 214, 184, 0.9)";
+      ctx.lineWidth = 6;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.arc(0, 0, WORLD.tidewalkSurveyRadius - 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(98, 214, 184, 0.14)";
+      ctx.beginPath();
+      ctx.arc(0, 0, WORLD.tidewalkSurveyRadius - 22, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (active) {
+      ctx.fillStyle = "rgba(6, 16, 19, 0.76)";
+      ctx.strokeStyle = tidewalkSurvey.inRange ? "#e8c46d" : "rgba(232, 196, 109, 0.48)";
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(
+        0,
+        0,
+        WORLD.tidewalkSurveyRadius,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * progress
+      );
+      ctx.lineTo(0, 0);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = "rgba(243, 240, 220, 0.28)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, WORLD.tidewalkSurveyRadius - 14, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = "#f3f0dc";
+    ctx.font = "700 14px system-ui, sans-serif";
+    ctx.fillText(site.label, 28, -18);
+    ctx.fillStyle = site.completed ? "rgba(98, 214, 184, 0.86)" : active ? "#e8c46d" : "rgba(243, 240, 220, 0.7)";
+    ctx.font = "700 11px system-ui, sans-serif";
+    ctx.fillText(site.completed ? "Surveyed" : active ? "Active ring" : "Pending", 28, 2);
+    ctx.restore();
+  }
+}
+
 function drawFrontierCoastalOperation() {
   const operation = getFrontierCoastalOperation(state);
   if (!operation.active) {
@@ -847,20 +936,25 @@ function updateHud() {
   const arrival = getFrontierArrival(state);
   const encounter = getFrontierEncounter(state);
   const survey = getFrontierSurvey(state);
+  const tidewalkSurvey = getTidewalkSurveyField(state);
   const routeChoice = getFrontierRouteChoice(state);
   const storylet = getBlackKeelStorylet(state);
   const coastalOperation = getFrontierCoastalOperation(state);
   const expedition = getTidewalkExpedition(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
-  fragmentReadout.textContent = state.scene === "tidewalk"
-    ? "Brinehook Low Piers"
-    : `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
+  fragmentReadout.textContent =
+    state.scene === "tidewalk" && tidewalkSurvey.active && tidewalkSurvey.phase === "field"
+      ? `Tidewalk Coast Survey ${tidewalkSurvey.completedCount}/${tidewalkSurvey.totalSiteCount}`
+      : state.scene === "tidewalk"
+        ? "Brinehook Low Piers"
+        : `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
   objectiveReadout.textContent = formatObjective(
     objective,
     analysis,
     traverse,
     encounter,
     survey,
+    tidewalkSurvey,
     routeChoice,
     storylet,
     coastalOperation,
@@ -872,12 +966,31 @@ function updateHud() {
     arrivalPanel.classList.add("is-hidden");
     arrivalSnapshot = "tidewalk-hidden";
   } else {
-    updateArrival(arrival, encounter, survey, routeChoice, storylet, coastalOperation);
+    updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, storylet, coastalOperation);
   }
-  updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation, expedition);
+  updatePrimer(
+    synthesis,
+    analysis,
+    traverse,
+    encounter,
+    survey,
+    tidewalkSurvey,
+    routeChoice,
+    storylet,
+    coastalOperation,
+    expedition
+  );
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
+  } else if (tidewalkSurvey.active && tidewalkSurvey.phase === "field" && tidewalkSurvey.inRange && input.analyze) {
+    statusReadout.textContent = `${tidewalkSurvey.title} ${Math.round((tidewalkSurvey.progress / tidewalkSurvey.required) * 100)}%`;
+  } else if (tidewalkSurvey.active && tidewalkSurvey.phase === "field") {
+    statusReadout.textContent = tidewalkSurvey.tideStilled ? "Black tide suppressed" : "Tidewalk survey underway";
+  } else if (tidewalkSurvey.active && tidewalkSurvey.inRange) {
+    statusReadout.textContent = "Survey descent ready";
+  } else if (tidewalkSurvey.active) {
+    statusReadout.textContent = "Return to Coastline Lift";
   } else if (expedition.active && !expedition.complete && expedition.inRange && input.analyze) {
     statusReadout.textContent = `${expedition.title} ${Math.round((expedition.progress / expedition.required) * 100)}%`;
   } else if (expedition.active && !expedition.complete && expedition.phase === "field") {
@@ -931,7 +1044,7 @@ function updateHud() {
   }
 }
 
-function updateArrival(arrival, encounter, survey, routeChoice, storylet, coastalOperation) {
+function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, storylet, coastalOperation) {
   if (!arrival.active) {
     arrivalPanel.classList.add("is-hidden");
     arrivalSnapshot = "hidden";
@@ -953,6 +1066,8 @@ function updateArrival(arrival, encounter, survey, routeChoice, storylet, coasta
     survey.active,
     survey.complete,
     survey.sites.map((site) => `${site.id}:${site.completed}`).join(","),
+    tidewalkSurvey.active,
+    tidewalkSurvey.phase || "none",
     routeChoice.active,
     routeChoice.selectedChoice?.id || "none",
     storylet.active,
@@ -1001,24 +1116,35 @@ function updateArrival(arrival, encounter, survey, routeChoice, storylet, coasta
 
   arrivalSurvey.classList.remove("is-hidden");
   arrivalSurveyTitle.textContent = `${survey.title} ${survey.completedCount}/${survey.totalSiteCount}`;
-  arrivalSurveyText.textContent = survey.complete ? survey.resourceText : survey.summary;
+  arrivalSurveyText.textContent = survey.complete
+    ? survey.resourceText
+    : tidewalkSurvey.phase === "field"
+      ? `On foot in Tidewalk Coast. Hold E inside the survey ring at ${tidewalkSurvey.nextSite.title}; Space stalls black tide long enough to work.`
+      : "Return to the Coastline Lift and hold E to descend into Tidewalk Coast. Survey progress now resolves on foot instead of from dossier buttons.";
   arrivalSurveyList.replaceChildren(
     ...survey.sites.map((site) => {
       const item = document.createElement("li");
       item.className = "arrival-survey-item";
 
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "arrival-action-button";
-      button.dataset.siteId = site.id;
-      button.disabled = site.completed || survey.complete;
-      button.textContent = site.completed ? `${site.title} surveyed` : `Survey ${site.title}`;
+      const title = document.createElement("span");
+      title.className = "arrival-block-title";
+      title.textContent = site.title;
+
+      const status = document.createElement("span");
+      status.className = `arrival-survey-status ${site.completed ? "is-complete" : tidewalkSurvey.nextSite?.id === site.id ? "is-active" : "is-pending"}`;
+      status.textContent = site.completed
+        ? "Surveyed on foot"
+        : tidewalkSurvey.nextSite?.id === site.id
+          ? tidewalkSurvey.phase === "field"
+            ? "Active in Tidewalk Coast"
+            : "Awaiting descent"
+          : "Pending";
 
       const detail = document.createElement("span");
       detail.className = "arrival-survey-detail";
       detail.textContent = site.completed ? site.result : site.briefing;
 
-      item.append(button, detail);
+      item.append(title, status, detail);
       return item;
     })
   );
@@ -1163,7 +1289,18 @@ function updateAtlas() {
   );
 }
 
-function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation, expedition) {
+function updatePrimer(
+  synthesis,
+  analysis,
+  traverse,
+  encounter,
+  survey,
+  tidewalkSurvey,
+  routeChoice,
+  storylet,
+  coastalOperation,
+  expedition
+) {
   if (primerDismissed) {
     primerPanel.classList.add("is-hidden");
     return;
@@ -1183,6 +1320,22 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
   if (state.gate.unlocked) {
     primerTitle.textContent = "Extraction is open";
     primerText.textContent = "All fragments are recovered. Head for the extraction cairn to complete the archive thread.";
+    return;
+  }
+
+  if (tidewalkSurvey.active && tidewalkSurvey.phase === "field") {
+    primerTitle.textContent = tidewalkSurvey.title;
+    primerText.textContent = tidewalkSurvey.inRange
+      ? "Hold E inside the survey ring to log this warehouse. Space suppresses black tide while you work."
+      : "Cross Tidewalk Coast and reach the next warehouse ring. Black tide drains signal until you pulse it back.";
+    return;
+  }
+
+  if (tidewalkSurvey.active && tidewalkSurvey.phase === "launch") {
+    primerTitle.textContent = "Descend to Tidewalk Coast";
+    primerText.textContent = tidewalkSurvey.inRange
+      ? "Hold E at the Coastline Lift to enter the warehouse survey route."
+      : "Return to the Coastline Lift to continue the coastal survey on foot.";
     return;
   }
 
@@ -1246,7 +1399,7 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
 
   if (survey.active && survey.nextSite) {
     primerTitle.textContent = "Continue the coastal survey";
-    primerText.textContent = `Use the arrival dossier to survey ${survey.nextSite.title} and turn the hamlet foothold into a real lead.`;
+    primerText.textContent = `Return to the Coastline Lift, descend into Tidewalk Coast, and survey ${survey.nextSite.title} in person.`;
     return;
   }
 
@@ -1308,7 +1461,25 @@ function updatePrimer(synthesis, analysis, traverse, encounter, survey, routeCho
   primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
 }
 
-function formatObjective(objective, analysis, traverse, encounter, survey, routeChoice, storylet, coastalOperation, expedition) {
+function formatObjective(
+  objective,
+  analysis,
+  traverse,
+  encounter,
+  survey,
+  tidewalkSurvey,
+  routeChoice,
+  storylet,
+  coastalOperation,
+  expedition
+) {
+  if (tidewalkSurvey.active) {
+    const progress = Math.round((tidewalkSurvey.progress / tidewalkSurvey.required) * 100);
+    return tidewalkSurvey.inRange
+      ? `${tidewalkSurvey.title} ${progress}%`
+      : `${tidewalkSurvey.title} ${Math.round(distanceBetween(state.player, tidewalkSurvey.target))}m`;
+  }
+
   if (expedition.active && !expedition.complete) {
     const progress = Math.round((expedition.progress / expedition.required) * 100);
     return expedition.inRange

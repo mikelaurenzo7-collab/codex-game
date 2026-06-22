@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  GAME_SAVE_VERSION,
   WORLD,
   canPulse,
   createGameCheckpoint,
@@ -16,6 +17,7 @@ import {
   getFrontierNetwork,
   getFrontierRouteChoice,
   getFrontierSurvey,
+  getTidewalkSurveyField,
   getTidewalkExpedition,
   getFrontierTraverse,
   getWorldAtlas,
@@ -93,14 +95,62 @@ function unlockTidewalkRouteChoice(state) {
 
   const traverse = getFrontierTraverse(state);
   assert.equal(traverse.active, true);
-  tick(state, WORLD.frontierTraverseSeconds + 0.12, { analyze: true });
+  if (!traverse.complete) {
+    tick(state, WORLD.frontierTraverseSeconds + 0.12, { analyze: true });
+  }
 
   const encounter = getFrontierEncounter(state);
   assert.equal(encounter.active, true);
-  assert.equal(resolveFrontierEncounter(state, encounter.id), true);
+  if (!encounter.resolved) {
+    assert.equal(resolveFrontierEncounter(state, encounter.id), true);
+  }
 
-  assert.equal(resolveFrontierSurveySite(state, "north-spool-house"), true);
-  assert.equal(resolveFrontierSurveySite(state, "lamp-black-warehouse"), true);
+  const launch = getTidewalkSurveyField(state);
+  assert.equal(launch.active, true);
+  assert.equal(launch.phase, "launch");
+  assert.equal(launch.inRange, true);
+
+  tick(state, WORLD.tidewalkSurveySeconds + 0.12, { analyze: true });
+  assert.equal(state.scene, "tidewalk");
+
+  const field = getTidewalkSurveyField(state);
+  assert.equal(field.phase, "field");
+  assert.equal(field.nextSite.id, "north-spool-house");
+
+  state.player.x = field.hazards[0].x;
+  state.player.y = field.hazards[0].y;
+  const signalBeforeHazard = state.signal;
+  tick(state, 0.5);
+  assert.ok(state.signal < signalBeforeHazard, "survey hazards should drain signal");
+
+  assert.equal(triggerPulse(state), true);
+  const signalAfterPulse = state.signal;
+  assert.equal(getTidewalkSurveyField(state).tideStilled, true);
+  tick(state, 0.5);
+  assert.ok(state.signal >= signalAfterPulse, "pulse should suppress survey hazard drain");
+
+  state.signal = 100;
+  moveTo(state, { x: 200, y: 100 }, "survey north west walk", 8);
+  moveTo(state, { x: 1100, y: 100 }, "survey north mid walk", 8);
+  moveTo(state, { x: 1300, y: 100 }, "survey north east walk", 4);
+  moveTo(state, field.nextSite.target, "north spool house", 6);
+  tick(state, WORLD.tidewalkSurveySeconds + 0.12, { analyze: true });
+
+  const midpointSurvey = getFrontierSurvey(state);
+  assert.equal(midpointSurvey.completedCount, 1);
+  assert.equal(midpointSurvey.complete, false);
+  assert.equal(midpointSurvey.nextSite.id, "lamp-black-warehouse");
+  assert.match(midpointSurvey.resourceTitle, /North Spool House/);
+  assert.match(state.clueLog.at(-1), /upper racks/);
+  assert.equal(state.scene, "tidewalk");
+
+  const secondField = getTidewalkSurveyField(state);
+  assert.equal(secondField.nextSite.id, "lamp-black-warehouse");
+  moveTo(state, { x: 1760, y: 260 }, "survey east bypass", 4);
+  moveTo(state, { x: 1760, y: 860 }, "survey south pier", 6);
+  moveTo(state, secondField.nextSite.target, "lampblack storehouse", 6);
+  tick(state, WORLD.tidewalkSurveySeconds + 0.12, { analyze: true });
+  assert.equal(state.scene, "archive");
 
   const routeChoice = getFrontierRouteChoice(state);
   assert.equal(routeChoice.active, true);
@@ -129,13 +179,13 @@ function unlockTidewalkRouteChoice(state) {
     /version is not supported/
   );
   assert.throws(
-    () => restoreGameCheckpoint(JSON.stringify({ version: 1, state: { scene: "archive" } })),
+    () => restoreGameCheckpoint(JSON.stringify({ version: GAME_SAVE_VERSION, state: { scene: "archive" } })),
     /state is invalid/
   );
   const damagedState = JSON.parse(JSON.stringify(state));
   delete damagedState.echoes[0].path;
   assert.throws(
-    () => restoreGameCheckpoint(JSON.stringify({ version: 1, state: damagedState })),
+    () => restoreGameCheckpoint(JSON.stringify({ version: GAME_SAVE_VERSION, state: damagedState })),
     /world data is invalid/
   );
 }
@@ -268,18 +318,16 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(survey.completedCount, 0);
   assert.equal(survey.totalSiteCount, 2);
   assert.equal(survey.nextSite.id, "north-spool-house");
-  assert.match(survey.resourceText, /two reachable warehouses/i);
+  assert.match(survey.resourceText, /hold E to descend/i);
   assert.equal(resolveFrontierSurveySite(state, "wrong-site"), false);
-  assert.equal(resolveFrontierSurveySite(state, "north-spool-house"), true);
-  assert.equal(resolveFrontierSurveySite(state, "north-spool-house"), false);
 
-  const midpointSurvey = getFrontierSurvey(state);
-  assert.equal(midpointSurvey.completedCount, 1);
-  assert.equal(midpointSurvey.complete, false);
-  assert.equal(midpointSurvey.nextSite.id, "lamp-black-warehouse");
-  assert.match(midpointSurvey.resourceTitle, /North Spool House/);
-  assert.match(state.clueLog.at(-1), /upper racks/);
-  assert.equal(resolveFrontierSurveySite(state, "lamp-black-warehouse"), true);
+  const tidewalkSurvey = getTidewalkSurveyField(state);
+  assert.equal(tidewalkSurvey.active, true);
+  assert.equal(tidewalkSurvey.phase, "launch");
+  assert.equal(tidewalkSurvey.title, "Descend to Tidewalk Coast");
+  assert.equal(tidewalkSurvey.nextSite.id, "north-spool-house");
+
+  unlockTidewalkRouteChoice(state);
 
   const completedSurvey = getFrontierSurvey(state);
   assert.equal(completedSurvey.complete, true);

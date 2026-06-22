@@ -13,6 +13,9 @@ export const WORLD = {
   frontierTraverseRadius: 74,
   frontierTraverseSeconds: 1.6,
   frontierTraverseDrainPerSecond: 10,
+  tidewalkSurveyRadius: 76,
+  tidewalkSurveySeconds: 1.85,
+  tidewalkSurveyDrainPerSecond: 10,
   coastalOperationRadius: 76,
   coastalOperationSeconds: 1.9,
   coastalOperationDrainPerSecond: 11,
@@ -24,7 +27,7 @@ export const WORLD = {
   signalRechargePerSecond: 4.5
 };
 
-export const GAME_SAVE_VERSION = 1;
+export const GAME_SAVE_VERSION = 2;
 
 const BLUEPRINT = {
   player: { x: 160, y: 880 },
@@ -590,6 +593,21 @@ const TIDEWALK_SCENE = {
   }
 };
 
+const TIDEWALK_SURVEY_SCENE = {
+  entry: { ...TIDEWALK_SCENE.entry },
+  launchGate: { ...TIDEWALK_SCENE.launchGate },
+  sites: {
+    "north-spool-house": {
+      label: "Winch trench racks",
+      target: { x: 1580, y: 260 }
+    },
+    "lamp-black-warehouse": {
+      label: "Outer pilings fuel cage",
+      target: { x: 1570, y: 860 }
+    }
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
@@ -631,6 +649,11 @@ export function createGameState() {
       discoveredCoastalClueIds: [],
       selectedRouteChoiceId: null,
       routeProgress: {},
+      tidewalkSurvey: {
+        launched: false,
+        progress: 0,
+        tideStilledUntil: 0
+      },
       coastalOperationProgress: {},
       tidewalkExpedition: {
         launched: false,
@@ -745,6 +768,10 @@ function validateCheckpointState(state) {
     !isStringArray(frontier.surveyedSiteIds) ||
     !isStringArray(frontier.discoveredCoastalClueIds) ||
     !isNumberRecord(frontier.routeProgress) ||
+    !isRecord(frontier.tidewalkSurvey) ||
+    typeof frontier.tidewalkSurvey.launched !== "boolean" ||
+    !isFiniteNumber(frontier.tidewalkSurvey.progress) ||
+    !isFiniteNumber(frontier.tidewalkSurvey.tideStilledUntil) ||
     !isNumberRecord(frontier.coastalOperationProgress) ||
     !isRecord(frontier.tidewalkExpedition) ||
     typeof frontier.tidewalkExpedition.launched !== "boolean" ||
@@ -804,6 +831,11 @@ export function getActiveObjective(state) {
   const expedition = getTidewalkExpedition(state);
   if (expedition.active && !expedition.complete) {
     return buildObjective("tidewalk-expedition", expedition.title, expedition.target, state);
+  }
+
+  const tidewalkSurvey = getTidewalkSurveyField(state);
+  if (tidewalkSurvey.active) {
+    return buildObjective("tidewalk-survey", tidewalkSurvey.title, tidewalkSurvey.target, state);
   }
 
   const openFragments = state.fragments.filter((fragment) => !fragment.collected);
@@ -1188,11 +1220,11 @@ export function getFrontierSurvey(state) {
       ? operation.completionText
       : lastSite
         ? lastSite.result
-        : "The stewards marked two reachable warehouses. Survey both to identify what can still feed the hamlet and what threat is moving ahead of it.",
+        : "The stewards marked two reachable warehouses. Return to the Coastline Lift and hold E to descend so each site is surveyed on foot.",
     nextHook: complete
       ? "Track the hostile salvage mark deeper along Tidewalk Coast and decide whether to intercept, bargain, or shadow the crew."
       : nextSite
-        ? `Next survey target: ${nextSite.title}. ${nextSite.briefing}`
+        ? `Next survey target: ${nextSite.title}. Return to the Coastline Lift, descend, and survey it in person.`
         : "Survey complete.",
     sites,
     nextSite
@@ -1359,6 +1391,51 @@ export function getFrontierCoastalOperation(state) {
   };
 }
 
+export function getTidewalkSurveyField(state) {
+  const survey = getFrontierSurvey(state);
+  if (!survey.active || survey.complete || survey.routeId !== "intake-coastline-lift" || !survey.nextSite) {
+    return inactiveTidewalkSurveyField();
+  }
+
+  const progressState = state.frontier?.tidewalkSurvey || {};
+  const launched = Boolean(progressState.launched);
+  const sites = survey.sites.map((site) => {
+    const layout = TIDEWALK_SURVEY_SCENE.sites[site.id];
+    return {
+      ...site,
+      label: layout?.label || site.title,
+      target: layout ? { ...layout.target } : null
+    };
+  });
+  const nextSite = sites.find((site) => site.id === survey.nextSite.id) || null;
+  if (!nextSite?.target) {
+    return inactiveTidewalkSurveyField();
+  }
+
+  const target = launched ? nextSite.target : TIDEWALK_SURVEY_SCENE.launchGate;
+  const radius = launched ? WORLD.tidewalkSurveyRadius : WORLD.frontierTraverseRadius;
+  return {
+    active: true,
+    phase: launched ? "field" : "launch",
+    title: launched ? `Survey ${nextSite.title}` : "Descend to Tidewalk Coast",
+    briefing: launched
+      ? nextSite.briefing
+      : "Return to the Coastline Lift and hold E to descend into the drowned warehouses.",
+    launched,
+    completedCount: survey.completedCount,
+    totalSiteCount: survey.totalSiteCount,
+    nextSite,
+    sites,
+    target: { ...target },
+    inRange: distance(state.player, target) <= radius,
+    progress: progressState.progress || 0,
+    required: WORLD.tidewalkSurveySeconds,
+    tideStilled: (progressState.tideStilledUntil || 0) > state.time,
+    hazards: TIDEWALK_SCENE.hazards.map((hazard) => ({ ...hazard })),
+    obstacles: TIDEWALK_SCENE.obstacles.map((obstacle) => ({ ...obstacle }))
+  };
+}
+
 export function getTidewalkExpedition(state) {
   const operation = getFrontierCoastalOperation(state);
   const choiceId = state.frontier?.selectedRouteChoiceId;
@@ -1419,7 +1496,12 @@ export function triggerPulse(state) {
   state.pulses.push({ x: state.player.x, y: state.player.y, startedAt: state.time });
 
   if (state.scene === "tidewalk") {
-    state.frontier.tidewalkExpedition.tideStilledUntil = state.time + WORLD.echoStunSeconds;
+    const tidewalkSurvey = getTidewalkSurveyField(state);
+    if (tidewalkSurvey.active && tidewalkSurvey.phase === "field") {
+      state.frontier.tidewalkSurvey.tideStilledUntil = state.time + WORLD.echoStunSeconds;
+    } else {
+      state.frontier.tidewalkExpedition.tideStilledUntil = state.time + WORLD.echoStunSeconds;
+    }
     return true;
   }
 
@@ -1470,6 +1552,7 @@ export function updateGameState(state, input, deltaSeconds) {
     resolveEchoPressure(state, dt);
     resolveGate(state);
   }
+  resolveTidewalkSurveyField(state, input, dt);
   resolveTidewalkExpedition(state, input, dt);
 
   return state;
@@ -1488,6 +1571,66 @@ function movePlayer(state, input, dt) {
   const obstacles = state.scene === "tidewalk" ? TIDEWALK_SCENE.obstacles : state.obstacles;
   moveCircleWithCollision(state.player, dx * distanceToMove, 0, obstacles);
   moveCircleWithCollision(state.player, 0, dy * distanceToMove, obstacles);
+}
+
+function resolveTidewalkSurveyField(state, input, dt) {
+  const tidewalkSurvey = getTidewalkSurveyField(state);
+  if (!tidewalkSurvey.active) {
+    return;
+  }
+
+  const progressState = state.frontier.tidewalkSurvey;
+  const holdingAction = Boolean(input.analyze);
+  if (!holdingAction || !tidewalkSurvey.inRange || state.signal <= 0) {
+    progressState.progress = Math.max(0, progressState.progress - dt * 0.7);
+  } else {
+    state.signal = Math.max(0, state.signal - WORLD.tidewalkSurveyDrainPerSecond * dt);
+    progressState.progress = Math.min(tidewalkSurvey.required, progressState.progress + dt);
+  }
+
+  if (progressState.progress >= tidewalkSurvey.required) {
+    progressState.progress = 0;
+    if (tidewalkSurvey.phase === "launch") {
+      progressState.launched = true;
+      progressState.tideStilledUntil = 0;
+      state.scene = "tidewalk";
+      state.player.x = TIDEWALK_SURVEY_SCENE.entry.x;
+      state.player.y = TIDEWALK_SURVEY_SCENE.entry.y;
+      state.pulses = [];
+      state.clueLog.push("Tidewalk survey launched: Drowned Warehouse Survey");
+      return;
+    }
+
+    const completedSiteId = tidewalkSurvey.nextSite?.id;
+    if (completedSiteId) {
+      resolveFrontierSurveySite(state, completedSiteId);
+    }
+
+    const nextSurvey = getFrontierSurvey(state);
+    if (nextSurvey.complete) {
+      progressState.launched = false;
+      progressState.tideStilledUntil = 0;
+      state.scene = "archive";
+      state.player.x = TIDEWALK_SURVEY_SCENE.launchGate.x;
+      state.player.y = TIDEWALK_SURVEY_SCENE.launchGate.y;
+    }
+    return;
+  }
+
+  if (state.scene !== "tidewalk" || tidewalkSurvey.phase !== "field" || tidewalkSurvey.tideStilled) {
+    return;
+  }
+
+  const insideHazard = tidewalkSurvey.hazards.some(
+    (hazard) => distance(state.player, hazard) <= hazard.radius + state.player.radius
+  );
+  if (insideHazard) {
+    state.signal = Math.max(0, state.signal - WORLD.tideHazardDrainPerSecond * dt);
+    if (state.signal <= 0) {
+      state.status = "failed";
+      state.result = "Lost to the black tide";
+    }
+  }
 }
 
 function resolveTidewalkExpedition(state, input, dt) {
@@ -1953,6 +2096,27 @@ function inactiveFrontierCoastalOperation() {
     progress: 0,
     required: WORLD.coastalOperationSeconds,
     gate: null
+  };
+}
+
+function inactiveTidewalkSurveyField() {
+  return {
+    active: false,
+    phase: null,
+    title: null,
+    briefing: null,
+    launched: false,
+    completedCount: 0,
+    totalSiteCount: 0,
+    nextSite: null,
+    sites: [],
+    target: null,
+    inRange: false,
+    progress: 0,
+    required: WORLD.tidewalkSurveySeconds,
+    tideStilled: false,
+    hazards: [],
+    obstacles: []
   };
 }
 

@@ -9,7 +9,7 @@ The automation should keep each iteration scoped, verifiable, and committed. It 
 
 ## Current Prototype
 
-**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, surveys drowned warehouses, chooses a Tidewalk coastal route, and follows that choice into the playable Brinehook Low Piers coastal micro-scene.
+**Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, descends into Tidewalk Coast to survey drowned warehouses on foot, chooses a Tidewalk coastal route, and follows that choice into the playable Brinehook Low Piers coastal micro-scene.
 
 Run locally:
 
@@ -27,4 +27,4 @@ node tests/run-all.mjs
 node scripts/serve.mjs
 ```
 
-Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, advance Tidewalk field rings and coastal objectives with `E`, suppress black-tide hazards with `Space`, use the arrival dossier buttons for settlement/coastal follow-up actions and Tidewalk route choice, save the current expedition with `Save checkpoint`, and restart with `R` or the on-screen button. A valid checkpoint resumes automatically on the next load; restarting clears it.
+Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, descend into Tidewalk Coast and advance warehouse or Brinehook field rings with `E`, suppress black-tide hazards with `Space`, use the arrival dossier for settlement clearance and Tidewalk route choice, save the current expedition with `Save checkpoint`, and restart with `R` or the on-screen button. A valid checkpoint resumes automatically on the next load; restarting clears it.
