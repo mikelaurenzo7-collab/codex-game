@@ -340,3 +340,46 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **External Services Used:** No external design surface was needed for the implementation itself. Browser was reserved for final local UI verification; GitHub remains the repository remote. Canva and Computer Use were not used because the bottleneck was solved directly in the live playable client.
 - **Learned Constraints:** Tidewalk field logic now has two physical layers: the settlement survey descent and the later branch-specific Brinehook lead. Checkpoint schema changes should bump the save version rather than silently trying to hydrate missing Tidewalk structures.
 - **Next Bottleneck:** The warehouse survey is now physical, but the actual Tidewalk route commitment is still chosen from the dossier. The next highest-value step is to turn that branch decision into an in-world faction choice or coastal contact so the coast no longer pivots on a menu selection.
+
+### 0040 - Live Tidewalk Commitment Integration
+
+- **State Assessment:** The Tidewalk commitment stage was tested but not integrated into the live browser client. Preexisting tests were also failing due to interface mismatches and minor typos in mocks and assertions.
+- **Strategic Choice:** D. Technical/Polish Overhaul.
+- **Justification:** Integrating the verified commitment stage closes the Tidewalk loop interaction gap, ensuring players make route choices physically in-world rather than through menu buttons.
+- **Work Completed:**
+  - Wired `stepTidewalkPlayableCommitmentStage` and `getTidewalkPlayableCommitmentStage` into the live browser client loop (`src/game.js`).
+  - Rendered Tidewalk contacts in-world using `drawTidewalkContactClient` during the Tidewalk scene.
+  - Integrated the stage dossier projection into the arrival route-choice HUD.
+  - Blocked legacy dossier buttons using `shouldBlockLegacyTidewalkRouteClick` to ensure players commit in-world.
+  - Fixed preexisting failing tests in `tests/tidewalk-contact.test.mjs`, `tests/tidewalk-contact-canvas.test.mjs`, and `tests/tidewalk-playable-commitment.test.mjs`.
+- **Validation Evidence:** All automated tests pass successfully (`tests/run-all.mjs`). Clicks on the dossier buttons are blocked when in-world contacts are active.
+- **Next Bottleneck:** Implement the Tide Cycle system (Low, High, Surge) in the Tidewalk scenes to dynamically scale hazards.
+
+### 0041 - Dynamic Tide Cycle System
+
+- **State Assessment:** The Tidewalk scenes had static hazards with fixed collision bounds and constant signal drain, which made exploration predictable and decoupled from the maritime theme.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** Fluctuating tide cycles deepen survival tension and force players to time their movements and survey holds based on the rising and falling black tide.
+- **Work Completed:**
+  - Implemented a dynamic Tide Cycle system in `src/game-state.js` that cycles through `low` -> `high` -> `surge` -> `low` every 15 seconds.
+  - Dynamically scaled hazard radii (0.6x in Low, 1.0x in High, 1.5x in Surge) for both survey descent and expedition micro-scenes.
+  - Scaled hazard signal drain rate (0.5x in Low, 1.0x in High, 2.0x in Surge) depending on current tide phase.
+  - Surfaced the active tide phase indicator inside the HUD's `fragmentReadout` label (e.g. `(LOW TIDE)`, `(SURGE TIDE)`).
+  - Added full unit test coverage in `tests/tidewalk-tide.test.mjs` verifying transitions, scaling, and checkpoint serialization.
+  - Bumped `GAME_SAVE_VERSION` to `3` to handle schema validation for the persistent tide state object.
+- **Validation Evidence:** `tests/tidewalk-tide.test.mjs` and all existing tests pass successfully.
+- **Next Bottleneck:** Make the acoustic echoes react to the player's pulse by hunting the pulse origin location (Echo Hunt System).
+
+### 0042 - Echo Signal Tracking (Hunt) System
+
+- **State Assessment:** Echoes moved in fixed patrol loops regardless of player actions, which made avoiding them a mechanical movement exercise and disconnected the scan pulse from high-risk gameplay.
+- **Strategic Choice:** A. Core Mechanic Deep Dive.
+- **Justification:** Making echoes trace the origin of pulses turns the scan pulse into a double-edged sword: pulsing reveals hidden clues and stuns nearby targets, but draws distant threats straight to the player.
+- **Work Completed:**
+  - Configured echoes to register a `huntTarget` at the player's coordinates if they are within twice the pulse radius (`WORLD.pulseRadius * 2.0`) when a pulse is triggered.
+  - Modified `moveEchoes` to prioritize moving towards the `huntTarget` at $1.5\times$ speed if one is active.
+  - Made echoes clear `huntTarget` and resume their normal patrol path when they are within 5 pixels of the target.
+  - Added full unit test coverage in `tests/echo-hunt.test.mjs` verifying hunting behavior, speed multipliers, stun overrides, and checkpoint validation.
+- **Validation Evidence:** `tests/echo-hunt.test.mjs` and all other tests pass successfully.
+- **Next Bottleneck:** Build and expand the Brinehook Low Piers micro-scene with dynamic branch-specific gameplay or new interactive elements.
+
