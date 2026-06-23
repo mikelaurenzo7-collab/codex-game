@@ -13,3 +13,4 @@ import "./tidewalk-contact-pressure-hud.test.mjs";
 import "./tidewalk-contact-omens.test.mjs";
 import "./tidewalk-contact-director.test.mjs";
 import "./tidewalk-faction-ledger.test.mjs";
+import "./tidewalk-world-pulse.test.mjs";
