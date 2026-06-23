@@ -32,7 +32,7 @@ Visual hierarchy: cold underpier countermark, dark hostile ring, red-black threa
 
 ## Current Implementation Status
 
-The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, arrival-panel projection, HUD bridge, pressure layer, pressure-aura renderer, and pressure-HUD bridge are split into focused modules with tests:
+The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, arrival-panel projection, HUD bridge, pressure layer, pressure-aura renderer, pressure-HUD bridge, playable commitment stage, identity spine, and live-frame commitment adapter are split into focused modules with tests:
 
 - `src/tidewalk-contact.js`
 - `src/tidewalk-contact-field.js`
@@ -43,23 +43,21 @@ The deterministic contact plan, field-state selector, Canvas renderer, runtime c
 - `src/tidewalk-contact-pressure.js`
 - `src/tidewalk-contact-pressure-canvas.js`
 - `src/tidewalk-contact-pressure-hud.js`
+- `src/tidewalk-identity-spine.js`
+- `src/tidewalk-playable-commitment.js`
 
 `src/tidewalk-contact-runtime.js` exposes `stepTidewalkContactRuntime(state, input)`, a browser-frame contract that returns the pre-step field, post-step field, committed contact, input-consumption flag, and HUD-refresh flag.
 
-`src/tidewalk-contact-client.js` exposes `runTidewalkContactFrame({ ctx, state, input })`, the intended single-call live-client seam. It steps the held-**E** contact commit, draws the Canvas pressure aura plus contact markers when the choice remains active, returns the active status/objective/dossier copy, and reports both HUD and arrival invalidation flags after commitment.
+`src/tidewalk-contact-client.js` exposes `runTidewalkContactFrame({ ctx, state, input })`, the lower-level contact seam. It steps the held-**E** contact commit, draws the Canvas pressure aura plus contact markers when the choice remains active, returns the active status/objective/dossier copy, and reports both HUD and arrival invalidation flags after commitment.
 
-`src/tidewalk-contact-client.js` also exposes `getTidewalkContactArrivalProjection(state, input)`. This projection converts the contact runtime into player-facing arrival-panel copy and deliberately marks legacy route-choice buttons as disabled while the in-world contact choice is active. The arrival panel should show contact rows as guidance only; commitment belongs to the held-**E** world interaction.
-
-`src/tidewalk-contact-hud.js` exposes `getTidewalkContactHudBridge(state, input)` and `applyTidewalkContactHudBridge(...)`. The bridge is the smallest safe live-client insertion point for overriding objective/status copy and suppressing dossier route buttons while the in-world contact choice is active.
-
-`src/tidewalk-contact-pressure-hud.js` exposes `getTidewalkContactPressureHud(state)` and `applyTidewalkContactPressureHud(...)` for using authored pressure lines as status/log copy from the same source that drives the pressure aura.
-
-`src/tidewalk-contact-client.js` also exposes `createTidewalkContactGameFrameAdapter(...)` for the live browser loop. The adapter enforces the order that keeps the playable frame deterministic:
+`src/tidewalk-playable-commitment.js` is now the preferred live-client seam. It composes the contact frame with the identity spine, returns a disabled dossier guidance projection, blocks legacy route-click selection while the in-world contact choice is active, and exposes `createTidewalkPlayableCommitmentFrameAdapter(...)` for the exact browser-frame order:
 
 1. advance normal game state;
 2. process the Tidewalk contact held-**E** commit;
-3. invalidate arrival HUD state if the commit resolved;
-4. draw the game;
-5. refresh HUD copy.
+3. invalidate arrival HUD state when the commitment resolves;
+4. draw the game with the commitment stage available;
+5. refresh HUD copy from the same stage.
 
-The remaining `src/game.js` hookup should now be a surgical import and frame-loop replacement rather than a broad rewrite. The old dossier route-choice click handler should be removed only in the same reviewed change that calls this adapter from the live client and renders `getTidewalkContactArrivalProjection` in the arrival panel.
+`src/tidewalk-playable-commitment.js` also exposes `shouldBlockLegacyTidewalkRouteClick(...)`. The live client should call this guard before honoring any old arrival-panel route button so a player cannot bypass the physical contact rings with a dossier click.
+
+The remaining `src/game.js` hookup should now be a surgical import of `createTidewalkPlayableCommitmentFrameAdapter` and `shouldBlockLegacyTidewalkRouteClick`, followed by replacement of the hand-rolled frame order and route-choice click fallback. Do not remove the old click path until the same reviewed change proves the adapter is called by the browser loop.
