@@ -7,3 +7,4 @@ import "./tidewalk-contact-canvas.test.mjs";
 import "./tidewalk-contact-runtime.test.mjs";
 import "./tidewalk-contact-client.test.mjs";
 import "./tidewalk-contact-hud.test.mjs";
+import "./tidewalk-contact-pressure.test.mjs";
