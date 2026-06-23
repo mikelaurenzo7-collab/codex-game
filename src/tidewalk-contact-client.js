@@ -3,6 +3,7 @@ import {
   getTidewalkContactRuntime,
   stepTidewalkContactRuntime
 } from "./tidewalk-contact-runtime.js";
+import { drawTidewalkContactPressureAura } from "./tidewalk-contact-pressure-canvas.js";
 
 function buildContactStatus(runtime, input = {}) {
   if (runtime.complete && runtime.selectedContact) {
@@ -113,7 +114,12 @@ export function stepTidewalkContactClient(state, input = {}) {
 }
 
 export function drawTidewalkContactClient(ctx, state) {
-  return drawTidewalkContactRuntime(ctx, state);
+  const pressure = drawTidewalkContactPressureAura(ctx, state);
+  const field = drawTidewalkContactRuntime(ctx, state);
+  return {
+    ...field,
+    pressure
+  };
 }
 
 export function runTidewalkContactFrame({ ctx = null, state, input = {}, draw = true } = {}) {
