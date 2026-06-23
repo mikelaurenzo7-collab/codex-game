@@ -22,3 +22,4 @@ import "./tidewalk-tide.test.mjs";
 import "./echo-hunt.test.mjs";
 import "./brinehook-client-contract.test.mjs";
 import "./brinehook-encounter.test.mjs";
+import "./brinehook-resolution.test.mjs";
