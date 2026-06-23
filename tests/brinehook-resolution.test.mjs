@@ -5,7 +5,11 @@ import {
   triggerPulse,
   updateGameState
 } from "../src/game-state.js";
-import { formatBrinehookResolution, getBrinehookResolutionState } from "../src/brinehook-resolution.js";
+import {
+  formatBrinehookResolution,
+  getBrinehookResolutionClientState,
+  getBrinehookResolutionState
+} from "../src/brinehook-resolution.js";
 
 function readyForBrinehook(choiceId) {
   const state = createGameState();
@@ -44,6 +48,12 @@ function recoverCargo(state, cargoId) {
   assert.equal(resolution.active, false);
   assert.equal(resolution.status, "dormant");
   assert.match(formatBrinehookResolution(state), /No pier decision/);
+
+  const client = getBrinehookResolutionClientState(state);
+  assert.equal(client.active, false);
+  assert.equal(client.status, "dormant");
+  assert.equal(client.tone, "muted");
+  assert.equal(client.marker, null);
 }
 
 {
@@ -56,11 +66,23 @@ function recoverCargo(state, cargoId) {
   assert.equal(resolution.status, "hunted");
   assert.equal(resolution.complete, false);
 
+  let client = getBrinehookResolutionClientState(state);
+  assert.equal(client.status, "hunted");
+  assert.equal(client.tone, "danger");
+  assert.match(client.hudText, /Recover 2 cargo/);
+  assert.equal(client.marker.kind, "cargo-search");
+
   recoverCargo(state, "cargo-sextant");
   recoverCargo(state, "cargo-bell");
   resolution = getBrinehookResolutionState(state);
   assert.equal(resolution.status, "cargo-under-hunt");
   assert.equal(resolution.complete, false);
+
+  client = getBrinehookResolutionClientState(state);
+  assert.equal(client.status, "cargo-under-hunt");
+  assert.equal(client.tone, "warning");
+  assert.equal(client.marker.kind, "sentinel");
+  assert.match(client.primerText, /sentinel still owns/);
 
   state.player.x = state.frontier.tidewalkExpedition.sentinel.x;
   state.player.y = state.frontier.tidewalkExpedition.sentinel.y;
@@ -69,6 +91,11 @@ function recoverCargo(state, cargoId) {
   resolution = getBrinehookResolutionState(state);
   assert.equal(resolution.status, "escaped-with-cargo");
   assert.equal(resolution.complete, true);
+
+  client = getBrinehookResolutionClientState(state);
+  assert.equal(client.complete, true);
+  assert.equal(client.tone, "success");
+  assert.match(client.bottomLogText, /escapes with enough salvage evidence/);
 }
 
 {
@@ -79,11 +106,22 @@ function recoverCargo(state, cargoId) {
   assert.equal(resolution.status, "safe-line-ahead");
   assert.equal(resolution.complete, false);
 
+  let client = getBrinehookResolutionClientState(state);
+  assert.equal(client.status, "safe-line-ahead");
+  assert.equal(client.tone, "safe");
+  assert.equal(client.marker.kind, "haven");
+  assert.match(client.hudText, /lantern haven/);
+
   const expedition = getTidewalkExpedition(state);
   state.player.x = expedition.leadTarget.x;
   state.player.y = expedition.leadTarget.y;
   resolution = getBrinehookResolutionState(state);
   assert.equal(resolution.status, "haven-holding");
+
+  client = getBrinehookResolutionClientState(state);
+  assert.equal(client.status, "haven-holding");
+  assert.equal(client.marker.kind, "cargo-search");
+  assert.match(client.statusText, /Lantern haven/);
 
   recoverCargo(state, "cargo-sextant");
   state.player.x = expedition.leadTarget.x;
@@ -91,6 +129,11 @@ function recoverCargo(state, cargoId) {
   resolution = getBrinehookResolutionState(state);
   assert.equal(resolution.status, "witness-secured");
   assert.equal(resolution.complete, true);
+
+  client = getBrinehookResolutionClientState(state);
+  assert.equal(client.complete, true);
+  assert.equal(client.tone, "success");
+  assert.match(client.primerText, /quay can vouch/);
 }
 
 console.log("brinehook resolution tests passed");
