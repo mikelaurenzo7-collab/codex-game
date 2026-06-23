@@ -16,3 +16,4 @@ import "./tidewalk-faction-ledger.test.mjs";
 import "./tidewalk-world-pulse.test.mjs";
 import "./tidewalk-world-pulse-canvas.test.mjs";
 import "./tidewalk-aftermath-seeds.test.mjs";
+import "./tidewalk-identity-spine.test.mjs";
