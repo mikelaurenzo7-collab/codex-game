@@ -34,6 +34,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Resolving either Tidewalk field operation now unlocks the Brinehook Low Piers micro-scene beyond the archive map, with branch-specific objectives, signal-draining tide hazards, pulse-based suppression, and a deterministic return carrying persistent coastal evidence.
 - The Brinehook resolution contract (`hunted`, `cargo-under-hunt`, `escaped-with-cargo`, `safe-line-ahead`, `haven-holding`, `witness-secured`) is now wired into the live HUD: the status readout shows the resolution title during the field crossing, and the objective readout shows the current resolution objective instead of a generic distance label.
 - The Rewritten Cartography Table (x:1080, y:760) now functions as a Resonance Node: once the Brinehook expedition is complete, pulsing at the survey table triggers a one-time broadcast cascade — all echoes stunned 8 seconds, all uncollected fragments revealed 15 seconds, and +30 signal — rewarding players who return with coastal intel before pushing to the archive endgame.
+- Completing the Brinehook resolution now unlocks a pier-exit action at the launch gate (hold E to return inland) that records a persistent `brinehookAftermath` in frontier state. Aftermath consequences (faction pressure 1–5, settlement trust 1–5, authored resource text and next hook) surface in the arrival dossier and update the status/objective HUD when the player returns to the archive.
 
 ## Operating Rules
 
