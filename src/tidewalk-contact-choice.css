@@ -1,0 +1,98 @@
+:root {
+  color: #f3f0dc;
+  background: #071114;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(232, 196, 109, 0.14), transparent 28%),
+    radial-gradient(circle at 84% 78%, rgba(217, 102, 102, 0.12), transparent 34%),
+    #071114;
+}
+
+.contact-shell {
+  width: min(1180px, calc(100vw - 32px));
+  display: grid;
+  gap: 16px;
+}
+
+.contact-copy,
+.controls {
+  border: 1px solid rgba(243, 240, 220, 0.14);
+  background: rgba(6, 16, 19, 0.78);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+}
+
+.contact-copy {
+  padding: 18px 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.kicker,
+.status,
+.controls {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 800;
+}
+
+.kicker {
+  color: #62d6b8;
+  font-size: 12px;
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(28px, 4vw, 48px);
+}
+
+p {
+  max-width: 860px;
+  color: rgba(243, 240, 220, 0.78);
+  line-height: 1.45;
+}
+
+.status {
+  color: #e8c46d;
+  font-size: 13px;
+}
+
+.detail {
+  color: rgba(243, 240, 220, 0.66);
+  font-size: 13px;
+}
+
+#contactCanvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(98, 214, 184, 0.2);
+  background: #081419;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.36);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: rgba(243, 240, 220, 0.7);
+}
+
+.controls strong {
+  color: #f3f0dc;
+}
