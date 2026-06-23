@@ -9,5 +9,6 @@ import "./tidewalk-contact-client.test.mjs";
 import "./tidewalk-contact-hud.test.mjs";
 import "./tidewalk-contact-pressure.test.mjs";
 import "./tidewalk-contact-pressure-canvas.test.mjs";
+import "./tidewalk-contact-pressure-hud.test.mjs";
 import "./tidewalk-contact-omens.test.mjs";
 import "./tidewalk-contact-director.test.mjs";
