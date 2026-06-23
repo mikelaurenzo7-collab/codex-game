@@ -30,6 +30,7 @@ import {
   shouldBlockLegacyTidewalkRouteClick
 } from "./tidewalk-playable-commitment.js";
 import { drawTidewalkContactClient } from "./tidewalk-contact-client.js";
+import { getBrinehookResolutionState } from "./brinehook-resolution.js";
 
 
 const canvas = document.querySelector("#game");
@@ -1024,6 +1025,7 @@ function updateHud() {
   const storylet = getBlackKeelStorylet(state);
   const coastalOperation = getFrontierCoastalOperation(state);
   const expedition = getTidewalkExpedition(state);
+  const resolution = getBrinehookResolutionState(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   const tidePhase = state.frontier?.tide?.phase ? ` (${state.frontier.tide.phase.toUpperCase()} TIDE)` : "";
   fragmentReadout.textContent =
@@ -1044,7 +1046,8 @@ function updateHud() {
         routeChoice,
         storylet,
         coastalOperation,
-        expedition
+        expedition,
+        resolution
       );
   updateJournal();
   updateAtlas();
@@ -1083,7 +1086,9 @@ function updateHud() {
   } else if (expedition.active && !expedition.complete && expedition.inRange && input.analyze) {
     statusReadout.textContent = `${expedition.title} ${Math.round((expedition.progress / expedition.required) * 100)}%`;
   } else if (expedition.active && !expedition.complete && expedition.phase === "field") {
-    statusReadout.textContent = expedition.tideStilled ? "Black tide suppressed" : "Brinehook Low Piers";
+    statusReadout.textContent = expedition.tideStilled
+      ? `Black tide suppressed · ${resolution.title}`
+      : resolution.title;
   } else if (expedition.active && !expedition.complete) {
     statusReadout.textContent = "Tidewalk descent ready";
   } else if (expedition.active && expedition.complete) {
@@ -1581,7 +1586,8 @@ function formatObjective(
   routeChoice,
   storylet,
   coastalOperation,
-  expedition
+  expedition,
+  resolution
 ) {
   if (tidewalkSurvey.active) {
     const progress = Math.round((tidewalkSurvey.progress / tidewalkSurvey.required) * 100);
@@ -1591,6 +1597,9 @@ function formatObjective(
   }
 
   if (expedition.active && !expedition.complete) {
+    if (expedition.phase === "field" && resolution?.active) {
+      return resolution.objective;
+    }
     const progress = Math.round((expedition.progress / expedition.required) * 100);
     return expedition.inRange
       ? `${expedition.title} ${progress}%`

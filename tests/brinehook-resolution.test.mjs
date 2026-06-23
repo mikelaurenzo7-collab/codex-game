@@ -57,7 +57,7 @@ function recoverCargo(state, cargoId) {
   assert.equal(resolution.complete, false);
 
   recoverCargo(state, "cargo-sextant");
-  recoverCargo(state, "cargo-bell");
+  recoverCargo(state, "cargo-logbook");
   resolution = getBrinehookResolutionState(state);
   assert.equal(resolution.status, "cargo-under-hunt");
   assert.equal(resolution.complete, false);

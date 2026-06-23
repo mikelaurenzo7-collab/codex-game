@@ -32,6 +32,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Choosing the `black-keel-countermark` Tidewalk branch now unlocks a state-backed return-to-gate field operation at the Coastline Lift, with in-world progress, signal drain, completion fallout, and test coverage proving one coastal consequence changes physical play space.
 - Choosing the safer `quay-safe-lantern-line` Tidewalk branch now unlocks a state-backed return-to-relay field operation at South Relay Camp, with battery support, witness-heading fallout, and test coverage proving both Tidewalk route choices now redirect physical play to different anchors.
 - Resolving either Tidewalk field operation now unlocks the Brinehook Low Piers micro-scene beyond the archive map, with branch-specific objectives, signal-draining tide hazards, pulse-based suppression, and a deterministic return carrying persistent coastal evidence.
+- The Brinehook resolution contract (`hunted`, `cargo-under-hunt`, `escaped-with-cargo`, `safe-line-ahead`, `haven-holding`, `witness-secured`) is now wired into the live HUD: the status readout shows the resolution title during the field crossing, and the objective readout shows the current resolution objective instead of a generic distance label.
 
 ## Operating Rules
 
@@ -382,4 +383,22 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
   - Added full unit test coverage in `tests/echo-hunt.test.mjs` verifying hunting behavior, speed multipliers, stun overrides, and checkpoint validation.
 - **Validation Evidence:** `tests/echo-hunt.test.mjs` and all other tests pass successfully.
 - **Next Bottleneck:** Build and expand the Brinehook Low Piers micro-scene with dynamic branch-specific gameplay or new interactive elements.
+
+### 0046 - Brinehook Resolution HUD Wiring
+
+- **State Assessment:** All 26 test suites pass after fixing two regression bugs introduced in connector-only runs 0044–0045: `brinehook-encounter.test.mjs` used a stale sentinel position (the sentinel had patrolled during post-launch ticks inside `holdAction`), and `brinehook-resolution.test.mjs` referenced a nonexistent cargo ID `"cargo-bell"` (corrected to `"cargo-logbook"`). With those fixed, the Brinehook resolution contract was deterministic and fully tested but completely invisible to the player — the HUD showed only "Brinehook Low Piers" regardless of resolution progress.
+- **Strategic Choice:** D. Technical/Polish Overhaul.
+- **Justification:** The resolution selector covers six outcome states but the player cannot read any of them. Wiring it into the live HUD makes the pier-crossing feel purposeful rather than opaque without touching game rules, save state, or rendering geometry.
+- **Execution Plan:**
+  - Import `getBrinehookResolutionState` into `src/game.js`.
+  - Compute `resolution` in `updateHud` alongside the existing selectors.
+  - Replace the generic `"Brinehook Low Piers"` status text with `resolution.title` during the field phase.
+  - Add `resolution.objective` to `formatObjective` when the expedition is in field phase, superseding the distance label.
+  - Pass `resolution` through `formatObjective` without altering any other branch.
+- **Work Completed:** Added the `getBrinehookResolutionState` import; computed `resolution` in `updateHud`; updated the status readout to show `resolution.title` (and `Black tide suppressed · ${resolution.title}` when the tide is stilled); updated `formatObjective` to return `resolution.objective` during Brinehook field phase; fixed the two test regressions in `tests/brinehook-encounter.test.mjs` and `tests/brinehook-resolution.test.mjs`; logged this run in `docs/automation-runs/0046-brinehook-resolution-hud.md`.
+- **Technology Stack Justification:** The change is purely presentational — the same vanilla Canvas and ES module stack requires no framework additions because the resolution selector is already a pure read-only function.
+- **Success Metrics:** All 26 test suites pass; `node --check` passes for `src/game.js`; the Brinehook HUD now surfaces the resolution title and objective during the field crossing.
+- **Risk Mitigation:** No game-state mutations, no new save-schema changes, no new dependencies. The resolution selector was already tested. The only client change is reading a pre-existing value and showing it.
+- **Validation Evidence:** `node tests/run-all.mjs` passed all 26 suites. `node --check src/game.js` reported no syntax errors.
+- **Next Bottleneck:** Create a Brinehook exit/return transition from completed resolution states (`escaped-with-cargo`, `witness-secured`) so the player can leave the pier with their outcome reflected in the arrival dossier.
 

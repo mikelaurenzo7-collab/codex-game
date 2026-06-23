@@ -82,6 +82,11 @@ function holdAction(state, seconds = 2.2) {
 {
   const state = readyForBrinehook("black-keel-countermark");
   holdAction(state);
+  // Reset sentinel to spawn position before contact test — it may have patrolled
+  // during the extra ticks after launch within holdAction.
+  state.frontier.tidewalkExpedition.sentinel.x = 1300;
+  state.frontier.tidewalkExpedition.sentinel.y = 540;
+  state.frontier.tidewalkExpedition.sentinel.stunUntil = 0;
   state.player.x = 1302;
   state.player.y = 540;
   state.signal = 10;
