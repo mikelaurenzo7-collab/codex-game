@@ -27,7 +27,7 @@ export const WORLD = {
   signalRechargePerSecond: 4.5
 };
 
-export const GAME_SAVE_VERSION = 6;
+export const GAME_SAVE_VERSION = 7;
 
 export const RESONANCE_NODE = { x: 1080, y: 760, radius: 65 };
 
@@ -904,7 +904,13 @@ export function getActiveObjective(state) {
 
   const openFragments = state.fragments.filter((fragment) => !fragment.collected);
   if (openFragments.length === 0) {
-    return buildObjective("gate", "Reach extraction", state.gate, state);
+    const readiness = getExtractionReadiness(state);
+    const label = readiness.fullThread
+      ? "Extract: complete thread"
+      : readiness.score >= 2
+      ? `Extract: ${readiness.title}`
+      : "Reach extraction gate";
+    return buildObjective("gate", label, state.gate, state);
   }
 
   const coastalOperation = getFrontierCoastalOperation(state);
@@ -1642,6 +1648,63 @@ export function getBrinehookPierExit(state) {
   };
 }
 
+export function getExtractionReadiness(state) {
+  const fragmentsComplete = collectedFragmentCount(state) === state.fragments.length;
+  const coastalClosed = Boolean(state.frontier?.brinehookAftermath);
+  const resonanceFired = state.resonanceBroadcast === true;
+
+  const score = (fragmentsComplete ? 1 : 0) + (coastalClosed ? 1 : 0) + (resonanceFired ? 1 : 0);
+  const fullThread = fragmentsComplete && coastalClosed && resonanceFired;
+
+  const aftermath = state.frontier?.brinehookAftermath;
+  const coastalOutcome = aftermath?.outcome || null;
+
+  let title;
+  let summary;
+  let resultText;
+
+  if (fullThread) {
+    title = "Complete Thread";
+    summary =
+      "Archive memory, coastal evidence, and resonance broadcast — the archive opens on every count.";
+    resultText = coastalOutcome === "escaped-with-cargo"
+      ? "Complete thread recovered — Black-Keel cache certified"
+      : "Complete thread recovered — lantern witness certified";
+  } else if (fragmentsComplete && coastalClosed) {
+    title = "Certified Thread";
+    summary =
+      "Archive memory and coastal evidence secured. The resonance broadcast remains unfired.";
+    resultText = coastalOutcome === "escaped-with-cargo"
+      ? "Thread recovered — Black-Keel cache certified"
+      : "Thread recovered — lantern witness certified";
+  } else if (fragmentsComplete && resonanceFired) {
+    title = "Broadcast Thread";
+    summary =
+      "Archive memory recovered and resonance fired. Coastal evidence was not closed before extraction.";
+    resultText = "Thread recovered — coastal record incomplete";
+  } else if (fragmentsComplete) {
+    title = "Archive Thread";
+    summary = "Memory recovered from the archive. Coastal and resonance records remain open.";
+    resultText = "Archive thread recovered";
+  } else {
+    title = "Incomplete Thread";
+    summary = "Recover all three archive fragments before the extraction gate will open.";
+    resultText = null;
+  }
+
+  return {
+    fragmentsComplete,
+    coastalClosed,
+    resonanceFired,
+    score,
+    fullThread,
+    title,
+    summary,
+    resultText,
+    coastalOutcome
+  };
+}
+
 export function getResonanceNode(state) {
   const expeditionComplete = state.frontier?.tidewalkExpedition?.complete === true;
   const alreadyBroadcast = state.resonanceBroadcast === true;
@@ -2306,10 +2369,11 @@ function resolveEchoPressure(state, dt) {
 }
 
 function resolveGate(state) {
-  state.gate.unlocked = collectedFragmentCount(state) === state.fragments.length;
+  const readiness = getExtractionReadiness(state);
+  state.gate.unlocked = readiness.fragmentsComplete;
   if (state.gate.unlocked && distance(state.player, state.gate) <= state.player.radius + state.gate.radius) {
     state.status = "complete";
-    state.result = "Archive thread recovered";
+    state.result = readiness.resultText || "Archive thread recovered";
   }
 }
 
