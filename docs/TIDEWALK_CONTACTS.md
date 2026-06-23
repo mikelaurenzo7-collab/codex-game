@@ -24,7 +24,7 @@ Visual hierarchy: cold underpier countermark, dark hostile ring, red-black threa
 
 ## Current Implementation Status
 
-The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, and game-frame adapter are split into focused modules with tests:
+The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, and arrival-panel projection are split into focused modules with tests:
 
 - `src/tidewalk-contact.js`
 - `src/tidewalk-contact-field.js`
@@ -36,6 +36,8 @@ The deterministic contact plan, field-state selector, Canvas renderer, runtime c
 
 `src/tidewalk-contact-client.js` exposes `runTidewalkContactFrame({ ctx, state, input })`, the intended single-call live-client seam. It steps the held-**E** contact commit, draws the Canvas contact markers when the choice remains active, returns the active status/objective/dossier copy, and reports both HUD and arrival invalidation flags after commitment.
 
+`src/tidewalk-contact-client.js` also exposes `getTidewalkContactArrivalProjection(state, input)`. This projection converts the contact runtime into player-facing arrival-panel copy and deliberately marks legacy route-choice buttons as disabled while the in-world contact choice is active. The arrival panel should show contact rows as guidance only; commitment belongs to the held-**E** world interaction.
+
 `src/tidewalk-contact-client.js` also exposes `createTidewalkContactGameFrameAdapter(...)` for the live browser loop. The adapter enforces the order that keeps the playable frame deterministic:
 
 1. advance normal game state;
@@ -44,4 +46,4 @@ The deterministic contact plan, field-state selector, Canvas renderer, runtime c
 4. draw the game;
 5. refresh HUD copy.
 
-The remaining `src/game.js` hookup should now be a surgical import and frame-loop replacement rather than a broad rewrite. The old dossier route-choice button handler should be removed only in the same reviewed change that calls this adapter from the live client.
+The remaining `src/game.js` hookup should now be a surgical import and frame-loop replacement rather than a broad rewrite. The old dossier route-choice click handler should be removed only in the same reviewed change that calls this adapter from the live client and renders `getTidewalkContactArrivalProjection` in the arrival panel.
