@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   drawTidewalkContactClient,
   getTidewalkContactClientState,
+  runTidewalkContactFrame,
   stepTidewalkContactClient
 } from "../src/tidewalk-contact-client.js";
 
@@ -79,6 +80,34 @@ function createContext() {
   const field = drawTidewalkContactClient(ctx, createState({ x: 1570, y: 860 }));
   assert.equal(field.actionableContact.id, "black-keel-scout");
   assert.ok(ctx.calls.some((call) => call.includes("Countermark scout")));
+}
+
+{
+  const ctx = createContext();
+  const state = createState({ x: 1570, y: 860 });
+  const frame = runTidewalkContactFrame({ ctx, state, input: { analyze: false } });
+  assert.equal(frame.shouldDraw, true);
+  assert.equal(frame.shouldInvalidateArrival, false);
+  assert.equal(frame.drawnField.actionableContact.id, "black-keel-scout");
+  assert.equal(frame.statusText, "Countermark scout contact ready");
+  assert.ok(ctx.calls.some((call) => call.includes("Countermark scout")));
+}
+
+{
+  const ctx = createContext();
+  const state = createState({ x: 1580, y: 260 });
+  const frame = runTidewalkContactFrame({ ctx, state, input: { analyze: true } });
+  assert.equal(frame.committedContact.id, "lantern-tender");
+  assert.equal(frame.shouldDraw, false);
+  assert.equal(frame.drawnField, null);
+  assert.equal(frame.shouldInvalidateHud, true);
+  assert.equal(frame.shouldInvalidateArrival, true);
+  assert.equal(frame.dossier.mode, "resolved");
+  assert.equal(state.frontier.selectedRouteChoiceId, "quay-safe-lantern-line");
+}
+
+{
+  assert.throws(() => runTidewalkContactFrame(), /requires a game state/);
 }
 
 console.log("tidewalk contact client tests passed");
