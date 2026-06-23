@@ -67,3 +67,48 @@ export function stepTidewalkPlayableCommitmentStage(state, input = {}, { ctx = n
     spine: spineAfter
   };
 }
+
+export function createTidewalkPlayableCommitmentFrameAdapter({
+  state,
+  input,
+  ctx = null,
+  updateGameState,
+  drawGame,
+  updateHud,
+  invalidateArrival,
+  drawContacts = true
+} = {}) {
+  if (!state) {
+    throw new TypeError("createTidewalkPlayableCommitmentFrameAdapter requires a game state");
+  }
+  if (typeof updateGameState !== "function") {
+    throw new TypeError("createTidewalkPlayableCommitmentFrameAdapter requires updateGameState");
+  }
+  if (typeof drawGame !== "function") {
+    throw new TypeError("createTidewalkPlayableCommitmentFrameAdapter requires drawGame");
+  }
+  if (typeof updateHud !== "function") {
+    throw new TypeError("createTidewalkPlayableCommitmentFrameAdapter requires updateHud");
+  }
+
+  return function runTidewalkPlayableCommitmentFrame(dt) {
+    updateGameState(state, input, dt);
+    const stage = stepTidewalkPlayableCommitmentStage(state, input, { ctx, draw: drawContacts });
+
+    if (stage.shouldInvalidateHud && typeof invalidateArrival === "function") {
+      invalidateArrival(stage);
+    }
+
+    drawGame(stage);
+    updateHud(stage);
+    return stage;
+  };
+}
+
+export function shouldBlockLegacyTidewalkRouteClick(stageOrState, input = {}) {
+  const stage = stageOrState?.dossierProjection
+    ? stageOrState
+    : getTidewalkPlayableCommitmentStage(stageOrState, input);
+
+  return Boolean(stage.shouldSuppressLegacyRouteButtons && !stage.complete);
+}
