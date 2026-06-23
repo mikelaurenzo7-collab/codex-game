@@ -42,6 +42,7 @@ import {
   const contact = resolveTidewalkContactChoice(state, "lantern-tender");
   assert.equal(contact.choiceId, "quay-safe-lantern-line");
   assert.equal(state.frontier.selectedRouteChoiceId, "quay-safe-lantern-line");
+  assert.equal(state.frontier.lastRouteChoice.routeId, "intake-coastline-lift");
   assert.equal(state.frontier.lastRouteChoice.contactId, "lantern-tender");
   assert.equal(state.frontier.lastRouteChoice.chosenAt, 42);
   assert.match(state.clueLog[0], /Lantern tender/);
@@ -67,6 +68,7 @@ import {
 
   const contact = resolveTidewalkContactChoice(state, "black-keel-scout");
   assert.equal(contact.choiceId, "black-keel-countermark");
+  assert.equal(state.frontier.lastRouteChoice.routeId, "intake-coastline-lift");
   assert.equal(state.frontier.lastRouteChoice.chosenAt, 0);
 }
 
