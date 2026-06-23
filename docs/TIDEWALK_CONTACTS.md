@@ -26,9 +26,11 @@ Visual hierarchy: cold underpier countermark, dark hostile ring, red-black threa
 
 `src/tidewalk-contact-pressure.js` adds authored pressure lines and a deterministic tension scalar for the live contact moment. Before commitment, the coast now speaks differently when the nearest contact is far, near, or ready. After commitment, the pressure layer returns the chosen contact's committed line so the HUD or bottom log can make the faction consequence feel immediate.
 
+`src/tidewalk-contact-pressure-canvas.js` makes that tension visible in the playable Canvas layer. The currently focused contact receives a pulsing aura keyed to its authored faction palette: gold dashed breath for the Lantern Tender and red-black broken pressure for the Black-Keel Scout. The aura grows with deterministic tension and labels the proximity band so screenshots and smoke tests can verify the player-facing state.
+
 ## Current Implementation Status
 
-The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, arrival-panel projection, HUD bridge, and pressure layer are split into focused modules with tests:
+The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, arrival-panel projection, HUD bridge, pressure layer, and pressure-aura renderer are split into focused modules with tests:
 
 - `src/tidewalk-contact.js`
 - `src/tidewalk-contact-field.js`
@@ -37,10 +39,11 @@ The deterministic contact plan, field-state selector, Canvas renderer, runtime c
 - `src/tidewalk-contact-client.js`
 - `src/tidewalk-contact-hud.js`
 - `src/tidewalk-contact-pressure.js`
+- `src/tidewalk-contact-pressure-canvas.js`
 
 `src/tidewalk-contact-runtime.js` exposes `stepTidewalkContactRuntime(state, input)`, a browser-frame contract that returns the pre-step field, post-step field, committed contact, input-consumption flag, and HUD-refresh flag.
 
-`src/tidewalk-contact-client.js` exposes `runTidewalkContactFrame({ ctx, state, input })`, the intended single-call live-client seam. It steps the held-**E** contact commit, draws the Canvas contact markers when the choice remains active, returns the active status/objective/dossier copy, and reports both HUD and arrival invalidation flags after commitment.
+`src/tidewalk-contact-client.js` exposes `runTidewalkContactFrame({ ctx, state, input })`, the intended single-call live-client seam. It steps the held-**E** contact commit, draws the Canvas pressure aura plus contact markers when the choice remains active, returns the active status/objective/dossier copy, and reports both HUD and arrival invalidation flags after commitment.
 
 `src/tidewalk-contact-client.js` also exposes `getTidewalkContactArrivalProjection(state, input)`. This projection converts the contact runtime into player-facing arrival-panel copy and deliberately marks legacy route-choice buttons as disabled while the in-world contact choice is active. The arrival panel should show contact rows as guidance only; commitment belongs to the held-**E** world interaction.
 
