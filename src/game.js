@@ -24,6 +24,13 @@ import {
   triggerPulse,
   updateGameState
 } from "./game-state.js";
+import {
+  getTidewalkPlayableCommitmentStage,
+  stepTidewalkPlayableCommitmentStage,
+  shouldBlockLegacyTidewalkRouteClick
+} from "./tidewalk-playable-commitment.js";
+import { drawTidewalkContactClient } from "./tidewalk-contact-client.js";
+
 
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
@@ -150,6 +157,10 @@ arrivalRouteChoiceList.addEventListener("click", (event) => {
     return;
   }
 
+  if (shouldBlockLegacyTidewalkRouteClick(state)) {
+    return;
+  }
+
   if (chooseFrontierRoute(state, button.dataset.choiceId)) {
     arrivalSnapshot = "";
     updateHud();
@@ -183,6 +194,7 @@ function frame(now) {
   const dt = (now - lastTime) / 1000;
   lastTime = now;
   updateGameState(state, input, dt);
+  stepTidewalkPlayableCommitmentStage(state, input, { draw: false });
   draw();
   updateHud();
   requestAnimationFrame(frame);
@@ -212,6 +224,10 @@ function draw() {
     drawTidewalkSurveyScene(tidewalkSurvey);
   } else if (state.scene === "tidewalk") {
     drawTidewalkScene();
+    const stage = getTidewalkPlayableCommitmentStage(state);
+    if (stage.active && stage.shouldRenderContacts) {
+      drawTidewalkContactClient(ctx, state);
+    }
   } else {
     drawWorldFloor();
     drawRegionContours();
@@ -929,6 +945,7 @@ function drawEndState(width, height) {
 
 function updateHud() {
   checkpointStatus.textContent = checkpointMessage;
+  const stage = getTidewalkPlayableCommitmentStage(state);
   const objective = getActiveObjective(state);
   const synthesis = getEvidenceSynthesis(state);
   const analysis = getFieldAnalysis(state);
@@ -948,18 +965,20 @@ function updateHud() {
       : state.scene === "tidewalk"
         ? "Brinehook Low Piers"
         : `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = formatObjective(
-    objective,
-    analysis,
-    traverse,
-    encounter,
-    survey,
-    tidewalkSurvey,
-    routeChoice,
-    storylet,
-    coastalOperation,
-    expedition
-  );
+  objectiveReadout.textContent = stage.active
+    ? stage.objectiveText
+    : formatObjective(
+        objective,
+        analysis,
+        traverse,
+        encounter,
+        survey,
+        tidewalkSurvey,
+        routeChoice,
+        storylet,
+        coastalOperation,
+        expedition
+      );
   updateJournal();
   updateAtlas();
   if (state.scene === "tidewalk") {
@@ -978,11 +997,14 @@ function updateHud() {
     routeChoice,
     storylet,
     coastalOperation,
-    expedition
+    expedition,
+    stage
   );
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
+  } else if (stage.active) {
+    statusReadout.textContent = stage.statusText;
   } else if (tidewalkSurvey.active && tidewalkSurvey.phase === "field" && tidewalkSurvey.inRange && input.analyze) {
     statusReadout.textContent = `${tidewalkSurvey.title} ${Math.round((tidewalkSurvey.progress / tidewalkSurvey.required) * 100)}%`;
   } else if (tidewalkSurvey.active && tidewalkSurvey.phase === "field") {
@@ -1156,29 +1178,43 @@ function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, 
   }
 
   arrivalRouteChoice.classList.remove("is-hidden");
-  arrivalRouteChoiceTitle.textContent = routeChoice.selectedChoice
-    ? `Selected: ${routeChoice.selectedChoice.label}`
-    : "Choose a coastal line";
-  arrivalRouteChoiceText.textContent = routeChoice.prompt;
+  const stage = getTidewalkPlayableCommitmentStage(state);
+  const useProjection = stage.active && stage.dossierProjection;
+
+  arrivalRouteChoiceTitle.textContent = useProjection
+    ? stage.dossierProjection.title
+    : routeChoice.selectedChoice
+      ? `Selected: ${routeChoice.selectedChoice.label}`
+      : "Choose a coastal line";
+  arrivalRouteChoiceText.textContent = useProjection
+    ? stage.dossierProjection.text
+    : routeChoice.prompt;
+
+  const choicesToRender = useProjection ? stage.dossierProjection.choices : routeChoice.choices;
+
   arrivalRouteChoiceList.replaceChildren(
-    ...routeChoice.choices.map((choice) => {
+    ...choicesToRender.map((choice) => {
       const item = document.createElement("li");
       item.className = "arrival-survey-item";
 
       const button = document.createElement("button");
       button.type = "button";
       button.className = "arrival-action-button";
-      button.dataset.choiceId = choice.id;
-      button.disabled = Boolean(routeChoice.selectedChoice);
-      button.textContent = routeChoice.selectedChoice
-        ? choice.selected
-          ? `${choice.label} selected`
-          : choice.label
-        : `Choose ${choice.label}`;
+      button.dataset.choiceId = choice.choiceId || choice.id;
+      button.disabled = useProjection ? choice.disabled : Boolean(routeChoice.selectedChoice);
+      button.textContent = useProjection
+        ? choice.actionLabel
+        : routeChoice.selectedChoice
+          ? choice.selected
+            ? `${choice.label} selected`
+            : choice.label
+          : `Choose ${choice.label}`;
 
       const detail = document.createElement("span");
       detail.className = "arrival-choice-detail";
-      detail.textContent = `Risk ${choice.risk}/5 | ${choice.reward} | ${choice.consequence}`;
+      detail.textContent = useProjection
+        ? choice.detail
+        : `Risk ${choice.risk}/5 | ${choice.reward} | ${choice.consequence}`;
 
       item.append(button, detail);
       return item;
@@ -1299,7 +1335,8 @@ function updatePrimer(
   routeChoice,
   storylet,
   coastalOperation,
-  expedition
+  expedition,
+  stage
 ) {
   if (primerDismissed) {
     primerPanel.classList.add("is-hidden");
@@ -1314,6 +1351,12 @@ function updatePrimer(
       state.status === "complete"
         ? "You cleared the archive loop. Restart to rerun the slice or keep scanning the atlas for frontier prospects."
         : "Echo pressure or overuse drained your signal. Restart, pulse more deliberately, and use relays to recover.";
+    return;
+  }
+
+  if (stage && stage.active && !stage.complete) {
+    primerTitle.textContent = stage.dossierProjection?.title || "Choose a coastal contact";
+    primerText.textContent = stage.objectiveText || "Find the contacts at the pier and hold E to commit.";
     return;
   }
 

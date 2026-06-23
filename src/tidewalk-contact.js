@@ -27,10 +27,11 @@ export const TIDEWALK_CONTACTS = [
   }
 ];
 
-export function getTidewalkContactPlan({ surveyedSiteIds = [], selectedChoiceId = null } = {}) {
+export function getTidewalkContactPlan({ surveyedSiteIds = [], selectedChoiceId = null, selectedRouteChoiceId = null } = {}) {
   const completedSiteIds = Array.isArray(surveyedSiteIds) ? surveyedSiteIds : [];
   const surveyComplete = ["north-spool-house", "lamp-black-warehouse"].every((id) => completedSiteIds.includes(id));
-  const selectedContact = TIDEWALK_CONTACTS.find((contact) => contact.choiceId === selectedChoiceId) || null;
+  const choiceId = selectedRouteChoiceId || selectedChoiceId;
+  const selectedContact = TIDEWALK_CONTACTS.find((contact) => contact.choiceId === choiceId) || null;
 
   return {
     active: surveyComplete && !selectedContact,

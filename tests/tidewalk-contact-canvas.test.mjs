@@ -16,7 +16,7 @@ function createContext() {
     fillRect() { calls.push("fillRect"); },
     moveTo() { calls.push("moveTo"); },
     lineTo() { calls.push("lineTo"); },
-    fillText() { calls.push("fillText"); },
+    fillText(text) { calls.push(`fillText:${text}`); },
     setLineDash() { calls.push("setLineDash"); },
     set fillStyle(value) { calls.push(`fillStyle:${value}`); },
     set strokeStyle(value) { calls.push(`strokeStyle:${value}`); },

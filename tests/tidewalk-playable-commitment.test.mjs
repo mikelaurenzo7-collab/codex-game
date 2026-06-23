@@ -95,7 +95,7 @@ function createState({ scene = "tidewalk", x = 1580, y = 260, selectedRouteChoic
     "update:0.25:true",
     "invalidate:lantern-tender",
     "draw:Witness-Bound Archive",
-    "hud:Lantern Tender chosen"
+    "hud:Lantern tender chosen"
   ]);
 }
 
