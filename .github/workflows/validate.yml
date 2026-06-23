@@ -1,0 +1,33 @@
+name: Validate Signal Below
+
+on:
+  push:
+    branches: [main, "aga/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node gameplay checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Report validation runtime
+        run: node --version
+      - name: Check game module syntax
+        run: |
+          node --check src/game-state.js
+          node --check src/game.js
+          node --check src/tidewalk-contact.js
+          node --check src/tidewalk-contact-field.js
+      - name: Run deterministic game suites
+        run: node tests/run-all.mjs
