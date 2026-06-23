@@ -48,6 +48,27 @@ function buildContactDossier(runtime) {
   };
 }
 
+function buildContactChoiceRows(runtime) {
+  return runtime.contacts.map((contact) => ({
+    id: contact.id,
+    choiceId: contact.choiceId,
+    label: contact.label,
+    title: contact.title,
+    distance: Number.isFinite(contact.distance) ? Math.round(contact.distance) : null,
+    inRange: Boolean(contact.inRange),
+    selected: runtime.selectedContact?.id === contact.id,
+    disabled: true,
+    actionLabel: runtime.selectedContact?.id === contact.id
+      ? `${contact.label} selected`
+      : contact.inRange
+        ? `Hold E near ${contact.label}`
+        : `Meet ${contact.label} in world`,
+    detail: contact.inRange
+      ? contact.briefing
+      : `${contact.visual.hierarchy}; ${contact.visualCue}`
+  }));
+}
+
 export function getTidewalkContactClientState(state, input = {}) {
   const runtime = getTidewalkContactRuntime(state);
 
@@ -61,12 +82,31 @@ export function getTidewalkContactClientState(state, input = {}) {
   };
 }
 
+export function getTidewalkContactArrivalProjection(state, input = {}) {
+  const client = getTidewalkContactClientState(state, input);
+  const runtime = client.runtime;
+  const mode = client.dossier.mode;
+
+  return {
+    mode,
+    title: client.dossier.title,
+    text: client.dossier.text,
+    statusText: client.statusText,
+    objectiveText: client.objectiveText,
+    shouldShowRouteChoice: runtime.active || runtime.complete,
+    suppressLegacyChoiceButtons: runtime.active && !runtime.complete,
+    legacyButtonsEnabled: false,
+    choices: buildContactChoiceRows(runtime)
+  };
+}
+
 export function stepTidewalkContactClient(state, input = {}) {
   const step = stepTidewalkContactRuntime(state, input);
 
   return {
     ...step,
     client: getTidewalkContactClientState(state, input),
+    arrivalProjection: getTidewalkContactArrivalProjection(state, input),
     invalidateArrival: step.shouldRefreshHud,
     consumedInput: step.consumedInput
   };
@@ -94,7 +134,8 @@ export function runTidewalkContactFrame({ ctx = null, state, input = {}, draw = 
     shouldInvalidateArrival: Boolean(step.invalidateArrival),
     statusText: client.statusText,
     objectiveText: client.objectiveText,
-    dossier: client.dossier
+    dossier: client.dossier,
+    arrivalProjection: step.arrivalProjection
   };
 }
 
