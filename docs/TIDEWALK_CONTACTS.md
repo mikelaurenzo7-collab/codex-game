@@ -24,19 +24,22 @@ Visual hierarchy: cold underpier countermark, dark hostile ring, red-black threa
 
 ## Current Implementation Status
 
-The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, and arrival-panel projection are split into focused modules with tests:
+The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, arrival-panel projection, and HUD bridge are split into focused modules with tests:
 
 - `src/tidewalk-contact.js`
 - `src/tidewalk-contact-field.js`
 - `src/tidewalk-contact-canvas.js`
 - `src/tidewalk-contact-runtime.js`
 - `src/tidewalk-contact-client.js`
+- `src/tidewalk-contact-hud.js`
 
 `src/tidewalk-contact-runtime.js` exposes `stepTidewalkContactRuntime(state, input)`, a browser-frame contract that returns the pre-step field, post-step field, committed contact, input-consumption flag, and HUD-refresh flag.
 
 `src/tidewalk-contact-client.js` exposes `runTidewalkContactFrame({ ctx, state, input })`, the intended single-call live-client seam. It steps the held-**E** contact commit, draws the Canvas contact markers when the choice remains active, returns the active status/objective/dossier copy, and reports both HUD and arrival invalidation flags after commitment.
 
 `src/tidewalk-contact-client.js` also exposes `getTidewalkContactArrivalProjection(state, input)`. This projection converts the contact runtime into player-facing arrival-panel copy and deliberately marks legacy route-choice buttons as disabled while the in-world contact choice is active. The arrival panel should show contact rows as guidance only; commitment belongs to the held-**E** world interaction.
+
+`src/tidewalk-contact-hud.js` exposes `getTidewalkContactHudBridge(state, input)` and `applyTidewalkContactHudBridge(...)`. The bridge is the smallest safe live-client insertion point for overriding objective/status copy and suppressing dossier route buttons while the in-world contact choice is active.
 
 `src/tidewalk-contact-client.js` also exposes `createTidewalkContactGameFrameAdapter(...)` for the live browser loop. The adapter enforces the order that keeps the playable frame deterministic:
 
