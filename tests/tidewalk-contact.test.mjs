@@ -13,6 +13,12 @@ import {
 }
 
 {
+  const plan = getTidewalkContactPlan({ surveyedSiteIds: "not-an-array" });
+  assert.equal(plan.active, false);
+  assert.equal(plan.complete, false);
+}
+
+{
   const plan = getTidewalkContactPlan({
     surveyedSiteIds: ["north-spool-house", "lamp-black-warehouse"]
   });
@@ -48,7 +54,6 @@ import {
 
 {
   const state = {
-    time: 8,
     clueLog: [],
     frontier: {
       surveyedSiteIds: ["north-spool-house", "lamp-black-warehouse"],
@@ -59,6 +64,10 @@ import {
   assert.equal(resolveTidewalkContactChoice(state, "missing-contact"), null);
   assert.equal(state.frontier.selectedRouteChoiceId, null);
   assert.equal(TIDEWALK_CONTACTS.some((contact) => contact.id === "black-keel-scout"), true);
+
+  const contact = resolveTidewalkContactChoice(state, "black-keel-scout");
+  assert.equal(contact.choiceId, "black-keel-countermark");
+  assert.equal(state.frontier.lastRouteChoice.chosenAt, 0);
 }
 
 console.log("tidewalk contact tests passed");
