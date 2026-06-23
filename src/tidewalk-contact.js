@@ -63,6 +63,7 @@ export function resolveTidewalkContactChoice(state, contactId) {
 
   frontier.selectedRouteChoiceId = contact.choiceId;
   frontier.lastRouteChoice = {
+    routeId: "intake-coastline-lift",
     contactId: contact.id,
     choiceId: contact.choiceId,
     label: contact.label,
