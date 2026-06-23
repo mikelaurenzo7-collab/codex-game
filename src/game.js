@@ -1,5 +1,6 @@
 import {
   WORLD,
+  RESONANCE_NODE,
   createGameCheckpoint,
   collectedFragmentCount,
   createGameState,
@@ -19,6 +20,7 @@ import {
   getBlackKeelStorylet,
   chooseFrontierRoute,
   getActiveObjective,
+  getResonanceNode,
   resolveFrontierEncounter,
   restoreGameCheckpoint,
   triggerPulse,
@@ -234,6 +236,7 @@ function draw() {
     drawRegionContours();
     drawGate();
     drawRelays();
+    drawResonanceNode();
     drawSynthesisTarget();
     drawFieldAnalysis();
     drawFragments();
@@ -350,6 +353,53 @@ function drawRelays() {
     ctx.fillRect(-7, -7, 14, 14);
     ctx.restore();
   }
+}
+
+function drawResonanceNode() {
+  const node = getResonanceNode(state);
+  if (!node.active && !node.broadcast) {
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(RESONANCE_NODE.x, RESONANCE_NODE.y);
+
+  if (node.broadcast) {
+    ctx.strokeStyle = "rgba(255,220,100,0.22)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, RESONANCE_NODE.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  const pulse = Math.sin(state.time * 2.6) * 0.5 + 0.5;
+  const outerAlpha = 0.38 + pulse * 0.28;
+  const innerAlpha = 0.12 + pulse * 0.10;
+
+  ctx.strokeStyle = `rgba(255,210,60,${outerAlpha})`;
+  ctx.lineWidth = node.inRange ? 6 : 4;
+  ctx.setLineDash([14, 9]);
+  ctx.beginPath();
+  ctx.arc(0, 0, RESONANCE_NODE.radius + Math.sin(state.time * 1.9) * 4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = `rgba(255,210,60,${innerAlpha})`;
+  ctx.beginPath();
+  ctx.arc(0, 0, RESONANCE_NODE.radius * 0.55, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (node.inRange) {
+    ctx.strokeStyle = "rgba(255,240,140,0.65)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, RESONANCE_NODE.radius * 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 function drawFragments() {

@@ -27,7 +27,9 @@ export const WORLD = {
   signalRechargePerSecond: 4.5
 };
 
-export const GAME_SAVE_VERSION = 4;
+export const GAME_SAVE_VERSION = 5;
+
+export const RESONANCE_NODE = { x: 1080, y: 760, radius: 65 };
 
 const BLUEPRINT = {
   player: { x: 160, y: 880 },
@@ -681,6 +683,7 @@ export function createGameState() {
     pulseCooldownUntil: 0,
     pulses: [],
     clueLog: [],
+    resonanceBroadcast: false,
     atlas: {
       visitedRegionIds: [],
       discoveredLandmarkIds: [],
@@ -760,6 +763,7 @@ function validateCheckpointState(state) {
     !isFiniteNumber(state.time) ||
     !isFiniteNumber(state.signal) ||
     !isFiniteNumber(state.pulseCooldownUntil) ||
+    typeof state.resonanceBroadcast !== "boolean" ||
     !isPoint(state.player) ||
     !isPoint(state.gate)
   ) {
@@ -1544,6 +1548,21 @@ export function getEvidenceJournal(state) {
   }));
 }
 
+export function getResonanceNode(state) {
+  const expeditionComplete = state.frontier?.tidewalkExpedition?.complete === true;
+  const alreadyBroadcast = state.resonanceBroadcast === true;
+  const inRange = distance(state.player, RESONANCE_NODE) <= RESONANCE_NODE.radius;
+
+  return {
+    active: expeditionComplete && !alreadyBroadcast,
+    broadcast: alreadyBroadcast,
+    inRange,
+    x: RESONANCE_NODE.x,
+    y: RESONANCE_NODE.y,
+    radius: RESONANCE_NODE.radius
+  };
+}
+
 export function canPulse(state) {
   return state.status === "running" && state.signal >= WORLD.pulseCost && state.time >= state.pulseCooldownUntil;
 }
@@ -1602,6 +1621,21 @@ export function triggerPulse(state) {
     if (!relay.depleted && distance(state.player, relay) <= relay.radius + WORLD.pulseRadius * 0.35) {
       relay.depleted = true;
       state.signal = Math.min(100, state.signal + 38);
+    }
+  }
+
+  const resonanceNode = getResonanceNode(state);
+  if (resonanceNode.active && resonanceNode.inRange) {
+    state.resonanceBroadcast = true;
+    state.signal = Math.min(100, state.signal + 30);
+    const broadcastStunUntil = state.time + 8;
+    for (const echo of state.echoes) {
+      echo.stunnedUntil = broadcastStunUntil;
+    }
+    for (const fragment of state.fragments) {
+      if (!fragment.collected) {
+        fragment.revealedUntil = state.time + 15;
+      }
     }
   }
 

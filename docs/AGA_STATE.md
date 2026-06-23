@@ -33,6 +33,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - Choosing the safer `quay-safe-lantern-line` Tidewalk branch now unlocks a state-backed return-to-relay field operation at South Relay Camp, with battery support, witness-heading fallout, and test coverage proving both Tidewalk route choices now redirect physical play to different anchors.
 - Resolving either Tidewalk field operation now unlocks the Brinehook Low Piers micro-scene beyond the archive map, with branch-specific objectives, signal-draining tide hazards, pulse-based suppression, and a deterministic return carrying persistent coastal evidence.
 - The Brinehook resolution contract (`hunted`, `cargo-under-hunt`, `escaped-with-cargo`, `safe-line-ahead`, `haven-holding`, `witness-secured`) is now wired into the live HUD: the status readout shows the resolution title during the field crossing, and the objective readout shows the current resolution objective instead of a generic distance label.
+- The Rewritten Cartography Table (x:1080, y:760) now functions as a Resonance Node: once the Brinehook expedition is complete, pulsing at the survey table triggers a one-time broadcast cascade — all echoes stunned 8 seconds, all uncollected fragments revealed 15 seconds, and +30 signal — rewarding players who return with coastal intel before pushing to the archive endgame.
 
 ## Operating Rules
 
