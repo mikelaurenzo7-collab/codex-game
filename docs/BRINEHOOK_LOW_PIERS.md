@@ -36,10 +36,23 @@ Brinehook Low Piers is the first playable coastal micro-scene beyond Tidewalk Co
 - `haven-holding`: the player is inside the lantern haven but still needs cargo proof.
 - `witness-secured`: the player is in the haven with recovered cargo.
 
-These resolution states are intentionally deterministic selectors. They do not yet end the scene by themselves; they give the live client a safe contract for HUD copy, bottom-log copy, completion messaging, and the eventual Brinehook exit.
+These resolution states are deterministic selectors. They do not end the scene by themselves; they provide the stable contract for HUD copy, bottom-log copy, completion messaging, and the eventual Brinehook exit.
+
+## Client Presentation Contract
+
+`getBrinehookResolutionClientState(state)` is the bridge from deterministic resolution logic into playable Canvas/HUD work. It returns:
+
+- `hudText` for the main objective readout.
+- `statusText` for the compact player-state readout.
+- `primerTitle` and `primerText` for the in-game onboarding primer.
+- `bottomLogText` for the lower Canvas log.
+- `tone` values (`danger`, `warning`, `safe`, `success`, `muted`) so Canvas/UI can style branch pressure consistently.
+- `marker` data for map/canvas targets: cargo search, revealed cargo, sentinel suppression, or lantern haven guidance.
+
+The presentation contract remains read-only. It chooses player-facing copy and marker targets from existing state instead of mutating cargo, sentinel, haven, or completion rules.
 
 ## Visual Direction
 
 The Brinehook scene should read as low, dark, and lateral: broad pier silhouettes over black water, warm lantern safety around witness contact points, and sharper red danger language for hostile Black-Keel pressure. Salvage cargo uses small gold pings after a pulse rather than permanent map markers so cargo feels discovered under pressure.
 
-Canva was not used for this run because the bottleneck was deterministic playable encounter resolution and Canvas-present mechanics, not a missing mood board or asset direction.
+Canva was not used for this run because the bottleneck was deterministic HUD/Canvas presentation plumbing for already-authored Brinehook mechanics, not a missing mood board or asset direction.
