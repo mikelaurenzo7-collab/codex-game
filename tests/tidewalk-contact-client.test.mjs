@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  createTidewalkContactGameFrameAdapter,
   drawTidewalkContactClient,
   getTidewalkContactClientState,
   runTidewalkContactFrame,
@@ -107,7 +108,45 @@ function createContext() {
 }
 
 {
+  const calls = [];
+  const ctx = createContext();
+  const state = createState({ x: 1570, y: 860 });
+  const frameAdapter = createTidewalkContactGameFrameAdapter({
+    ctx,
+    state,
+    input: { analyze: true },
+    updateGameState(receivedState, receivedInput, dt) {
+      calls.push(`update:${dt}:${receivedState === state}:${receivedInput.analyze}`);
+    },
+    drawGame(contactFrame) {
+      calls.push(`draw:${contactFrame.committedContact.id}`);
+    },
+    updateHud(contactFrame) {
+      calls.push(`hud:${contactFrame.shouldInvalidateArrival}`);
+    },
+    invalidateArrival(contactFrame) {
+      calls.push(`invalidate:${contactFrame.committedContact.id}`);
+    }
+  });
+
+  const frame = frameAdapter(0.25);
+  assert.equal(frame.committedContact.id, "black-keel-scout");
+  assert.equal(state.frontier.selectedRouteChoiceId, "black-keel-countermark");
+  assert.deepEqual(calls, [
+    "update:0.25:true:true",
+    "invalidate:black-keel-scout",
+    "draw:black-keel-scout",
+    "hud:true"
+  ]);
+}
+
+{
   assert.throws(() => runTidewalkContactFrame(), /requires a game state/);
+  assert.throws(() => createTidewalkContactGameFrameAdapter(), /requires a game state/);
+  assert.throws(
+    () => createTidewalkContactGameFrameAdapter({ state: createState() }),
+    /requires updateGameState/
+  );
 }
 
 console.log("tidewalk contact client tests passed");
