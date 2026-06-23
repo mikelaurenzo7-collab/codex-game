@@ -629,7 +629,8 @@ export function createGameState() {
     echoes: BLUEPRINT.echoes.map((echo) => ({
       ...echo,
       targetIndex: 1,
-      stunnedUntil: 0
+      stunnedUntil: 0,
+      huntTarget: null
     })),
     signal: 100,
     pulseCooldownUntil: 0,
@@ -742,7 +743,8 @@ function validateCheckpointState(state) {
         Array.isArray(echo.path) &&
         echo.path.every(isPoint) &&
         Number.isInteger(echo.targetIndex) &&
-        isFiniteNumber(echo.stunnedUntil)
+        isFiniteNumber(echo.stunnedUntil) &&
+        (echo.huntTarget === null || isPoint(echo.huntTarget))
     ) ||
     !Array.isArray(state.obstacles) ||
     !state.obstacles.every(isRectangle) ||
@@ -1531,8 +1533,12 @@ export function triggerPulse(state) {
   }
 
   for (const echo of state.echoes) {
-    if (distance(state.player, echo) <= WORLD.pulseRadius) {
+    const dist = distance(state.player, echo);
+    if (dist <= WORLD.pulseRadius) {
       echo.stunnedUntil = state.time + WORLD.echoStunSeconds;
+    }
+    if (dist <= WORLD.pulseRadius * 2) {
+      echo.huntTarget = { x: state.player.x, y: state.player.y };
     }
   }
 
@@ -1743,6 +1749,22 @@ function moveCircleWithCollision(circle, dx, dy, obstacles) {
 function moveEchoes(state, dt) {
   for (const echo of state.echoes) {
     if (echo.stunnedUntil > state.time) {
+      continue;
+    }
+
+    if (echo.huntTarget) {
+      const dx = echo.huntTarget.x - echo.x;
+      const dy = echo.huntTarget.y - echo.y;
+      const remaining = Math.hypot(dx, dy);
+
+      if (remaining < 5) {
+        echo.huntTarget = null;
+        continue;
+      }
+
+      const step = Math.min(remaining, echo.speed * 1.5 * dt);
+      echo.x += (dx / remaining) * step;
+      echo.y += (dy / remaining) * step;
       continue;
     }
 
