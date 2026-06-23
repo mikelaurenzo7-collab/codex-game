@@ -27,7 +27,7 @@ export const WORLD = {
   signalRechargePerSecond: 4.5
 };
 
-export const GAME_SAVE_VERSION = 3;
+export const GAME_SAVE_VERSION = 4;
 
 const BLUEPRINT = {
   player: { x: 160, y: 880 },
@@ -593,6 +593,51 @@ const TIDEWALK_SCENE = {
   }
 };
 
+const BRINEHOOK_SCENE = {
+  entry: { x: 170, y: 850 },
+  launchGate: { x: 140, y: 1012 },
+  obstacles: [
+    { x: 0, y: 0, width: 1920, height: 42 },
+    { x: 0, y: 1038, width: 1920, height: 42 },
+    { x: 0, y: 0, width: 42, height: 1080 },
+    { x: 1878, y: 0, width: 42, height: 1080 },
+    { x: 42, y: 750, width: 400, height: 50 },
+    { x: 400, y: 300, width: 80, height: 500 },
+    { x: 400, y: 300, width: 900, height: 60 },
+    { x: 1220, y: 300, width: 80, height: 600 },
+    { x: 800, y: 700, width: 500, height: 60 },
+    { x: 1400, y: 440, width: 478, height: 60 }
+  ],
+  piers: [
+    { x: 42, y: 750, width: 400, height: 150 },
+    { x: 350, y: 300, width: 100, height: 500 },
+    { x: 350, y: 300, width: 900, height: 100 },
+    { x: 1200, y: 300, width: 100, height: 600 },
+    { x: 800, y: 700, width: 500, height: 100 },
+    { x: 1300, y: 450, width: 578, height: 200 }
+  ],
+  hazards: [
+    { id: "pier-low-whirl", x: 600, y: 500, radius: 130 },
+    { id: "pier-deep-drain", x: 1100, y: 650, radius: 110 },
+    { id: "pier-outer-surge", x: 1500, y: 200, radius: 140 }
+  ],
+  leads: {
+    "quay-safe-lantern-line": {
+      title: "Meet the Brinehook lantern tender",
+      label: "Lantern tender",
+      target: { x: 1600, y: 540 },
+      completionTitle: "Tender witness secured",
+      completionText: "The tender names a black-painted skiff and marks the low-tide channel back to Tidelantern Quay."
+    },
+    "black-keel-countermark": {
+      title: "Reach the Black-Keel underpier cache",
+      label: "Underpier cache",
+      target: { x: 1700, y: 540 },
+      completionTitle: "Black-Keel cache breached",
+      completionText: "The cache is stripped, but a wet captain's tally points toward the next Black-Keel staging pier."
+    }
+  }
+};
 const TIDEWALK_SURVEY_SCENE = {
   entry: { ...TIDEWALK_SCENE.entry },
   launchGate: { ...TIDEWALK_SCENE.launchGate },
@@ -1452,7 +1497,7 @@ export function getTidewalkSurveyField(state) {
 export function getTidewalkExpedition(state) {
   const operation = getFrontierCoastalOperation(state);
   const choiceId = state.frontier?.selectedRouteChoiceId;
-  const lead = TIDEWALK_SCENE.leads[choiceId];
+  const lead = BRINEHOOK_SCENE.leads[choiceId];
   if (!operation.active || !operation.complete || !lead) {
     return inactiveTidewalkExpedition();
   }
@@ -1460,7 +1505,7 @@ export function getTidewalkExpedition(state) {
   const progressState = state.frontier?.tidewalkExpedition || {};
   const launched = Boolean(progressState.launched);
   const complete = Boolean(progressState.complete);
-  const target = launched && !complete ? lead.target : TIDEWALK_SCENE.launchGate;
+  const target = launched && !complete ? lead.target : BRINEHOOK_SCENE.launchGate;
   const phase = complete ? "complete" : launched ? "field" : "launch";
   const radius = launched ? WORLD.coastalOperationRadius : WORLD.frontierTraverseRadius;
   return {
@@ -1469,7 +1514,7 @@ export function getTidewalkExpedition(state) {
     launched,
     complete,
     choiceId,
-    title: phase === "launch" ? "Descend to Tidewalk Coast" : lead.title,
+    title: phase === "launch" ? "Descend to Brinehook Low Piers" : lead.title,
     label: lead.label,
     completionTitle: lead.completionTitle,
     completionText: lead.completionText,
@@ -1479,12 +1524,12 @@ export function getTidewalkExpedition(state) {
     progress: progressState.progress || 0,
     required: WORLD.tidewalkExpeditionSeconds,
     tideStilled: (progressState.tideStilledUntil || 0) > state.time,
-    hazards: TIDEWALK_SCENE.hazards.map((hazard) => {
+    hazards: BRINEHOOK_SCENE.hazards.map((hazard) => {
       const tidePhase = state.frontier?.tide?.phase || "low";
       const mult = tidePhase === "low" ? 0.6 : tidePhase === "surge" ? 1.5 : 1.0;
       return { ...hazard, radius: hazard.radius * mult };
     }),
-    obstacles: TIDEWALK_SCENE.obstacles.map((obstacle) => ({ ...obstacle }))
+    obstacles: BRINEHOOK_SCENE.obstacles.map((obstacle) => ({ ...obstacle }))
   };
 }
 
@@ -1517,7 +1562,18 @@ export function triggerPulse(state) {
     if (tidewalkSurvey.active && tidewalkSurvey.phase === "field") {
       state.frontier.tidewalkSurvey.tideStilledUntil = state.time + WORLD.echoStunSeconds;
     } else {
-      state.frontier.tidewalkExpedition.tideStilledUntil = state.time + WORLD.echoStunSeconds;
+      const exp = state.frontier.tidewalkExpedition;
+      exp.tideStilledUntil = state.time + WORLD.echoStunSeconds;
+      if (exp.sentinel && distance(state.player, exp.sentinel) <= WORLD.pulseRadius) {
+        exp.sentinel.stunUntil = state.time + WORLD.echoStunSeconds;
+      }
+      if (exp.cargoItems) {
+        for (const cargo of exp.cargoItems) {
+          if (!cargo.collected && distance(state.player, cargo) <= WORLD.pulseRadius) {
+            cargo.revealed = true;
+          }
+        }
+      }
     }
     return true;
   }
@@ -1606,8 +1662,25 @@ function movePlayer(state, input, dt) {
   }
 
   const distanceToMove = WORLD.playerSpeed * dt;
-  const obstacles = state.scene === "tidewalk" ? TIDEWALK_SCENE.obstacles : state.obstacles;
-  moveCircleWithCollision(state.player, dx * distanceToMove, 0, obstacles);
+  let obstacles = state.obstacles;
+  let driftX = 0;
+
+  if (state.scene === "tidewalk") {
+    if (state.frontier?.tidewalkExpedition?.launched && !state.frontier?.tidewalkExpedition?.complete) {
+      obstacles = BRINEHOOK_SCENE.obstacles;
+    } else {
+      obstacles = TIDEWALK_SCENE.obstacles;
+    }
+
+    const tidePhase = state.frontier?.tide?.phase || "low";
+    if (tidePhase === "high") {
+      driftX = -25 * dt;
+    } else if (tidePhase === "surge") {
+      driftX = -65 * dt;
+    }
+  }
+
+  moveCircleWithCollision(state.player, (dx * distanceToMove) + driftX, 0, obstacles);
   moveCircleWithCollision(state.player, 0, dy * distanceToMove, obstacles);
 }
 
@@ -1692,11 +1765,27 @@ function resolveTidewalkExpedition(state, input, dt) {
     progressState.progress = 0;
     if (expedition.phase === "launch") {
       progressState.launched = true;
+      progressState.currentStilledUntil = 0;
       state.scene = "tidewalk";
-      state.player.x = TIDEWALK_SCENE.entry.x;
-      state.player.y = TIDEWALK_SCENE.entry.y;
+      state.player.x = BRINEHOOK_SCENE.entry.x;
+      state.player.y = BRINEHOOK_SCENE.entry.y;
       state.pulses = [];
       state.clueLog.push("Tidewalk excursion launched: Brinehook Low Piers");
+
+      if (state.frontier.selectedRouteChoiceId === "black-keel-countermark") {
+        progressState.sentinel = { x: 1300, y: 540, vx: -1, vy: 0, stunUntil: 0 };
+      } else {
+        progressState.sentinel = null;
+      }
+
+      progressState.cargoItems = [
+        { id: "cargo-logbook", title: "Waterlogged Logbook", x: 600, y: 200, revealed: false, collected: false },
+        { id: "cargo-sextant", title: "Tarnished Sextant", x: 900, y: 800, revealed: false, collected: false },
+        { id: "cargo-battery", title: "Brine-crusted Battery", x: 1350, y: 250, revealed: false, collected: false }
+      ];
+      if (!state.frontier.cargo) {
+        state.frontier.cargo = [];
+      }
       return;
     }
 
@@ -1709,7 +1798,67 @@ function resolveTidewalkExpedition(state, input, dt) {
     return;
   }
 
-  if (state.scene !== "tidewalk" || expedition.tideStilled) {
+  if (state.scene !== "tidewalk") {
+    return;
+  }
+
+  if (expedition.phase === "field" && progressState.sentinel) {
+    const sentinel = progressState.sentinel;
+    const stunned = sentinel.stunUntil > state.time;
+    if (!stunned) {
+      const dist = distance(state.player, sentinel);
+      if (dist <= 250) {
+        const dx = state.player.x - sentinel.x;
+        const dy = state.player.y - sentinel.y;
+        const speed = 160;
+        sentinel.x += (dx / dist) * speed * dt;
+        sentinel.y += (dy / dist) * speed * dt;
+      } else {
+        const targetA = { x: 1300, y: 540 };
+        const targetB = { x: 1600, y: 800 };
+        let target = sentinel.vx > 0 ? targetB : targetA;
+        if (distance(sentinel, target) < 5) {
+          sentinel.vx *= -1;
+          target = sentinel.vx > 0 ? targetB : targetA;
+        }
+        const dx = target.x - sentinel.x;
+        const dy = target.y - sentinel.y;
+        const distToT = Math.hypot(dx, dy);
+        const speed = 110;
+        sentinel.x += (dx / distToT) * speed * dt;
+        sentinel.y += (dy / distToT) * speed * dt;
+      }
+
+      if (dist <= state.player.radius + 20) {
+        state.signal = Math.max(0, state.signal - 40 * dt);
+        if (state.signal <= 0) {
+          state.status = "failed";
+          state.result = "Sentinel caught you";
+        }
+      }
+    }
+  }
+
+  if (expedition.phase === "field" && progressState.cargoItems) {
+    for (const cargo of progressState.cargoItems) {
+      if (!cargo.collected && cargo.revealed && distance(state.player, cargo) <= state.player.radius + 15) {
+        cargo.collected = true;
+        state.signal = Math.min(100, state.signal + 15);
+        state.clueLog.push(`Collected salvage cargo: ${cargo.title}`);
+        state.frontier.cargo.push(cargo.title);
+      }
+    }
+  }
+
+  let inSafeHaven = false;
+  if (expedition.phase === "field" && expedition.choiceId === "quay-safe-lantern-line") {
+    if (distance(state.player, expedition.leadTarget) <= 150) {
+      inSafeHaven = true;
+      state.signal = Math.min(100, state.signal + WORLD.signalRechargePerSecond * dt);
+    }
+  }
+
+  if (expedition.tideStilled || inSafeHaven) {
     return;
   }
 

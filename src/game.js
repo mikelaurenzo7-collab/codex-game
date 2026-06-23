@@ -620,6 +620,31 @@ function drawTidewalkScene() {
     ctx.stroke();
   }
 
+  const isBrinehook = state.frontier?.tidewalkExpedition?.launched && !state.frontier?.tidewalkExpedition?.complete;
+  if (isBrinehook) {
+    for (const pier of BRINEHOOK_SCENE.piers) {
+      ctx.fillStyle = "rgba(42, 38, 30, 0.72)";
+      ctx.fillRect(pier.x, pier.y, pier.width, pier.height);
+      ctx.strokeStyle = "rgba(80, 68, 50, 0.6)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(pier.x, pier.y, pier.width, pier.height);
+    }
+  }
+
+  if (expedition.choiceId === "quay-safe-lantern-line") {
+    ctx.save();
+    ctx.translate(expedition.leadTarget.x, expedition.leadTarget.y);
+    ctx.fillStyle = "rgba(232, 196, 109, 0.15)";
+    ctx.beginPath();
+    ctx.arc(0, 0, 150, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(232, 196, 109, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   for (const hazard of expedition.hazards) {
     const suppressed = expedition.tideStilled;
     ctx.save();
@@ -639,6 +664,47 @@ function drawTidewalkScene() {
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     ctx.fillStyle = "rgba(232, 196, 109, 0.09)";
     ctx.fillRect(obstacle.x + 6, obstacle.y + 6, obstacle.width - 12, obstacle.height - 12);
+  }
+
+  const progressState = state.frontier?.tidewalkExpedition;
+  if (progressState && progressState.sentinel) {
+    const sentinel = progressState.sentinel;
+    ctx.save();
+    ctx.translate(sentinel.x, sentinel.y);
+    const stunned = sentinel.stunUntil > state.time;
+    ctx.fillStyle = stunned ? "rgba(98, 214, 184, 0.3)" : "rgba(224, 76, 76, 0.85)";
+    ctx.strokeStyle = stunned ? "rgba(98, 214, 184, 0.8)" : "rgba(255, 120, 120, 0.9)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, -18);
+    ctx.lineTo(14, 12);
+    ctx.lineTo(-14, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    if (!stunned) {
+      ctx.strokeStyle = "rgba(224, 76, 76, 0.15)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 250, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (progressState && progressState.cargoItems) {
+    for (const cargo of progressState.cargoItems) {
+      if (!cargo.collected && cargo.revealed) {
+        ctx.save();
+        ctx.translate(cargo.x, cargo.y);
+        ctx.fillStyle = "rgba(232, 196, 109, 0.8)";
+        ctx.shadowColor = "rgba(232, 196, 109, 0.6)";
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.rect(-6, -6, 12, 12);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
   }
 
   const progress = expedition.progress / expedition.required;

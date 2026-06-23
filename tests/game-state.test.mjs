@@ -395,7 +395,7 @@ function unlockTidewalkRouteChoice(state) {
   const expedition = getTidewalkExpedition(state);
   assert.equal(expedition.active, true);
   assert.equal(expedition.phase, "launch");
-  assert.deepEqual(expedition.leadTarget, { x: 1570, y: 860 });
+  assert.deepEqual(expedition.leadTarget, { x: 1700, y: 540 });
 
   const frontier = getFrontierNetwork(state);
   assert.equal(frontier.launchedRouteCount, 1);
@@ -461,7 +461,7 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(launch.active, true);
   assert.equal(launch.phase, "launch");
   assert.equal(launch.inRange, true);
-  assert.deepEqual(launch.leadTarget, { x: 1580, y: 260 });
+  assert.deepEqual(launch.leadTarget, { x: 1600, y: 540 });
   assert.equal(getActiveObjective(state).kind, "tidewalk-expedition");
 
   tick(state, WORLD.tidewalkExpeditionSeconds + 0.12, { analyze: true });
@@ -470,7 +470,7 @@ function unlockTidewalkRouteChoice(state) {
   const fieldLead = getTidewalkExpedition(state);
   assert.equal(fieldLead.phase, "field");
   assert.equal(fieldLead.title, "Meet the Brinehook lantern tender");
-  assert.deepEqual(fieldLead.target, { x: 1580, y: 260 });
+  assert.deepEqual(fieldLead.target, { x: 1600, y: 540 });
 
   state.player.x = fieldLead.hazards[0].x;
   state.player.y = fieldLead.hazards[0].y;
@@ -485,11 +485,27 @@ function unlockTidewalkRouteChoice(state) {
   assert.ok(state.signal >= signalAfterPulse, "pulse should suppress tide drain during its stun window");
 
   state.signal = 100;
-  moveTo(state, { x: 200, y: 100 }, "low-piers western walk", 8);
-  moveTo(state, { x: 1100, y: 100 }, "low-piers north walk", 8);
-  moveTo(state, { x: 1300, y: 100 }, "low-piers wall crossing", 4);
+  moveTo(state, { x: 170, y: 950 }, "low-piers south walk", 8);
+  moveTo(state, { x: 1350, y: 950 }, "low-piers east walk", 8);
+  moveTo(state, { x: 1350, y: 540 }, "low-piers north walk", 8);
   moveTo(state, fieldLead.target, "lantern tender", 6);
-  tick(state, WORLD.tidewalkExpeditionSeconds + 0.12, { analyze: true });
+  let analyzeElapsed = 0;
+  while (analyzeElapsed < WORLD.tidewalkExpeditionSeconds + 0.12) {
+    const dx = fieldLead.target.x - state.player.x;
+    const dy = fieldLead.target.y - state.player.y;
+    updateGameState(
+      state,
+      {
+        analyze: true,
+        left: dx < -8,
+        right: dx > 8,
+        up: dy < -8,
+        down: dy > 8
+      },
+      1 / 60
+    );
+    analyzeElapsed += 1 / 60;
+  }
 
   const completedExpedition = getTidewalkExpedition(state);
   assert.equal(completedExpedition.complete, true);
