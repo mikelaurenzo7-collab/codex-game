@@ -21,6 +21,8 @@ import {
   chooseFrontierRoute,
   getActiveObjective,
   getResonanceNode,
+  getBrinehookAftermath,
+  getBrinehookPierExit,
   resolveFrontierEncounter,
   restoreGameCheckpoint,
   triggerPulse,
@@ -231,6 +233,7 @@ function draw() {
     if (stage.active && stage.shouldRenderContacts) {
       drawTidewalkContactClient(ctx, state);
     }
+    drawPierExit();
   } else {
     drawWorldFloor();
     drawRegionContours();
@@ -648,6 +651,33 @@ function saveCheckpoint() {
     checkpointMessage = "Checkpoint unavailable";
   }
   updateHud();
+}
+
+function drawPierExit() {
+  const pierExit = getBrinehookPierExit(state);
+  if (!pierExit.active) return;
+
+  ctx.save();
+  ctx.translate(pierExit.gate.x, pierExit.gate.y);
+
+  const pulse = Math.sin(state.time * 2.2) * 0.5 + 0.5;
+  const alpha = pierExit.inRange ? 0.85 : 0.38 + pulse * 0.22;
+  ctx.strokeStyle = `rgba(180,220,180,${alpha})`;
+  ctx.lineWidth = pierExit.inRange ? 6 : 4;
+  ctx.beginPath();
+  ctx.arc(0, 0, WORLD.frontierTraverseRadius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  if (pierExit.inRange && pierExit.progress > 0) {
+    const frac = pierExit.progress / pierExit.required;
+    ctx.strokeStyle = "rgba(140,230,140,0.92)";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(0, 0, WORLD.frontierTraverseRadius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 function drawTidewalkScene() {
@@ -1142,7 +1172,16 @@ function updateHud() {
   } else if (expedition.active && !expedition.complete) {
     statusReadout.textContent = "Tidewalk descent ready";
   } else if (expedition.active && expedition.complete) {
-    statusReadout.textContent = expedition.completionTitle;
+    const pierExit = getBrinehookPierExit(state);
+    if (pierExit.active && pierExit.inRange) {
+      statusReadout.textContent = `Return inland ${Math.round((pierExit.progress / pierExit.required) * 100)}%`;
+    } else if (pierExit.active) {
+      statusReadout.textContent = "Reach the lift gate to return inland";
+    } else {
+      statusReadout.textContent = expedition.completionTitle;
+    }
+  } else if (getBrinehookAftermath(state).active) {
+    statusReadout.textContent = getBrinehookAftermath(state).title;
   } else if (state.gate.unlocked) {
     statusReadout.textContent = "Gate unlocked";
   } else if (coastalOperation.active && coastalOperation.complete) {
@@ -1657,7 +1696,16 @@ function formatObjective(
   }
 
   if (expedition.active && expedition.complete) {
+    const pierExit = getBrinehookPierExit(state);
+    if (pierExit.active) {
+      const dist = Math.round(distanceBetween(state.player, pierExit.gate));
+      return pierExit.inRange ? "Hold E to return inland" : `Return to lift gate · ${dist}m`;
+    }
     return expedition.completionTitle;
+  }
+
+  if (getBrinehookAftermath(state).active) {
+    return getBrinehookAftermath(state).title;
   }
 
   if (coastalOperation.active) {

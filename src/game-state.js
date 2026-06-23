@@ -27,7 +27,7 @@ export const WORLD = {
   signalRechargePerSecond: 4.5
 };
 
-export const GAME_SAVE_VERSION = 5;
+export const GAME_SAVE_VERSION = 6;
 
 export const RESONANCE_NODE = { x: 1080, y: 760, radius: 65 };
 
@@ -712,8 +712,11 @@ export function createGameState() {
         launched: false,
         complete: false,
         progress: 0,
-        tideStilledUntil: 0
+        tideStilledUntil: 0,
+        exitProgress: 0,
+        resolutionAchieved: false
       },
+      brinehookAftermath: null,
       lastTraverse: null,
       lastEncounter: null,
       lastSurvey: null,
@@ -835,7 +838,10 @@ function validateCheckpointState(state) {
     typeof frontier.tidewalkExpedition.launched !== "boolean" ||
     typeof frontier.tidewalkExpedition.complete !== "boolean" ||
     !isFiniteNumber(frontier.tidewalkExpedition.progress) ||
-    !isFiniteNumber(frontier.tidewalkExpedition.tideStilledUntil)
+    !isFiniteNumber(frontier.tidewalkExpedition.tideStilledUntil) ||
+    !isFiniteNumber(frontier.tidewalkExpedition.exitProgress) ||
+    typeof frontier.tidewalkExpedition.resolutionAchieved !== "boolean" ||
+    (frontier.brinehookAftermath !== null && !isRecord(frontier.brinehookAftermath))
   ) {
     throw new Error("Checkpoint frontier data is invalid");
   }
@@ -1136,6 +1142,7 @@ export function getFrontierArrival(state) {
   const storylet = getBlackKeelStorylet(state);
   const coastalOperation = getFrontierCoastalOperation(state);
   const resolvedEncounter = encounter.active && encounter.resolved;
+  const aftermath = getBrinehookAftermath(state);
 
   return {
     active: true,
@@ -1143,13 +1150,17 @@ export function getFrontierArrival(state) {
     gateTitle: route.gateTitle,
     destinationName: route.destinationName,
     destinationBiome: route.destinationBiome,
-    title: arrival.title,
+    title: aftermath.active ? aftermath.title : arrival.title,
     summary: arrival.summary,
     encounterTitle: resolvedEncounter ? encounter.resolvedTitle : arrival.encounterTitle,
     encounterText: resolvedEncounter ? encounter.resolvedText : arrival.encounterText,
     settlementName: arrival.settlementName,
-    settlementText: arrival.settlementText,
-    resourceTitle: coastalOperation.active
+    settlementText: aftermath.active
+      ? `Settlement trust: ${aftermath.settlementTrust}/5 · Faction pressure: ${aftermath.factionPressure}/5`
+      : arrival.settlementText,
+    resourceTitle: aftermath.active
+      ? aftermath.resourceTitle
+      : coastalOperation.active
       ? coastalOperation.complete
         ? coastalOperation.completionTitle
         : `Field op: ${coastalOperation.title}`
@@ -1158,7 +1169,9 @@ export function getFrontierArrival(state) {
       : survey.active
         ? survey.resourceTitle
         : arrival.resourceTitle,
-    resourceText: coastalOperation.active
+    resourceText: aftermath.active
+      ? aftermath.resourceText
+      : coastalOperation.active
       ? coastalOperation.complete
         ? coastalOperation.completionText
         : coastalOperation.briefing
@@ -1167,7 +1180,9 @@ export function getFrontierArrival(state) {
       : survey.active
         ? survey.resourceText
         : arrival.resourceText,
-    nextHook: coastalOperation.active
+    nextHook: aftermath.active
+      ? aftermath.nextHook
+      : coastalOperation.active
       ? coastalOperation.complete
         ? coastalOperation.nextHook
         : `Return to ${coastalOperation.gateTitle} and hold E to advance the live frontier lead.`
@@ -1179,7 +1194,8 @@ export function getFrontierArrival(state) {
           ? survey.nextHook
           : resolvedEncounter
             ? encounter.resolvedHook
-            : arrival.nextHook
+            : arrival.nextHook,
+    aftermath: aftermath.active ? aftermath : null
   };
 }
 
@@ -1548,6 +1564,84 @@ export function getEvidenceJournal(state) {
   }));
 }
 
+const BRINEHOOK_AFTERMATH_DATA = {
+  "escaped-with-cargo": {
+    title: "Black-Keel Cache Extracted",
+    factionPressure: 5,
+    settlementTrust: 2,
+    resourceTitle: "Pier Evidence: Countermark Cache",
+    resourceText:
+      "A Black-Keel salvage tally and recovered archive metal — enough to name the captain at the next pier.",
+    nextHook:
+      "Black-Keel runners will push back faster now. Find the captain before they regroup along the outer coast."
+  },
+  "witness-secured": {
+    title: "Lantern Witness Secured",
+    factionPressure: 1,
+    settlementTrust: 5,
+    resourceTitle: "Pier Evidence: Lantern Witness",
+    resourceText:
+      "The lantern tender's timing and a recovered cargo proof keep the coast open for archive salvage traffic.",
+    nextHook:
+      "The quay can vouch for the archive route inland. Negotiate passage rights before the next tidal surge."
+  }
+};
+
+export function getBrinehookAftermath(state) {
+  const aftermath = state.frontier?.brinehookAftermath;
+  if (!aftermath) {
+    return { active: false };
+  }
+
+  const record = BRINEHOOK_AFTERMATH_DATA[aftermath.outcome];
+  if (!record) {
+    return { active: false };
+  }
+
+  return {
+    active: true,
+    branch: aftermath.branch,
+    outcome: aftermath.outcome,
+    recoveredCargo: aftermath.recoveredCargo || 0,
+    resolvedAt: aftermath.resolvedAt,
+    title: record.title,
+    factionPressure: record.factionPressure,
+    settlementTrust: record.settlementTrust,
+    resourceTitle: record.resourceTitle,
+    resourceText: record.resourceText,
+    nextHook: record.nextHook
+  };
+}
+
+export function getBrinehookPierExit(state) {
+  if (state.scene !== "tidewalk") {
+    return { active: false };
+  }
+  if (state.frontier?.brinehookAftermath) {
+    return { active: false };
+  }
+
+  const progressState = state.frontier?.tidewalkExpedition || {};
+  if (!progressState.launched) {
+    return { active: false };
+  }
+
+  if (!progressState.resolutionAchieved) {
+    return { active: false };
+  }
+
+  const gate = BRINEHOOK_SCENE.launchGate;
+  const inRange = distance(state.player, gate) <= WORLD.frontierTraverseRadius;
+
+  return {
+    active: true,
+    inRange,
+    progress: progressState.exitProgress || 0,
+    required: WORLD.frontierTraverseSeconds,
+    gate: { ...gate }
+  };
+}
+
 export function getResonanceNode(state) {
   const expeditionComplete = state.frontier?.tidewalkExpedition?.complete === true;
   const alreadyBroadcast = state.resonanceBroadcast === true;
@@ -1642,6 +1736,69 @@ export function triggerPulse(state) {
   return true;
 }
 
+function resolveResolutionAchieved(state) {
+  const progressState = state.frontier?.tidewalkExpedition;
+  if (!progressState?.launched || progressState.complete || progressState.resolutionAchieved) {
+    return;
+  }
+
+  const choiceId = state.frontier?.selectedRouteChoiceId;
+  const cargoItems = Array.isArray(progressState.cargoItems) ? progressState.cargoItems : [];
+  const recoveredCargo = cargoItems.filter((c) => c.collected).length;
+  const sentinel = progressState.sentinel || null;
+
+  if (choiceId === "black-keel-countermark") {
+    const suppressed = sentinel ? sentinel.stunUntil > state.time : false;
+    if (suppressed && recoveredCargo >= 2) {
+      progressState.resolutionAchieved = true;
+    }
+  } else {
+    const lead = BRINEHOOK_SCENE.leads[choiceId];
+    const havenInRange = lead ? distance(state.player, lead.target) <= 150 : false;
+    if (havenInRange && recoveredCargo >= 1) {
+      progressState.resolutionAchieved = true;
+    }
+  }
+}
+
+function resolveBrinehookPierExit(state, input, dt) {
+  const pierExit = getBrinehookPierExit(state);
+  const progressState = state.frontier?.tidewalkExpedition;
+  if (!progressState) return;
+
+  if (!pierExit.active) {
+    progressState.exitProgress = 0;
+    return;
+  }
+
+  if (pierExit.inRange && Boolean(input.analyze)) {
+    progressState.exitProgress = (progressState.exitProgress || 0) + dt;
+    state.signal = Math.max(0, state.signal - WORLD.tidewalkExpeditionDrainPerSecond * dt);
+
+    if (progressState.exitProgress >= WORLD.frontierTraverseSeconds) {
+      const choiceId = state.frontier.selectedRouteChoiceId;
+      const cargoItems = Array.isArray(progressState.cargoItems) ? progressState.cargoItems : [];
+      const outcome =
+        choiceId === "black-keel-countermark" ? "escaped-with-cargo" : "witness-secured";
+
+      state.frontier.brinehookAftermath = {
+        branch: choiceId,
+        outcome,
+        recoveredCargo: cargoItems.filter((c) => c.collected).length,
+        resolvedAt: state.time
+      };
+      state.scene = "archive";
+      state.player.x = BLUEPRINT.player.x;
+      state.player.y = BLUEPRINT.player.y;
+    }
+  } else {
+    progressState.exitProgress = Math.max(
+      0,
+      (progressState.exitProgress || 0) - dt * 1.5
+    );
+  }
+}
+
 function updateTideCycle(state, dt) {
   state.frontier.tide ||= { phase: "low", timer: 0 };
   state.frontier.tide.timer += dt;
@@ -1679,6 +1836,8 @@ export function updateGameState(state, input, deltaSeconds) {
     resolveGate(state);
   } else if (state.scene === "tidewalk") {
     updateTideCycle(state, dt);
+    resolveResolutionAchieved(state);
+    resolveBrinehookPierExit(state, input, dt);
   }
   resolveTidewalkSurveyField(state, input, dt);
   resolveTidewalkExpedition(state, input, dt);
@@ -1829,6 +1988,18 @@ function resolveTidewalkExpedition(state, input, dt) {
     state.player.y = TIDEWALK_SCENE.launchGate.y;
     state.clueLog.push(expedition.completionTitle);
     state.clueLog.push(expedition.completionText);
+    if (progressState.resolutionAchieved && !state.frontier.brinehookAftermath) {
+      const choiceId = state.frontier.selectedRouteChoiceId;
+      const cargoItems = Array.isArray(progressState.cargoItems) ? progressState.cargoItems : [];
+      const outcome =
+        choiceId === "black-keel-countermark" ? "escaped-with-cargo" : "witness-secured";
+      state.frontier.brinehookAftermath = {
+        branch: choiceId,
+        outcome,
+        recoveredCargo: cargoItems.filter((c) => c.collected).length,
+        resolvedAt: state.time
+      };
+    }
     return;
   }
 
