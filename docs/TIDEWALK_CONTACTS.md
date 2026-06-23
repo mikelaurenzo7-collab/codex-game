@@ -31,4 +31,4 @@ The deterministic contact plan, field-state selector, Canvas renderer, and runti
 - `src/tidewalk-contact-canvas.js`
 - `src/tidewalk-contact-runtime.js`
 
-The next browser-client integration step is to import `drawTidewalkContactRuntime` and `commitTidewalkContactFromInput` into `src/game.js`, call the renderer in the Tidewalk scene when the survey is complete, route held **E** through the runtime helper, and remove the remaining dossier route-choice button handler.
+`src/tidewalk-contact-runtime.js` now exposes `stepTidewalkContactRuntime(state, input)`, a browser-frame contract that returns the pre-step field, post-step field, committed contact, input-consumption flag, and HUD-refresh flag. The remaining `src/game.js` integration is therefore intentionally tiny: import `drawTidewalkContactRuntime` and `stepTidewalkContactRuntime`, draw the contacts during the completed Tidewalk survey phase, call the step helper while **E** is active, and retire the remaining dossier route-choice button handler after the Canvas path is live.
