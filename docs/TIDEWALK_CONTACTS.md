@@ -24,7 +24,7 @@ Visual hierarchy: cold underpier countermark, dark hostile ring, red-black threa
 
 ## Current Implementation Status
 
-The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, and browser-facing client adapter are now split into focused modules with tests:
+The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, and frame-level integration helper are split into focused modules with tests:
 
 - `src/tidewalk-contact.js`
 - `src/tidewalk-contact-field.js`
@@ -34,4 +34,6 @@ The deterministic contact plan, field-state selector, Canvas renderer, runtime c
 
 `src/tidewalk-contact-runtime.js` exposes `stepTidewalkContactRuntime(state, input)`, a browser-frame contract that returns the pre-step field, post-step field, committed contact, input-consumption flag, and HUD-refresh flag.
 
-`src/tidewalk-contact-client.js` is the intended `src/game.js` integration seam. It wraps the runtime with player-facing status text, objective copy, dossier modes (`pending`, `in-world`, `resolved`), arrival invalidation, and the Canvas draw bridge. The remaining live-client work is intentionally tiny: import `drawTidewalkContactClient` and `stepTidewalkContactClient`, render the contacts during the completed Tidewalk survey phase, call the step helper while **E** is active, and retire the remaining dossier route-choice button handler after the Canvas path is live.
+`src/tidewalk-contact-client.js` now exposes `runTidewalkContactFrame({ ctx, state, input })`, the intended single-call live-client seam. It steps the held-**E** contact commit, draws the Canvas contact markers when the choice remains active, returns the active status/objective/dossier copy, and reports both HUD and arrival invalidation flags after commitment.
+
+The remaining `src/game.js` hookup is deliberately small: import `runTidewalkContactFrame`, call it once per frame after the normal game-state update, use its invalidation flags to clear the arrival snapshot after commitment, and remove the old dossier route-choice button handler once the Canvas contact path is active in the live scene.
