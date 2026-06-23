@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   createTidewalkContactGameFrameAdapter,
   drawTidewalkContactClient,
+  getTidewalkContactArrivalProjection,
   getTidewalkContactClientState,
   runTidewalkContactFrame,
   stepTidewalkContactClient
@@ -59,12 +60,30 @@ function createContext() {
 }
 
 {
+  const projection = getTidewalkContactArrivalProjection(createState({ x: 1200, y: 600 }));
+  assert.equal(projection.mode, "in-world");
+  assert.equal(projection.shouldShowRouteChoice, true);
+  assert.equal(projection.suppressLegacyChoiceButtons, true);
+  assert.equal(projection.legacyButtonsEnabled, false);
+  assert.equal(projection.choices.length, 2);
+  assert.ok(projection.choices.every((choice) => choice.disabled));
+  assert.ok(projection.choices.some((choice) => choice.actionLabel === "Meet Lantern tender in world"));
+  assert.ok(projection.choices.some((choice) => choice.detail.includes("countermark")));
+}
+
+{
+  const projection = getTidewalkContactArrivalProjection(createState());
+  assert.equal(projection.choices.find((choice) => choice.id === "lantern-tender").actionLabel, "Hold E near Lantern tender");
+}
+
+{
   const state = createState({ x: 1570, y: 860 });
   const step = stepTidewalkContactClient(state, { analyze: true });
   assert.equal(step.committedContact.id, "black-keel-scout");
   assert.equal(step.invalidateArrival, true);
   assert.equal(step.consumedInput, true);
   assert.equal(step.client.dossier.mode, "resolved");
+  assert.equal(step.arrivalProjection.mode, "resolved");
   assert.match(step.client.statusText, /chosen/);
   assert.equal(state.frontier.selectedRouteChoiceId, "black-keel-countermark");
 }
@@ -91,6 +110,7 @@ function createContext() {
   assert.equal(frame.shouldInvalidateArrival, false);
   assert.equal(frame.drawnField.actionableContact.id, "black-keel-scout");
   assert.equal(frame.statusText, "Countermark scout contact ready");
+  assert.equal(frame.arrivalProjection.suppressLegacyChoiceButtons, true);
   assert.ok(ctx.calls.some((call) => call.includes("Countermark scout")));
 }
 
@@ -104,6 +124,7 @@ function createContext() {
   assert.equal(frame.shouldInvalidateHud, true);
   assert.equal(frame.shouldInvalidateArrival, true);
   assert.equal(frame.dossier.mode, "resolved");
+  assert.equal(frame.arrivalProjection.mode, "resolved");
   assert.equal(state.frontier.selectedRouteChoiceId, "quay-safe-lantern-line");
 }
 
