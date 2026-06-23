@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import {
+  createTidewalkPlayableCommitmentFrameAdapter,
   getTidewalkPlayableCommitmentStage,
+  shouldBlockLegacyTidewalkRouteClick,
   stepTidewalkPlayableCommitmentStage
 } from "../src/tidewalk-playable-commitment.js";
 
@@ -29,6 +31,8 @@ function createState({ scene = "tidewalk", x = 1580, y = 260, selectedRouteChoic
   assert.match(stage.dossierProjection.title, /Choose a coastal contact/);
   assert.ok(stage.dossierProjection.choices.every((choice) => choice.disabled));
   assert.match(stage.identityText, /Coast/);
+  assert.equal(shouldBlockLegacyTidewalkRouteClick(stage), true);
+  assert.equal(shouldBlockLegacyTidewalkRouteClick(state), true);
 }
 
 {
@@ -40,6 +44,7 @@ function createState({ scene = "tidewalk", x = 1580, y = 260, selectedRouteChoic
   assert.equal(stage.complete, true);
   assert.equal(stage.spine.identityName, "Witness-Bound Archive");
   assert.match(stage.statusText, /chosen/i);
+  assert.equal(shouldBlockLegacyTidewalkRouteClick(stage), false);
 }
 
 {
@@ -57,6 +62,48 @@ function createState({ scene = "tidewalk", x = 1580, y = 260, selectedRouteChoic
   assert.equal(stage.active, false);
   assert.equal(stage.shouldSuppressLegacyRouteButtons, false);
   assert.equal(stage.dossierProjection, null);
+  assert.equal(shouldBlockLegacyTidewalkRouteClick(stage), false);
+}
+
+{
+  const calls = [];
+  const state = createState({ x: 1580, y: 260 });
+  const input = { analyze: true };
+  const runFrame = createTidewalkPlayableCommitmentFrameAdapter({
+    state,
+    input,
+    updateGameState(frameState, frameInput, dt) {
+      calls.push(`update:${dt}:${frameInput.analyze}`);
+      frameState.time += dt;
+    },
+    drawGame(stage) {
+      calls.push(`draw:${stage.spine.identityName}`);
+    },
+    updateHud(stage) {
+      calls.push(`hud:${stage.statusText}`);
+    },
+    invalidateArrival(stage) {
+      calls.push(`invalidate:${stage.committedContact.id}`);
+    },
+    drawContacts: false
+  });
+
+  const stage = runFrame(0.25);
+  assert.equal(state.frontier.selectedRouteChoiceId, "quay-safe-lantern-line");
+  assert.equal(stage.committedContact.id, "lantern-tender");
+  assert.deepEqual(calls, [
+    "update:0.25:true",
+    "invalidate:lantern-tender",
+    "draw:Witness-Bound Archive",
+    "hud:Lantern Tender chosen"
+  ]);
+}
+
+{
+  assert.throws(
+    () => createTidewalkPlayableCommitmentFrameAdapter({ state: createState(), input: {} }),
+    /requires updateGameState/
+  );
 }
 
 console.log("tidewalk playable commitment tests passed");
