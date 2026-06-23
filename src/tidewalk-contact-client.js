@@ -75,3 +75,25 @@ export function stepTidewalkContactClient(state, input = {}) {
 export function drawTidewalkContactClient(ctx, state) {
   return drawTidewalkContactRuntime(ctx, state);
 }
+
+export function runTidewalkContactFrame({ ctx = null, state, input = {}, draw = true } = {}) {
+  if (!state) {
+    throw new TypeError("runTidewalkContactFrame requires a game state");
+  }
+
+  const step = stepTidewalkContactClient(state, input);
+  const client = step.client;
+  const drawnField = draw && ctx && client.shouldRender ? drawTidewalkContactClient(ctx, state) : null;
+
+  return {
+    ...step,
+    client,
+    drawnField,
+    shouldDraw: Boolean(client.shouldRender),
+    shouldInvalidateHud: Boolean(step.invalidateArrival),
+    shouldInvalidateArrival: Boolean(step.invalidateArrival),
+    statusText: client.statusText,
+    objectiveText: client.objectiveText,
+    dossier: client.dossier
+  };
+}
