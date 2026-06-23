@@ -11,6 +11,8 @@ The automation should keep each iteration scoped, verifiable, and committed. It 
 
 **Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, descends into Tidewalk Coast to survey drowned warehouses on foot, commits to a Tidewalk coastal route through in-world coastal contacts, and follows that choice into the playable Brinehook Low Piers coastal micro-scene.
 
+Brinehook Low Piers now has a browser-visible Canvas scene contract: the low-pier silhouettes are declared before the module client starts, so the live client can render the authored pier layout whenever a Tidewalk expedition is active.
+
 Run locally:
 
 ```powershell
