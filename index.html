@@ -6,6 +6,7 @@
     <title>Signal Below</title>
     <link rel="stylesheet" href="./src/styles.css">
     <link rel="stylesheet" href="./src/frontier-edge-encounter.css">
+    <link rel="stylesheet" href="./src/brinehook-command-deck.css">
   </head>
   <body>
     <main class="game-shell" aria-label="Signal Below game">
@@ -24,6 +25,21 @@
           <span id="objectiveReadout">Trace memory signal</span>
         </div>
       </section>
+      <aside id="brinehookCommandDeck" class="is-hidden" data-tone="quiet" aria-live="polite" aria-label="Brinehook tactical command deck">
+        <div class="brinehook-command-header">
+          <span id="brinehookCommandEyebrow" class="brinehook-command-eyebrow">COASTAL COMMAND</span>
+          <span id="brinehookCommandTitle" class="brinehook-command-title">Brinehook offline</span>
+          <span id="brinehookCommandCondition" class="brinehook-command-condition">Awaiting pier descent</span>
+        </div>
+        <div class="brinehook-command-block">
+          <span class="brinehook-command-label">Directive</span>
+          <span id="brinehookCommandObjective" class="brinehook-command-objective"></span>
+        </div>
+        <div class="brinehook-command-block">
+          <span class="brinehook-command-label">Field note</span>
+          <span id="brinehookCommandInstruction" class="brinehook-command-instruction"></span>
+        </div>
+      </aside>
       <aside id="primerPanel" class="primer" aria-live="polite" aria-label="Archive primer">
         <div class="primer-header">
           <span class="primer-kicker">Archive Primer</span>
@@ -137,5 +153,6 @@
       };
     </script>
     <script type="module" src="./src/game.js"></script>
+    <script type="module" src="./src/brinehook-command-deck.js"></script>
   </body>
 </html>
