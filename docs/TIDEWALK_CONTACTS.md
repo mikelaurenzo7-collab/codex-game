@@ -22,9 +22,13 @@ The Black-Keel Scout is the hostile underpier contact. Choosing this line commit
 
 Visual hierarchy: cold underpier countermark, dark hostile ring, red-black threat treatment, and the same explicit `Hold E to commit` affordance so the choice remains mechanically fair.
 
+## Contact Pressure
+
+`src/tidewalk-contact-pressure.js` adds authored pressure lines and a deterministic tension scalar for the live contact moment. Before commitment, the coast now speaks differently when the nearest contact is far, near, or ready. After commitment, the pressure layer returns the chosen contact's committed line so the HUD or bottom log can make the faction consequence feel immediate.
+
 ## Current Implementation Status
 
-The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, arrival-panel projection, and HUD bridge are split into focused modules with tests:
+The deterministic contact plan, field-state selector, Canvas renderer, runtime commit helper, browser-facing client adapter, game-frame adapter, arrival-panel projection, HUD bridge, and pressure layer are split into focused modules with tests:
 
 - `src/tidewalk-contact.js`
 - `src/tidewalk-contact-field.js`
@@ -32,6 +36,7 @@ The deterministic contact plan, field-state selector, Canvas renderer, runtime c
 - `src/tidewalk-contact-runtime.js`
 - `src/tidewalk-contact-client.js`
 - `src/tidewalk-contact-hud.js`
+- `src/tidewalk-contact-pressure.js`
 
 `src/tidewalk-contact-runtime.js` exposes `stepTidewalkContactRuntime(state, input)`, a browser-frame contract that returns the pre-step field, post-step field, committed contact, input-consumption flag, and HUD-refresh flag.
 
