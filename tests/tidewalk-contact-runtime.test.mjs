@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import {
   commitTidewalkContactFromInput,
   drawTidewalkContactRuntime,
-  getTidewalkContactRuntime
+  getTidewalkContactRuntime,
+  stepTidewalkContactRuntime
 } from "../src/tidewalk-contact-runtime.js";
 
 function createState({ scene = "tidewalk", x = 1580, y = 260 } = {}) {
@@ -63,6 +64,27 @@ function createContext() {
   const state = createState({ x: 80, y: 80 });
   assert.equal(getTidewalkContactRuntime(state).canCommit, false);
   assert.equal(commitTidewalkContactFromInput(state, { interact: true }), null);
+  assert.equal(state.frontier.selectedRouteChoiceId, null);
+}
+
+{
+  const state = createState({ x: 1570, y: 860 });
+  const step = stepTidewalkContactRuntime(state, { analyze: true });
+  assert.equal(step.before.canCommit, true);
+  assert.equal(step.committedContact.id, "black-keel-scout");
+  assert.equal(step.after.complete, true);
+  assert.equal(step.after.selectedContact.id, "black-keel-scout");
+  assert.equal(step.consumedInput, true);
+  assert.equal(step.shouldRefreshHud, true);
+  assert.equal(state.frontier.selectedRouteChoiceId, "black-keel-countermark");
+}
+
+{
+  const state = createState({ x: 1570, y: 860 });
+  const step = stepTidewalkContactRuntime(state, { analyze: false });
+  assert.equal(step.committedContact, null);
+  assert.equal(step.consumedInput, false);
+  assert.equal(step.shouldRefreshHud, false);
   assert.equal(state.frontier.selectedRouteChoiceId, null);
 }
 
