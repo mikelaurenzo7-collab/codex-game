@@ -28,7 +28,8 @@ export const TIDEWALK_CONTACTS = [
 ];
 
 export function getTidewalkContactPlan({ surveyedSiteIds = [], selectedChoiceId = null } = {}) {
-  const surveyComplete = ["north-spool-house", "lamp-black-warehouse"].every((id) => surveyedSiteIds.includes(id));
+  const completedSiteIds = Array.isArray(surveyedSiteIds) ? surveyedSiteIds : [];
+  const surveyComplete = ["north-spool-house", "lamp-black-warehouse"].every((id) => completedSiteIds.includes(id));
   const selectedContact = TIDEWALK_CONTACTS.find((contact) => contact.choiceId === selectedChoiceId) || null;
 
   return {
@@ -65,7 +66,7 @@ export function resolveTidewalkContactChoice(state, contactId) {
     contactId: contact.id,
     choiceId: contact.choiceId,
     label: contact.label,
-    chosenAt: state.time
+    chosenAt: Number.isFinite(state.time) ? state.time : 0
   };
   state.clueLog ||= [];
   state.clueLog.push(`Tidewalk contact resolved: ${contact.label}`);
