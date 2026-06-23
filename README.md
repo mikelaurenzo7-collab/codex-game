@@ -11,7 +11,7 @@ The automation should keep each iteration scoped, verifiable, and committed. It 
 
 **Signal Below** is the first playable MVP slice: a top-down atmospheric mystery game where the player explores a drowned archive, uses a limited signal pulse to reveal hidden memory fragments, performs field analysis on deduced sites, surveys regions and landmarks through an atlas, reads frontier routes with hazards and settlement prospects, avoids echo interference, unlocks the extraction gate, launches charted off-map frontier traversals at route gates, resolves the first Tidewalk Coast settlement encounter from the arrival panel, descends into Tidewalk Coast to survey drowned warehouses on foot, commits to a Tidewalk coastal route through in-world coastal contacts, and follows that choice into the playable Brinehook Low Piers coastal micro-scene.
 
-Brinehook Low Piers now has a browser-visible Canvas scene contract: the low-pier silhouettes are declared before the module client starts, so the live client can render the authored pier layout whenever a Tidewalk expedition is active.
+Brinehook Low Piers now has a browser-visible Canvas scene contract plus a deterministic encounter contract. The Black-Keel route spawns a hunting underpier sentinel, the lantern route creates a safe-haven support zone, and both routes can reveal and recover salvage cargo through pulse play.
 
 Run locally:
 
@@ -29,4 +29,4 @@ node tests/run-all.mjs
 node scripts/serve.mjs
 ```
 
-Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, descend into Tidewalk Coast and advance warehouse or Brinehook field rings with `E`, commit to an in-world Tidewalk contact with `E`, suppress black-tide hazards with `Space`, use the arrival dossier for settlement clearance and status review, save the current expedition with `Save checkpoint`, and restart with `R` or the on-screen button. A valid checkpoint resumes automatically on the next load; restarting clears it.
+Controls: move with `WASD` or arrow keys, pulse with `Space`, analyze with `E`, traverse eligible charted frontier gates with `E`, descend into Tidewalk Coast and advance warehouse or Brinehook field rings with `E`, commit to an in-world Tidewalk contact with `E`, reveal Brinehook salvage cargo with `Space`, suppress black-tide hazards and the Black-Keel sentinel with `Space`, use the arrival dossier for settlement clearance and status review, save the current expedition with `Save checkpoint`, and restart with `R` or the on-screen button. A valid checkpoint resumes automatically on the next load; restarting clears it.
