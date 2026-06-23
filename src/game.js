@@ -21,6 +21,7 @@ import {
   chooseFrontierRoute,
   getActiveObjective,
   getResonanceNode,
+  getExtractionReadiness,
   getBrinehookAftermath,
   getBrinehookPierExit,
   resolveFrontierEncounter,
@@ -327,19 +328,49 @@ function drawObstacles() {
 }
 
 function drawGate() {
-  const gateColor = state.gate.unlocked ? "#e8c46d" : "#6e8e98";
+  const readiness = getExtractionReadiness(state);
+  const unlocked = state.gate.unlocked;
+
+  let coreColor, auraColor, auraWidth;
+  if (unlocked && readiness.fullThread) {
+    const pulse = Math.sin(state.time * 2.4) * 0.5 + 0.5;
+    coreColor = "#f0d870";
+    auraColor = `rgba(240,216,112,${0.55 + pulse * 0.3})`;
+    auraWidth = 24;
+  } else if (unlocked) {
+    coreColor = "#e8c46d";
+    auraColor = "rgba(232,196,109,0.45)";
+    auraWidth = 20;
+  } else {
+    coreColor = "#6e8e98";
+    auraColor = "rgba(110,142,152,0.25)";
+    auraWidth = 20;
+  }
+
   ctx.save();
   ctx.translate(state.gate.x, state.gate.y);
-  ctx.strokeStyle = gateColor;
+  ctx.strokeStyle = coreColor;
   ctx.lineWidth = 8;
   ctx.beginPath();
   ctx.arc(0, 0, state.gate.radius, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.strokeStyle = state.gate.unlocked ? "rgba(232,196,109,0.45)" : "rgba(110,142,152,0.25)";
-  ctx.lineWidth = 20;
+  ctx.strokeStyle = auraColor;
+  ctx.lineWidth = auraWidth;
   ctx.beginPath();
   ctx.arc(0, 0, state.gate.radius + 18, 0, Math.PI * 2);
   ctx.stroke();
+
+  if (unlocked && !readiness.fullThread) {
+    const remaining = (readiness.coastalClosed ? 0 : 1) + (readiness.resonanceFired ? 0 : 1);
+    ctx.strokeStyle = "rgba(232,196,109,0.22)";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 12]);
+    ctx.beginPath();
+    ctx.arc(0, 0, state.gate.radius + 40, 0, Math.PI * 2 * (1 - remaining / 2));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
   ctx.restore();
 }
 
@@ -1080,13 +1111,43 @@ function drawEndState(width, height) {
 
   ctx.fillStyle = "rgba(6, 16, 19, 0.82)";
   ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = state.status === "complete" ? "#e8c46d" : "#d96666";
-  ctx.font = "700 42px system-ui, sans-serif";
+
+  const cx = width / 2;
   ctx.textAlign = "center";
-  ctx.fillText(state.result, width / 2, height / 2 - 12);
-  ctx.fillStyle = "#f3f0dc";
-  ctx.font = "18px system-ui, sans-serif";
-  ctx.fillText("Press R to re-enter the archive.", width / 2, height / 2 + 30);
+
+  if (state.status === "complete") {
+    const readiness = getExtractionReadiness(state);
+    ctx.fillStyle = readiness.fullThread ? "#f0d870" : "#e8c46d";
+    ctx.font = "700 42px system-ui, sans-serif";
+    ctx.fillText(state.result, cx, height / 2 - 52);
+
+    ctx.font = "15px system-ui, sans-serif";
+    ctx.fillStyle = "rgba(243,240,220,0.6)";
+    ctx.fillText(readiness.summary, cx, height / 2 - 18);
+
+    const checks = [
+      { label: "Archive memory recovered", done: readiness.fragmentsComplete },
+      { label: "Coastal record closed", done: readiness.coastalClosed },
+      { label: "Resonance broadcast fired", done: readiness.resonanceFired }
+    ];
+    checks.forEach(({ label, done }, i) => {
+      ctx.fillStyle = done ? "rgba(140,220,160,0.85)" : "rgba(180,180,180,0.4)";
+      ctx.font = "14px system-ui, sans-serif";
+      ctx.fillText(`${done ? "✓" : "○"}  ${label}`, cx, height / 2 + 16 + i * 22);
+    });
+
+    ctx.fillStyle = "rgba(243,240,220,0.45)";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 90);
+  } else {
+    ctx.fillStyle = "#d96666";
+    ctx.font = "700 42px system-ui, sans-serif";
+    ctx.fillText(state.result, cx, height / 2 - 12);
+    ctx.fillStyle = "#f3f0dc";
+    ctx.font = "18px system-ui, sans-serif";
+    ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 30);
+  }
+
   ctx.textAlign = "start";
 }
 
@@ -1183,7 +1244,8 @@ function updateHud() {
   } else if (getBrinehookAftermath(state).active) {
     statusReadout.textContent = getBrinehookAftermath(state).title;
   } else if (state.gate.unlocked) {
-    statusReadout.textContent = "Gate unlocked";
+    const readiness = getExtractionReadiness(state);
+    statusReadout.textContent = readiness.fullThread ? "Complete thread — extraction ready" : `${readiness.title} — extraction ready`;
   } else if (coastalOperation.active && coastalOperation.complete) {
     statusReadout.textContent = coastalOperation.completionTitle;
   } else if (coastalOperation.active && coastalOperation.inRange && input.analyze) {

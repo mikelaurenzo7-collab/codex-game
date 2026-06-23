@@ -27,3 +27,4 @@ import "./brinehook-command-brief.test.mjs";
 import "./brinehook-command-deck.test.mjs";
 import "./resonance-node.test.mjs";
 import "./brinehook-aftermath.test.mjs";
+import "./extraction-readiness.test.mjs";
