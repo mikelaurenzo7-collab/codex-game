@@ -7,9 +7,9 @@ function createContext() {
     calls,
     save() { calls.push("save"); },
     restore() { calls.push("restore"); },
-    translate() { calls.push("translate"); },
+    translate(x, y) { calls.push(`translate:${x},${y}`); },
     beginPath() { calls.push("beginPath"); },
-    arc() { calls.push("arc"); },
+    arc(_x, _y, radius) { calls.push(`arc:${Math.round(radius)}`); },
     fill() { calls.push("fill"); },
     stroke() { calls.push("stroke"); },
     fillText(value) { calls.push(`fillText:${value}`); },
@@ -39,10 +39,23 @@ function createState({ scene = "tidewalk", x = 1580, y = 260, selectedRouteChoic
   const pressure = drawTidewalkContactPressureAura(ctx, createState());
   assert.equal(pressure.active, true);
   assert.equal(pressure.band, "ready");
+  assert.equal(pressure.focusContact.id, "lantern-tender");
   assert.ok(ctx.calls.includes("save"));
   assert.ok(ctx.calls.includes("restore"));
   assert.ok(ctx.calls.some((call) => call === "fillText:READY"));
-  assert.ok(ctx.calls.some((call) => call.startsWith("dash:")));
+  assert.ok(ctx.calls.some((call) => call.startsWith("dash:12,8")));
+  assert.ok(ctx.calls.some((call) => call.startsWith("strokeStyle:rgba(232, 196, 109")));
+  assert.ok(ctx.calls.some((call) => call === "lineWidth:5"));
+}
+
+{
+  const ctx = createContext();
+  const pressure = drawTidewalkContactPressureAura(ctx, createState({ x: 1570, y: 860 }));
+  assert.equal(pressure.active, true);
+  assert.equal(pressure.band, "ready");
+  assert.equal(pressure.focusContact.id, "black-keel-scout");
+  assert.ok(ctx.calls.some((call) => call.startsWith("dash:6,10")));
+  assert.ok(ctx.calls.some((call) => call.startsWith("strokeStyle:rgba(217, 102, 102")));
 }
 
 {
