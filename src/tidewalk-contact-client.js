@@ -97,3 +97,40 @@ export function runTidewalkContactFrame({ ctx = null, state, input = {}, draw = 
     dossier: client.dossier
   };
 }
+
+export function createTidewalkContactGameFrameAdapter({
+  state,
+  input,
+  ctx = null,
+  updateGameState,
+  drawGame,
+  updateHud,
+  invalidateArrival,
+  drawContacts = true
+} = {}) {
+  if (!state) {
+    throw new TypeError("createTidewalkContactGameFrameAdapter requires a game state");
+  }
+  if (typeof updateGameState !== "function") {
+    throw new TypeError("createTidewalkContactGameFrameAdapter requires updateGameState");
+  }
+  if (typeof drawGame !== "function") {
+    throw new TypeError("createTidewalkContactGameFrameAdapter requires drawGame");
+  }
+  if (typeof updateHud !== "function") {
+    throw new TypeError("createTidewalkContactGameFrameAdapter requires updateHud");
+  }
+
+  return function runGameFrame(dt) {
+    updateGameState(state, input, dt);
+    const contactFrame = runTidewalkContactFrame({ ctx, state, input, draw: drawContacts });
+
+    if (contactFrame.shouldInvalidateArrival && typeof invalidateArrival === "function") {
+      invalidateArrival(contactFrame);
+    }
+
+    drawGame(contactFrame);
+    updateHud(contactFrame);
+    return contactFrame;
+  };
+}
