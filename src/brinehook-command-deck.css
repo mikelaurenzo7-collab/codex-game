@@ -1,0 +1,111 @@
+#brinehookCommandDeck {
+  position: absolute;
+  z-index: 4;
+  top: 92px;
+  right: 24px;
+  width: min(340px, calc(100vw - 48px));
+  display: grid;
+  gap: 10px;
+  padding: 15px 16px 16px;
+  border: 1px solid rgba(148, 202, 192, 0.32);
+  border-left: 3px solid #62d6b8;
+  background: linear-gradient(140deg, rgba(7, 23, 28, 0.94), rgba(10, 18, 22, 0.86));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(12px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+#brinehookCommandDeck.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+}
+
+#brinehookCommandDeck[data-tone="danger"] {
+  border-left-color: #d96666;
+  border-color: rgba(217, 102, 102, 0.42);
+}
+
+#brinehookCommandDeck[data-tone="pressure"] {
+  border-left-color: #e8c46d;
+  border-color: rgba(232, 196, 109, 0.36);
+}
+
+#brinehookCommandDeck[data-tone="clear"] {
+  border-left-color: #62d6b8;
+  border-color: rgba(98, 214, 184, 0.46);
+}
+
+.brinehook-command-eyebrow,
+.brinehook-command-label {
+  color: rgba(153, 217, 205, 0.76);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.brinehook-command-header {
+  display: grid;
+  gap: 4px;
+}
+
+.brinehook-command-title {
+  color: #f3f0dc;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.015em;
+  line-height: 1.16;
+}
+
+.brinehook-command-condition {
+  color: rgba(243, 240, 220, 0.66);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.brinehook-command-block {
+  display: grid;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(226, 239, 232, 0.1);
+}
+
+.brinehook-command-objective {
+  color: #f3f0dc;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.38;
+}
+
+.brinehook-command-instruction {
+  color: rgba(210, 235, 227, 0.76);
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+@media (max-width: 760px) {
+  #brinehookCommandDeck {
+    top: auto;
+    right: 12px;
+    bottom: 78px;
+    width: min(360px, calc(100vw - 24px));
+    padding: 13px 14px 14px;
+  }
+}
+
+@media (max-width: 430px) {
+  #brinehookCommandDeck {
+    bottom: 66px;
+  }
+
+  .brinehook-command-title {
+    font-size: 14px;
+  }
+
+  .brinehook-command-objective,
+  .brinehook-command-instruction {
+    font-size: 11px;
+  }
+}

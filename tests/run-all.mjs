@@ -23,3 +23,5 @@ import "./echo-hunt.test.mjs";
 import "./brinehook-client-contract.test.mjs";
 import "./brinehook-encounter.test.mjs";
 import "./brinehook-resolution.test.mjs";
+import "./brinehook-command-brief.test.mjs";
+import "./brinehook-command-deck.test.mjs";
