@@ -16,11 +16,17 @@ Brinehook Low Piers is the first playable coastal micro-scene beyond Tidewalk Co
 - Hold `E` inside a field ring to advance Brinehook objectives.
 - Use `Space` to suppress black-tide hazards temporarily.
 - Tide phases change hazard size and drain pressure.
-- The Lantern route emphasizes protected witness recovery.
-- The Black-Keel route emphasizes hostile pursuit and salvage pressure.
+- Pulse near hidden salvage cargo to reveal recoverable cargo pings.
+- Walk onto revealed cargo to recover it and regain a small amount of signal.
+- The Lantern route emphasizes protected witness recovery and gives the player a safe-haven recharge pocket near the tender.
+- The Black-Keel route emphasizes hostile pursuit: a red sentinel hunts near the underpier and can be temporarily suppressed by pulse play.
+
+## Encounter Readout
+
+`src/brinehook-encounter.js` exposes a deterministic Brinehook encounter selector for tests and future HUD work. It summarizes the active branch, sentinel state, cargo visibility/recovery, lantern haven state, and bottom-log copy without requiring Canvas inspection.
 
 ## Visual Direction
 
-The Brinehook scene should read as low, dark, and lateral: broad pier silhouettes over black water, warm lantern safety around witness contact points, and sharper red danger language for hostile Black-Keel pressure.
+The Brinehook scene should read as low, dark, and lateral: broad pier silhouettes over black water, warm lantern safety around witness contact points, and sharper red danger language for hostile Black-Keel pressure. Salvage cargo uses small gold pings after a pulse rather than permanent map markers so cargo feels discovered under pressure.
 
-Canva was not used for this run because the bottleneck was a live Canvas scene-contract defect, not a missing mood board or asset direction.
+Canva was not used for this run because the bottleneck was deterministic playable encounter hardening and Canvas-present mechanics, not a missing mood board or asset direction.
