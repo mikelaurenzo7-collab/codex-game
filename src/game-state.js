@@ -27,7 +27,7 @@ export const WORLD = {
   signalRechargePerSecond: 4.5
 };
 
-export const GAME_SAVE_VERSION = 2;
+export const GAME_SAVE_VERSION = 3;
 
 const BLUEPRINT = {
   player: { x: 160, y: 880 },
@@ -648,6 +648,10 @@ export function createGameState() {
       surveyedSiteIds: [],
       discoveredCoastalClueIds: [],
       selectedRouteChoiceId: null,
+      tide: {
+        phase: "low",
+        timer: 0
+      },
       routeProgress: {},
       tidewalkSurvey: {
         launched: false,
@@ -767,6 +771,9 @@ function validateCheckpointState(state) {
     !isStringArray(frontier.resolvedCoastalOperationIds) ||
     !isStringArray(frontier.surveyedSiteIds) ||
     !isStringArray(frontier.discoveredCoastalClueIds) ||
+    !isRecord(frontier.tide) ||
+    !["low", "high", "surge"].includes(frontier.tide.phase) ||
+    !isFiniteNumber(frontier.tide.timer) ||
     !isNumberRecord(frontier.routeProgress) ||
     !isRecord(frontier.tidewalkSurvey) ||
     typeof frontier.tidewalkSurvey.launched !== "boolean" ||
@@ -1431,7 +1438,11 @@ export function getTidewalkSurveyField(state) {
     progress: progressState.progress || 0,
     required: WORLD.tidewalkSurveySeconds,
     tideStilled: (progressState.tideStilledUntil || 0) > state.time,
-    hazards: TIDEWALK_SCENE.hazards.map((hazard) => ({ ...hazard })),
+    hazards: TIDEWALK_SCENE.hazards.map((hazard) => {
+      const tidePhase = state.frontier?.tide?.phase || "low";
+      const mult = tidePhase === "low" ? 0.6 : tidePhase === "surge" ? 1.5 : 1.0;
+      return { ...hazard, radius: hazard.radius * mult };
+    }),
     obstacles: TIDEWALK_SCENE.obstacles.map((obstacle) => ({ ...obstacle }))
   };
 }
@@ -1466,7 +1477,11 @@ export function getTidewalkExpedition(state) {
     progress: progressState.progress || 0,
     required: WORLD.tidewalkExpeditionSeconds,
     tideStilled: (progressState.tideStilledUntil || 0) > state.time,
-    hazards: TIDEWALK_SCENE.hazards.map((hazard) => ({ ...hazard })),
+    hazards: TIDEWALK_SCENE.hazards.map((hazard) => {
+      const tidePhase = state.frontier?.tide?.phase || "low";
+      const mult = tidePhase === "low" ? 0.6 : tidePhase === "surge" ? 1.5 : 1.0;
+      return { ...hazard, radius: hazard.radius * mult };
+    }),
     obstacles: TIDEWALK_SCENE.obstacles.map((obstacle) => ({ ...obstacle }))
   };
 }
@@ -1531,6 +1546,21 @@ export function triggerPulse(state) {
   return true;
 }
 
+function updateTideCycle(state, dt) {
+  state.frontier.tide ||= { phase: "low", timer: 0 };
+  state.frontier.tide.timer += dt;
+  if (state.frontier.tide.timer >= 15) {
+    state.frontier.tide.timer = 0;
+    if (state.frontier.tide.phase === "low") {
+      state.frontier.tide.phase = "high";
+    } else if (state.frontier.tide.phase === "high") {
+      state.frontier.tide.phase = "surge";
+    } else {
+      state.frontier.tide.phase = "low";
+    }
+  }
+}
+
 export function updateGameState(state, input, deltaSeconds) {
   if (state.status !== "running") {
     return state;
@@ -1551,6 +1581,8 @@ export function updateGameState(state, input, deltaSeconds) {
     resolveCollection(state);
     resolveEchoPressure(state, dt);
     resolveGate(state);
+  } else if (state.scene === "tidewalk") {
+    updateTideCycle(state, dt);
   }
   resolveTidewalkSurveyField(state, input, dt);
   resolveTidewalkExpedition(state, input, dt);
@@ -1625,7 +1657,9 @@ function resolveTidewalkSurveyField(state, input, dt) {
     (hazard) => distance(state.player, hazard) <= hazard.radius + state.player.radius
   );
   if (insideHazard) {
-    state.signal = Math.max(0, state.signal - WORLD.tideHazardDrainPerSecond * dt);
+    const tidePhase = state.frontier?.tide?.phase || "low";
+    const mult = tidePhase === "low" ? 0.5 : tidePhase === "surge" ? 2.0 : 1.0;
+    state.signal = Math.max(0, state.signal - WORLD.tideHazardDrainPerSecond * mult * dt);
     if (state.signal <= 0) {
       state.status = "failed";
       state.result = "Lost to the black tide";
@@ -1677,7 +1711,9 @@ function resolveTidewalkExpedition(state, input, dt) {
     (hazard) => distance(state.player, hazard) <= hazard.radius + state.player.radius
   );
   if (insideHazard) {
-    state.signal = Math.max(0, state.signal - WORLD.tideHazardDrainPerSecond * dt);
+    const tidePhase = state.frontier?.tide?.phase || "low";
+    const mult = tidePhase === "low" ? 0.5 : tidePhase === "surge" ? 2.0 : 1.0;
+    state.signal = Math.max(0, state.signal - WORLD.tideHazardDrainPerSecond * mult * dt);
     if (state.signal <= 0) {
       state.status = "failed";
       state.result = "Lost to the black tide";

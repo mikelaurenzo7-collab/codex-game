@@ -959,11 +959,12 @@ function updateHud() {
   const coastalOperation = getFrontierCoastalOperation(state);
   const expedition = getTidewalkExpedition(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
+  const tidePhase = state.frontier?.tide?.phase ? ` (${state.frontier.tide.phase.toUpperCase()} TIDE)` : "";
   fragmentReadout.textContent =
     state.scene === "tidewalk" && tidewalkSurvey.active && tidewalkSurvey.phase === "field"
-      ? `Tidewalk Coast Survey ${tidewalkSurvey.completedCount}/${tidewalkSurvey.totalSiteCount}`
+      ? `Tidewalk Coast Survey ${tidewalkSurvey.completedCount}/${tidewalkSurvey.totalSiteCount}${tidePhase}`
       : state.scene === "tidewalk"
-        ? "Brinehook Low Piers"
+        ? `Brinehook Low Piers${tidePhase}`
         : `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
   objectiveReadout.textContent = stage.active
     ? stage.objectiveText
