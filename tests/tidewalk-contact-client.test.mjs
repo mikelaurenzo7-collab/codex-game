@@ -37,7 +37,7 @@ function createContext() {
     moveTo() { calls.push("moveTo"); },
     lineTo() { calls.push("lineTo"); },
     fillText(value) { calls.push(`fillText:${value}`); },
-    setLineDash() { calls.push("setLineDash"); },
+    setLineDash(value = []) { calls.push(`setLineDash:${value.join(",")}`); },
     set fillStyle(value) { calls.push(`fillStyle:${value}`); },
     set strokeStyle(value) { calls.push(`strokeStyle:${value}`); },
     set lineWidth(value) { calls.push(`lineWidth:${value}`); },
@@ -99,7 +99,9 @@ function createContext() {
   const ctx = createContext();
   const field = drawTidewalkContactClient(ctx, createState({ x: 1570, y: 860 }));
   assert.equal(field.actionableContact.id, "black-keel-scout");
+  assert.equal(field.pressure.focusContact.id, "black-keel-scout");
   assert.ok(ctx.calls.some((call) => call.includes("Countermark scout")));
+  assert.ok(ctx.calls.some((call) => call === "fillText:READY"));
 }
 
 {
@@ -109,6 +111,7 @@ function createContext() {
   assert.equal(frame.shouldDraw, true);
   assert.equal(frame.shouldInvalidateArrival, false);
   assert.equal(frame.drawnField.actionableContact.id, "black-keel-scout");
+  assert.equal(frame.drawnField.pressure.focusContact.id, "black-keel-scout");
   assert.equal(frame.statusText, "Countermark scout contact ready");
   assert.equal(frame.arrivalProjection.suppressLegacyChoiceButtons, true);
   assert.ok(ctx.calls.some((call) => call.includes("Countermark scout")));
