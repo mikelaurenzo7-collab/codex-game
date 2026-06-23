@@ -25,8 +25,21 @@ Brinehook Low Piers is the first playable coastal micro-scene beyond Tidewalk Co
 
 `src/brinehook-encounter.js` exposes a deterministic Brinehook encounter selector for tests and future HUD work. It summarizes the active branch, sentinel state, cargo visibility/recovery, lantern haven state, and bottom-log copy without requiring Canvas inspection.
 
+## Resolution Readout
+
+`src/brinehook-resolution.js` converts the encounter into branch-specific outcome states:
+
+- `hunted`: Black-Keel branch active, but not enough cargo has been recovered.
+- `cargo-under-hunt`: enough Black-Keel cargo is recovered, but the sentinel still controls the route.
+- `escaped-with-cargo`: enough cargo is recovered and the sentinel is suppressed.
+- `safe-line-ahead`: Lantern branch active, but the player is outside the haven.
+- `haven-holding`: the player is inside the lantern haven but still needs cargo proof.
+- `witness-secured`: the player is in the haven with recovered cargo.
+
+These resolution states are intentionally deterministic selectors. They do not yet end the scene by themselves; they give the live client a safe contract for HUD copy, bottom-log copy, completion messaging, and the eventual Brinehook exit.
+
 ## Visual Direction
 
 The Brinehook scene should read as low, dark, and lateral: broad pier silhouettes over black water, warm lantern safety around witness contact points, and sharper red danger language for hostile Black-Keel pressure. Salvage cargo uses small gold pings after a pulse rather than permanent map markers so cargo feels discovered under pressure.
 
-Canva was not used for this run because the bottleneck was deterministic playable encounter hardening and Canvas-present mechanics, not a missing mood board or asset direction.
+Canva was not used for this run because the bottleneck was deterministic playable encounter resolution and Canvas-present mechanics, not a missing mood board or asset direction.
