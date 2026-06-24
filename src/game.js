@@ -1165,6 +1165,21 @@ function drawEndState(width, height) {
     } else {
       ctx.fillText("Re-entry interval active.", cx, height / 2 + 90);
     }
+
+    // Skyrim-like exploration depth feedback
+    const atlas = getWorldAtlas(state);
+    const depthText = `Exploration: ${atlas.discoveredRegionCount}/${atlas.totalRegionCount} regions, ${atlas.discoveredLandmarkCount}/${atlas.totalLandmarkCount} finds`;
+    ctx.fillStyle = "rgba(243,240,220,0.6)";
+    ctx.font = "13px system-ui, sans-serif";
+    ctx.fillText(depthText, cx, height / 2 + 115);
+    if (state.legacyLevel > 0) {
+      ctx.fillText(`Legacy Lv.${state.legacyLevel}`, cx, height / 2 + 132);
+    }
+    const score = Math.round(((atlas.discoveredRegionCount + atlas.discoveredLandmarkCount) / (atlas.totalRegionCount + atlas.totalLandmarkCount)) * 100);
+    ctx.fillText(`Exploration Score: ${score}%`, cx, height / 2 + 150);
+    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed)) {
+      ctx.fillText("New abilities unlocked!", cx, height / 2 + 168);
+    }
   } else {
     ctx.fillStyle = "#d96666";
     ctx.font = "700 42px system-ui, sans-serif";
@@ -1601,7 +1616,7 @@ function updatePrimer(
   if (state.status !== "running") {
     primerTitle.textContent = state.status === "complete" ? "Thread recovered" : "Signal lost";
     if (!isRunStartAllowed(state)) {
-      primerText.textContent = "Prior run settled. Re-entry interval holding — wait to start the next expedition.";
+      primerText.textContent = "Prior run settled. Re-entry interval holding — rest and reflect between these deep delves.";
     } else {
       primerText.textContent =
         state.status === "complete"
@@ -1758,7 +1773,15 @@ function updatePrimer(
   }
 
   primerTitle.textContent = "Read the archive under pressure";
-  primerText.textContent = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
+  let baseText = "Sweep the archive, use Space to pulse for hidden memory, and conserve signal until the evidence begins to connect.";
+  if (state.legacyLevel > 0) {
+    baseText += ` [Explorer Legacy Lv.${state.legacyLevel}]`;
+  }
+  const atlas = getWorldAtlas(state);
+  if (atlas.echoCompassUnlocked && atlas.nearestUndiscovered) {
+    baseText += ` | Compass: ${atlas.nearestUndiscovered.title} ~${atlas.nearestUndiscovered.dist}u`;
+  }
+  primerText.textContent = baseText;
 }
 
 function formatObjective(

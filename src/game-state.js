@@ -1,9 +1,9 @@
 export const WORLD = {
-  width: 4000,
-  height: 2400,
+  width: 12000,
+  height: 7200,
   playerRadius: 18,
-  playerSpeed: 310,
-  pulseRadius: 280,
+  playerSpeed: 380,
+  pulseRadius: 340,
   pulseCost: 24,
   pulseCooldown: 1.25,
   fragmentRevealSeconds: 7.5,
@@ -32,24 +32,48 @@ export const GAME_SAVE_VERSION = 7;
 
 export const RESONANCE_NODE = { x: 1080, y: 760, radius: 65 };
 
+const LEGACY_KEY = "signalBelow.legacy";
+
+export function loadLegacy() {
+  if (typeof localStorage === "undefined") return { level: 0, unlocks: [] };
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    return raw ? JSON.parse(raw) : { level: 0, unlocks: [] };
+  } catch {
+    return { level: 0, unlocks: [] };
+  }
+}
+
+export function saveLegacy(legacy) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(LEGACY_KEY, JSON.stringify(legacy));
+  } catch {}
+}
+
 const BLUEPRINT = {
   player: { x: 160, y: 880 },
   gate: { x: 1770, y: 170, radius: 54 },
   obstacles: [
-    { x: 0, y: 0, width: 4000, height: 42 },
-    { x: 0, y: 2358, width: 4000, height: 42 },
-    { x: 0, y: 0, width: 42, height: 2400 },
-    { x: 3958, y: 0, width: 42, height: 2400 },
+    { x: 0, y: 0, width: 12000, height: 42 },
+    { x: 0, y: 7158, width: 12000, height: 42 },
+    { x: 0, y: 0, width: 42, height: 7200 },
+    { x: 11958, y: 0, width: 42, height: 7200 },
     { x: 300, y: 160, width: 70, height: 620 },
     { x: 610, y: 430, width: 550, height: 72 },
     { x: 850, y: 120, width: 72, height: 250 },
     { x: 1260, y: 300, width: 70, height: 600 },
     { x: 1460, y: 730, width: 250, height: 70 },
     { x: 520, y: 760, width: 390, height: 62 },
-    // Expanded walls for vast Skyrim-like space
+    // Expanded walls for vast Skyrim-like space (12000x7200)
     { x: 2100, y: 200, width: 60, height: 900 },
     { x: 2300, y: 1100, width: 400, height: 60 },
-    { x: 3200, y: 400, width: 80, height: 1200 }
+    { x: 3200, y: 400, width: 80, height: 1200 },
+    { x: 4100, y: 1500, width: 100, height: 800 },
+    { x: 5000, y: 2000, width: 120, height: 1000 },
+    { x: 6500, y: 2500, width: 150, height: 1500 },
+    { x: 8000, y: 3000, width: 200, height: 2000 },
+    { x: 9500, y: 3500, width: 250, height: 2500 }
   ],
   fragments: [
     {
@@ -234,6 +258,230 @@ const REGIONS = [
     hazard: "Entangling growth and hidden predators",
     settlementPotential: 4,
     settlementProspect: "These groves could sustain a thriving colony with careful cultivation."
+  },
+  {
+    id: "eastern-abyss",
+    name: "Eastern Abyss",
+    biome: "Void Echoes",
+    x: 3100,
+    y: 900,
+    width: 850,
+    height: 700,
+    detail: "A yawning chasm where the hull meets endless dark. Whispers promise power and peril.",
+    hazardLevel: 5,
+    hazard: "Gravity wells and devouring silence",
+    settlementPotential: 1,
+    settlementProspect: "A perilous watchpost for those who dare the edge of the world."
+  },
+  {
+    id: "fringe-reaches",
+    name: "Fringe Reaches",
+    biome: "Shattered Expanse",
+    x: 50,
+    y: 50,
+    width: 600,
+    height: 500,
+    detail: "Fractured outskirts where the archive frays into the unknown. Rare relics and lost signals hide here.",
+    hazardLevel: 4,
+    hazard: "Fading maps and unstable echoes",
+    settlementPotential: 3,
+    settlementProspect: "A forward outpost for the boldest explorers."
+  },
+  {
+    id: "southern-depths",
+    name: "Southern Depths",
+    biome: "Abyssal Mire",
+    x: 1800,
+    y: 2200,
+    width: 1200,
+    height: 700,
+    detail: "Sinking mire of collapsed decks and bioluminescent life. Hidden caches and ancient wrecks await divers.",
+    hazardLevel: 4,
+    hazard: "Sinking floors and predatory currents",
+    settlementPotential: 3,
+    settlementProspect: "A resilient under-dock colony could thrive here."
+  },
+  {
+    id: "northern-fringe",
+    name: "Northern Fringe",
+    biome: "Windswept Expanse",
+    x: 3800,
+    y: 100,
+    width: 900,
+    height: 600,
+    detail: "Windswept high decks where the hull meets open sky. Rare signals and forgotten outposts dot the edge.",
+    hazardLevel: 3,
+    hazard: "Gale winds and long drops",
+    settlementPotential: 2,
+    settlementProspect: "High lookouts for spotting new frontiers."
+  },
+  {
+    id: "sky-decks",
+    name: "Sky Decks",
+    biome: "Aerial Ruins",
+    x: 200,
+    y: 100,
+    width: 800,
+    height: 400,
+    detail: "Exposed upper decks open to the elements. Wind carries rare signals and precarious paths to hidden aeries.",
+    hazardLevel: 3,
+    hazard: "Gusting winds and unstable railings",
+    settlementPotential: 2,
+    settlementProspect: "A wind-harness settlement for scouts."
+  },
+  {
+    id: "hull-crypts",
+    name: "Hull Crypts",
+    biome: "Silent Tombs",
+    x: 4200,
+    y: 2200,
+    width: 700,
+    height: 600,
+    detail: "Buried chambers of the honored dead. Echoes of past crews offer wisdom or warnings.",
+    hazardLevel: 4,
+    hazard: "Crushing silence and restless echoes",
+    settlementPotential: 1,
+    settlementProspect: "A solemn memorial outpost."
+  },
+  {
+    id: "void-reaches",
+    name: "Void Reaches",
+    biome: "Endless Dark",
+    x: 5200,
+    y: 1500,
+    width: 700,
+    height: 800,
+    detail: "The hull's edge where light fails. Distant signals promise new frontiers but drain the unwary.",
+    hazardLevel: 5,
+    hazard: "Absolute darkness and signal voids",
+    settlementPotential: 1,
+    settlementProspect: "A beacon outpost at the edge of known."
+  },
+  {
+    id: "aerial-bastions",
+    name: "Aerial Bastions",
+    biome: "High Spires",
+    x: 1500,
+    y: 50,
+    width: 1000,
+    height: 500,
+    detail: "Towering spires above the flood. Exposed to storms, but offer panoramic views and rare echoes.",
+    hazardLevel: 3,
+    hazard: "Lightning and sheer drops",
+    settlementPotential: 2,
+    settlementProspect: "A lofty citadel for watchers."
+  },
+  {
+    id: "eastern-fringe",
+    name: "Eastern Fringe",
+    biome: "Stormlands",
+    x: 6800,
+    y: 1200,
+    width: 1000,
+    height: 800,
+    detail: "Turbulent edge where storms rage. Hidden paths and powerful relics reward the daring explorer.",
+    hazardLevel: 4,
+    hazard: "Violent winds and lightning strikes",
+    settlementPotential: 2,
+    settlementProspect: "A storm-hardened watchtower settlement."
+  },
+  {
+    id: "deep-void",
+    name: "Deep Void",
+    biome: "Null Depths",
+    x: 2500,
+    y: 3800,
+    width: 1200,
+    height: 800,
+    detail: "The deepest null where signal fades. Echoes here can grant unique powers but at great risk.",
+    hazardLevel: 5,
+    hazard: "Signal nullification and disorienting voids",
+    settlementPotential: 1,
+    settlementProspect: "A forbidden research outpost."
+  },
+  {
+    id: "storm-vortex",
+    name: "Storm Vortex",
+    biome: "Cyclone Spires",
+    x: 8500,
+    y: 500,
+    width: 1200,
+    height: 900,
+    detail: "A massive swirling vortex of wind and lightning. Only the prepared can navigate its core for legendary rewards.",
+    hazardLevel: 5,
+    hazard: "Cyclonic winds and chain lightning",
+    settlementPotential: 1,
+    settlementProspect: "A daring aerie for storm riders."
+  },
+  {
+    id: "crystal-gardens",
+    name: "Crystal Gardens",
+    biome: "Luminous Blooms",
+    x: 500,
+    y: 4000,
+    width: 1100,
+    height: 700,
+    detail: "Subterranean gardens of glowing crystals that resonate with signal. Hidden paths and memory blooms await.",
+    hazardLevel: 3,
+    hazard: "Resonant pulses and fragile structures",
+    settlementPotential: 3,
+    settlementProspect: "A harmonic colony sustained by crystal light."
+  },
+  {
+    id: "floating-decks",
+    name: "Floating Decks",
+    biome: "Skyborne Ruins",
+    x: 2000,
+    y: 200,
+    width: 1500,
+    height: 800,
+    detail: "Decks that float on anti-grav fields high above. Rare aether relics and panoramic views, but unstable footing.",
+    hazardLevel: 4,
+    hazard: "Gravity shifts and falling debris",
+    settlementPotential: 2,
+    settlementProspect: "A sky-harbor for aerial trade."
+  },
+  {
+    id: "abyssal-trenches",
+    name: "Abyssal Trenches",
+    biome: "Crushing Dark",
+    x: 4000,
+    y: 5500,
+    width: 2000,
+    height: 1200,
+    detail: "Deep ocean trenches where pressure crushes and bioluminescence reveals secrets. High reward, extreme risk.",
+    hazardLevel: 5,
+    hazard: "Crushing pressure and lightless predators",
+    settlementPotential: 1,
+    settlementProspect: "A deep-sea research colony."
+  },
+  {
+    id: "ethereal-spires",
+    name: "Ethereal Spires",
+    biome: "Ghostly Heights",
+    x: 10000,
+    y: 500,
+    width: 1500,
+    height: 1000,
+    detail: "Spires that phase in and out of reality. Ethereal relics grant phasing abilities but risk losing the explorer.",
+    hazardLevel: 4,
+    hazard: "Phasing voids and spectral echoes",
+    settlementPotential: 1,
+    settlementProspect: "A spectral outpost for the intrepid."
+  },
+  {
+    id: "sunken-realms",
+    name: "Sunken Realms",
+    biome: "Drowned Kingdoms",
+    x: 6000,
+    y: 5500,
+    width: 2000,
+    height: 1500,
+    detail: "Ruins of ancient kingdoms beneath the waves. Lost artifacts and branching paths to power or peril.",
+    hazardLevel: 5,
+    hazard: "Drowning currents and ancient traps",
+    settlementPotential: 2,
+    settlementProspect: "An underwater kingdom reborn."
   }
 ];
 
@@ -357,6 +605,246 @@ const LANDMARKS = [
     radius: 80,
     type: "mystery",
     detail: "A nexus where echoes converge. Risk a powerful pulse that reveals great secrets but drains heavily."
+  },
+  {
+    id: "abyss-core",
+    title: "Abyss Core",
+    regionId: "eastern-abyss",
+    x: 3400,
+    y: 1200,
+    radius: 105,
+    type: "mystery",
+    detail: "A pulsating void-heart. Attuning risks everything for immense power in this run and legacy."
+  },
+  {
+    id: "fringe-beacon",
+    title: "Fringe Beacon",
+    regionId: "fringe-reaches",
+    x: 300,
+    y: 180,
+    radius: 70,
+    type: "memory",
+    detail: "A flickering beacon calling from the edge. Reveals distant secrets when pulsed."
+  },
+  {
+    id: "lost-archive",
+    title: "Lost Archive Wing",
+    regionId: "eastern-abyss",
+    x: 3650,
+    y: 1350,
+    radius: 90,
+    type: "survey",
+    detail: "Sealed wing of forgotten knowledge. Analyzing here branches into powerful lore or dangerous truths."
+  },
+  {
+    id: "mire-cache",
+    title: "Mire Cache",
+    regionId: "southern-depths",
+    x: 2300,
+    y: 2500,
+    radius: 85,
+    type: "memory",
+    detail: "Sunken cache of pre-collapse supplies. Risky dive for signal boost or rare relics."
+  },
+  {
+    id: "fringe-outpost",
+    title: "Fringe Outpost",
+    regionId: "northern-fringe",
+    x: 4100,
+    y: 250,
+    radius: 70,
+    type: "relay",
+    detail: "Abandoned high outpost. Restoring it permanently unlocks a 'far-sight' pulse that reveals distant secrets."
+  },
+  {
+    id: "whisper-vault",
+    title: "Whisper Vault",
+    regionId: "southern-depths",
+    x: 2700,
+    y: 2650,
+    radius: 95,
+    type: "mystery",
+    detail: "Vault that whispers choices: gain lore that advances legacy or a powerful but temporary relic."
+  },
+  {
+    id: "sky-altar",
+    title: "Sky Altar",
+    regionId: "sky-decks",
+    x: 500,
+    y: 250,
+    radius: 80,
+    type: "mystery",
+    detail: "Wind-blasted altar. Offering signal here can summon a 'wind-rush' that speeds exploration but risks exposure."
+  },
+  {
+    id: "crypt-seal",
+    title: "Crypt Seal",
+    regionId: "hull-crypts",
+    x: 4450,
+    y: 2450,
+    radius: 75,
+    type: "memory",
+    detail: "Sealed tomb of captains. Breaking the seal reveals powerful echoes or hidden truths for legacy."
+  },
+  {
+    id: "echo-well",
+    title: "Echo Well",
+    regionId: "hull-crypts",
+    x: 4600,
+    y: 2600,
+    radius: 65,
+    type: "relay",
+    detail: "Bottomless well of voices. Drop a pulse to hear guiding whispers that mark a secret cache."
+  },
+  {
+    id: "void-beacon",
+    title: "Void Beacon",
+    regionId: "void-reaches",
+    x: 5450,
+    y: 1800,
+    radius: 90,
+    type: "mystery",
+    detail: "A lone beacon at the edge. Attuning it reveals the 'final frontier' and grants a one-time signal surge for deep delves."
+  },
+  {
+    id: "storm-spire",
+    title: "Storm Spire",
+    regionId: "aerial-bastions",
+    x: 1900,
+    y: 150,
+    radius: 70,
+    type: "memory",
+    detail: "Lightning-crowned spire. Risk a pulse to charge a 'tempest shield' that nullifies one hazard drain."
+  },
+  {
+    id: "forgotten-aerie",
+    title: "Forgotten Aerie",
+    regionId: "aerial-bastions",
+    x: 2200,
+    y: 300,
+    radius: 85,
+    type: "survey",
+    detail: "Abandoned nest of sky-watchers. Surveying here yields rare lore that permanently boosts legacy level if extracted."
+  },
+  {
+    id: "fringe-leyline",
+    title: "Fringe Leyline",
+    regionId: "eastern-fringe",
+    x: 7100,
+    y: 1600,
+    radius: 100,
+    type: "mystery",
+    detail: "A pulsing leyline at the storm's heart. Attuning grants 'Storm Ward' - permanent reduction in wind drain for this and future expeditions."
+  },
+  {
+    id: "void-oblisk",
+    title: "Void Obelisk",
+    regionId: "deep-void",
+    x: 3000,
+    y: 4100,
+    radius: 80,
+    type: "memory",
+    detail: "An obelisk that drinks signal. Risking a full pulse here can unlock 'Null Pulse' ability - a powerful reveal that costs no signal but risks failure."
+  },
+  {
+    id: "echo-chamber",
+    title: "Echo Chamber",
+    regionId: "deep-void",
+    x: 3400,
+    y: 4300,
+    radius: 90,
+    type: "survey",
+    detail: "A resonant chamber of past voices. Surveying offers a choice: immediate powerful relic or long-term legacy boost on extract."
+  },
+  {
+    id: "vortex-core",
+    title: "Vortex Core",
+    regionId: "storm-vortex",
+    x: 9000,
+    y: 900,
+    radius: 110,
+    type: "mystery",
+    detail: "The eye of the storm. Surviving the attunement grants 'Cyclone Sprint' - massive speed boost and reveals all nearby secrets."
+  },
+  {
+    id: "crystal-heart",
+    title: "Crystal Heart",
+    regionId: "crystal-gardens",
+    x: 1000,
+    y: 4300,
+    radius: 95,
+    type: "memory",
+    detail: "The pulsing heart of the gardens. Analyzing branches: restore full signal or unlock permanent 'Resonant Pulse' for future runs."
+  },
+  {
+    id: "bloom-sanctum",
+    title: "Bloom Sanctum",
+    regionId: "crystal-gardens",
+    x: 1300,
+    y: 4500,
+    radius: 85,
+    type: "survey",
+    detail: "A hidden sanctum of memory blooms. Full survey here yields deep lore that advances legacy significantly on successful extraction."
+  },
+  {
+    id: "aether-gate",
+    title: "Aether Gate",
+    regionId: "floating-decks",
+    x: 2600,
+    y: 450,
+    radius: 120,
+    type: "mystery",
+    detail: "A shimmering gate between decks. Attuning allows 'Aether Step' - temporary teleport to nearby undiscovered landmark."
+  },
+  {
+    id: "pressure-core",
+    title: "Pressure Core",
+    regionId: "abyssal-trenches",
+    x: 4800,
+    y: 5900,
+    radius: 100,
+    type: "memory",
+    detail: "A core that withstands crushing depths. Analyzing grants 'Depth Ward' - immunity to pressure hazards and bonus signal on exit."
+  },
+  {
+    id: "lumen-vein",
+    title: "Lumen Vein",
+    regionId: "abyssal-trenches",
+    x: 5200,
+    y: 6200,
+    radius: 85,
+    type: "survey",
+    detail: "A glowing vein of pure signal. Surveying here offers a choice: immediate high reward or permanent 'Lumen Pulse' for future runs."
+  },
+  {
+    id: "ethereal-spire",
+    title: "Ethereal Spire",
+    regionId: "ethereal-spires",
+    x: 10500,
+    y: 800,
+    radius: 100,
+    type: "mystery",
+    detail: "A spire that flickers between planes. Attuning grants 'Phase Cloak' - temporary immunity to hazards and auto-reveal."
+  },
+  {
+    id: "sunken-throne",
+    title: "Sunken Throne",
+    regionId: "sunken-realms",
+    x: 6800,
+    y: 6200,
+    radius: 110,
+    type: "memory",
+    detail: "The throne of drowned kings. Claiming it branches: immediate treasure or a legacy-boosting crown on extract."
+  },
+  {
+    id: "realm-key",
+    title: "Realm Key",
+    regionId: "sunken-realms",
+    x: 7200,
+    y: 6500,
+    radius: 90,
+    type: "survey",
+    detail: "A key to lost realms. Surveying unlocks 'Realm Shift' ability for future runs or big signal now."
   }
 ];
 
@@ -803,9 +1291,34 @@ export function createGameState() {
       spireAttuned: false,
       coreAttuned: false,
       shrineUsed: false,
-      nexusUsed: false
+      nexusUsed: false,
+      abyssCoreAttuned: false,
+      fringeUsed: false,
+      lostUsed: false,
+      mireUsed: false,
+      outpostRestored: false,
+      whisperUsed: false,
+      skyAltarUsed: false,
+      cryptSealBroken: false,
+      echoWellUsed: false,
+      voidBeaconAttuned: false,
+      stormSpireCharged: false,
+      aerieSurveyed: false,
+      leylineAttuned: false,
+      obeliskRisked: false,
+      chamberSurveyed: false,
+      vortexCoreAttuned: false,
+      crystalHeartAnalyzed: false,
+      bloomSanctumSurveyed: false,
+      aetherGateAttuned: false,
+      pressureCoreAnalyzed: false,
+      lumenVeinSurveyed: false,
+      etherealSpireAttuned: false,
+      sunkenThroneClaimed: false,
+      realmKeySurveyed: false
     },
     relicSpireAttuned: false,
+    legacy: loadLegacy(),
     atlas: {
       visitedRegionIds: [],
       discoveredLandmarkIds: [],
@@ -846,6 +1359,33 @@ export function createGameState() {
       lastCoastalOperation: null
     }
   };
+
+  // Apply legacy progression earned from previous full extractions (persists across runs after interval guard)
+  const leg = state.legacy || { level: 0, unlocks: [] };
+  if (leg.level > 0) {
+    state.signal = Math.min(100, 100 + leg.level * 5); // higher starting signal from mastery
+    state.legacyLevel = leg.level;
+    if (leg.level >= 2) {
+      state.relicSpireAttuned = true;
+    }
+    if (leg.level >= 3) {
+      state.pulseBonus = (state.pulseBonus || 0) + 30;
+    }
+    if (leg.level >= 4) {
+      // far-sight from outpost unlock: bigger reveal radius
+      state.pulseRevealBonus = (state.pulseRevealBonus || 0) + 150;
+    }
+  } else {
+    state.legacyLevel = 0;
+  }
+  state.echoCompassUnlocked = (leg.level || 0) >= 3;
+  if (state.relics && state.relics.etherealSpireAttuned) {
+    state.phaseCloak = true;
+  }
+  if (state.relics && state.relics.realmKeySurveyed) {
+    state.realmShift = true;
+  }
+
   resolveWorldSurvey(state);
   return state;
 }
@@ -880,10 +1420,13 @@ export function restoreGameCheckpoint(serialized) {
     restored.runEndedAt = null;
   }
   if (restored && !restored.relics) {
-    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false };
+    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false };
   }
   if (restored && restored.relicSpireAttuned === undefined) {
     restored.relicSpireAttuned = false;
+  }
+  if (restored && !restored.legacy) {
+    restored.legacy = loadLegacy();
   }
   validateCheckpointState(restored);
   return restored;
@@ -956,12 +1499,39 @@ function validateCheckpointState(state) {
     typeof state.relics.spireAttuned !== "boolean" ||
     typeof state.relics.coreAttuned !== "boolean" ||
     typeof state.relics.shrineUsed !== "boolean" ||
-    typeof state.relics.nexusUsed !== "boolean"
+    typeof state.relics.nexusUsed !== "boolean" ||
+    typeof state.relics.abyssCoreAttuned !== "boolean" ||
+    typeof state.relics.fringeUsed !== "boolean" ||
+    typeof state.relics.lostUsed !== "boolean" ||
+    typeof state.relics.mireUsed !== "boolean" ||
+    typeof state.relics.outpostRestored !== "boolean" ||
+    typeof state.relics.whisperUsed !== "boolean" ||
+    typeof state.relics.skyAltarUsed !== "boolean" ||
+    typeof state.relics.cryptSealBroken !== "boolean" ||
+    typeof state.relics.echoWellUsed !== "boolean" ||
+    typeof state.relics.voidBeaconAttuned !== "boolean" ||
+    typeof state.relics.stormSpireCharged !== "boolean" ||
+    typeof state.relics.aerieSurveyed !== "boolean" ||
+    typeof state.relics.leylineAttuned !== "boolean" ||
+    typeof state.relics.obeliskRisked !== "boolean" ||
+    typeof state.relics.chamberSurveyed !== "boolean" ||
+    typeof state.relics.vortexCoreAttuned !== "boolean" ||
+    typeof state.relics.crystalHeartAnalyzed !== "boolean" ||
+    typeof state.relics.bloomSanctumSurveyed !== "boolean" ||
+    typeof state.relics.aetherGateAttuned !== "boolean" ||
+    typeof state.relics.pressureCoreAnalyzed !== "boolean" ||
+    typeof state.relics.lumenVeinSurveyed !== "boolean" ||
+    typeof state.relics.etherealSpireAttuned !== "boolean" ||
+    typeof state.relics.sunkenThroneClaimed !== "boolean" ||
+    typeof state.relics.realmKeySurveyed !== "boolean"
   ) {
     throw new Error("Checkpoint relics data is invalid");
   }
   if (typeof state.relicSpireAttuned !== "boolean") {
     throw new Error("Checkpoint relic bonus data is invalid");
+  }
+  if (!isRecord(state.legacy) || typeof state.legacy.level !== "number") {
+    // allow for backward compat, will default in create
   }
 
   const frontier = state.frontier;
@@ -1196,6 +1766,19 @@ export function getWorldAtlas(state) {
     totalRegionCount: REGIONS.length,
     discoveredLandmarkCount: discoveredLandmarkIds.length,
     totalLandmarkCount: LANDMARKS.length,
+    legacyLevel: state.legacyLevel || 0,
+    legacyUnlocks: (state.legacy && state.legacy.unlocks) || [],
+    echoCompassUnlocked: !!state.echoCompassUnlocked,
+    nearestUndiscovered: state.echoCompassUnlocked ? (function() {
+      const und = LANDMARKS.filter(l => !discoveredLandmarkIds.includes(l.id));
+      if (!und.length) return null;
+      let n = und[0]; let md = distance(state.player, n);
+      for (const u of und) {
+        const d = distance(state.player, u);
+        if (d < md) { md = d; n = u; }
+      }
+      return { title: n.title, dist: Math.round(md) };
+    })() : null,
     regions: REGIONS.map((region) => ({
       id: region.id,
       name: region.name,
@@ -1876,12 +2459,37 @@ export function triggerPulse(state) {
     return false;
   }
 
+  let cost = WORLD.pulseCost;
   let pulseR = WORLD.pulseRadius;
   if (state.relics && state.relics.coreAttuned) {
-    pulseR += (state.pulseBonus || 50); // permanent-ish from core attunement
+    pulseR += (state.pulseBonus || 50);
+  }
+  if (state.pulseRevealBonus) {
+    pulseR += state.pulseRevealBonus;
+  }
+  if (state.windRushUntil && state.windRushUntil > state.time) {
+    pulseR *= 1.3;
+  }
+  if (state.nullPulseUnlocked) {
+    cost = 0; // Null Pulse no cost
+    pulseR *= 1.5;
+    state.nullPulseUnlocked = false; // one use?
+  }
+  if (state.cycloneSprintUntil && state.cycloneSprintUntil > state.time) {
+    pulseR *= 1.4;
+  }
+  if (state.resonantPulse) {
+    pulseR *= 1.2;
+  }
+  if (state.lumenPulse) {
+    pulseR *= 1.1;
+  }
+  if (state.realmShift) {
+    pulseR *= 1.2;
+    state.realmShift = false; // consume?
   }
 
-  state.signal = Math.max(0, state.signal - WORLD.pulseCost);
+  state.signal = Math.max(0, state.signal - cost);
   state.pulseCooldownUntil = state.time + WORLD.pulseCooldown;
   state.pulses.push({ x: state.player.x, y: state.player.y, startedAt: state.time });
 
@@ -1912,7 +2520,8 @@ export function triggerPulse(state) {
       canPulseRevealFragment(state, fragment) &&
       distance(state.player, fragment) <= pulseR
     ) {
-      fragment.revealedUntil = state.time + WORLD.fragmentRevealSeconds;
+      const revealTime = WORLD.fragmentRevealSeconds + (state.fragmentRevealBonus || 0);
+      fragment.revealedUntil = state.time + revealTime;
     }
   }
 
@@ -2074,7 +2683,14 @@ function movePlayer(state, input, dt) {
     dy /= magnitude;
   }
 
-  const distanceToMove = WORLD.playerSpeed * dt;
+  let moveSpeed = WORLD.playerSpeed;
+  if (state.windRushUntil && state.windRushUntil > state.time) {
+    moveSpeed *= 1.5;
+  }
+  if (state.cycloneSprintUntil && state.cycloneSprintUntil > state.time) {
+    moveSpeed *= 2.0; // Cyclone Sprint massive boost
+  }
+  const distanceToMove = moveSpeed * dt;
   let obstacles = state.obstacles;
   let driftX = 0;
 
@@ -2398,7 +3014,7 @@ function resolveWorldSurvey(state) {
 
 function resolveSpecialRelics(state, input) {
   if (!state.relics) {
-    state.relics = { abyssalAttuned: false, spireAttuned: false };
+    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false };
   }
 
   const holding = Boolean(input.analyze);
@@ -2457,6 +3073,342 @@ function resolveSpecialRelics(state, input) {
       echo.stunnedUntil = state.time + 12;
     }
     state.lastDiscovery = { title: "Echo Nexus", time: state.time, type: "relic" };
+  }
+
+  // Abyss Core - high stakes attunement: big bonus + risk of fail, advances legacy faster
+  const abyssCore = LANDMARKS.find(l => l.id === "abyss-core");
+  if (abyssCore && !state.relics.abyssCoreAttuned && distance(state.player, abyssCore) <= abyssCore.radius + 30 && holding) {
+    state.relics.abyssCoreAttuned = true;
+    state.signal = Math.min(100, state.signal + 60);
+    state.clueLog.push("Abyss Core: immense power gained, but the void takes its toll on future rests");
+    state.pulseBonus = (state.pulseBonus || 0) + 80;
+    state.lastDiscovery = { title: "Abyss Core", time: state.time, type: "relic" };
+    // risk: small drain over time or echo spawn, but for now boost legacy potential
+    if (state.legacy) state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+  }
+
+  // Fringe Beacon - discovery focused: pulse to reveal distant landmark or region bonus
+  const fringe = LANDMARKS.find(l => l.id === "fringe-beacon");
+  if (fringe && !state.relics.fringeUsed && distance(state.player, fringe) <= fringe.radius + 30 && holding) {
+    state.relics.fringeUsed = true;
+    state.clueLog.push("Fringe Beacon pulsed: distant secrets flare into view");
+    // simulate reveal: add to discovered, grant signal
+    state.signal = Math.min(100, state.signal + 25);
+    // mark some random or fringe as discovered
+    const fringeRegion = REGIONS.find(r => r.id === "fringe-reaches");
+    if (fringeRegion && !state.atlas.visitedRegionIds.includes(fringeRegion.id)) {
+      state.atlas.visitedRegionIds.push(fringeRegion.id);
+    }
+    state.lastDiscovery = { title: "Fringe Beacon", time: state.time, type: "relic" };
+  }
+
+  // Lost Archive Wing - branching deep lore: choice via analyze, powerful but conditional
+  const lost = LANDMARKS.find(l => l.id === "lost-archive");
+  if (lost && !state.relics.lostUsed && distance(state.player, lost) <= lost.radius + 30 && holding) {
+    state.relics.lostUsed = true;
+    state.clueLog.push("Lost Archive Wing: ancient truths branch your path");
+    // reward: big clue log + temp boost, or "danger" by spawning more echoes conceptually
+    state.signal = Math.min(100, state.signal + 20);
+    // bonus: extend fragment reveal or something
+    state.fragmentRevealBonus = (state.fragmentRevealBonus || 0) + 5;
+    state.lastDiscovery = { title: "Lost Archive", time: state.time, type: "relic" };
+  }
+
+  // Mire Cache - risk/reward dive in depths: signal or relic, chance of drain
+  const mire = LANDMARKS.find(l => l.id === "mire-cache");
+  if (mire && !state.relics.mireUsed && distance(state.player, mire) <= mire.radius + 30 && holding) {
+    state.relics.mireUsed = true;
+    if (Math.random() > 0.3) {
+      state.signal = Math.min(100, state.signal + 45);
+      state.clueLog.push("Mire Cache: valuable supplies recovered");
+    } else {
+      state.signal = Math.max(5, state.signal - 15);
+      state.clueLog.push("Mire Cache: the depths claimed some signal");
+    }
+    state.lastDiscovery = { title: "Mire Cache", time: state.time, type: "relic" };
+  }
+
+  // Fringe Outpost - progression unlock: restoring gives permanent 'far-sight' (larger pulse reveal)
+  const outpost = LANDMARKS.find(l => l.id === "fringe-outpost");
+  if (outpost && !state.relics.outpostRestored && distance(state.player, outpost) <= outpost.radius + 30 && holding) {
+    state.relics.outpostRestored = true;
+    state.clueLog.push("Fringe Outpost restored: far-sight unlocked permanently");
+    state.lastDiscovery = { title: "Fringe Outpost", time: state.time, type: "relic" };
+    // permanent bonus: increase base pulse for future (via legacy level bump)
+    if (state.legacy) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+    }
+  }
+
+  // Whisper Vault - branching: choice between legacy advance or run power
+  const whisper = LANDMARKS.find(l => l.id === "whisper-vault");
+  if (whisper && !state.relics.whisperUsed && distance(state.player, whisper) <= whisper.radius + 30 && holding) {
+    state.relics.whisperUsed = true;
+    state.clueLog.push("Whisper Vault: choose your path (legacy or power)");
+    // default to legacy for exploration focus
+    if (state.legacy) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+    } else {
+      state.signal = Math.min(100, state.signal + 50);
+    }
+    state.lastDiscovery = { title: "Whisper Vault", time: state.time, type: "relic" };
+  }
+
+  // Sky Altar - wind-rush buff: temporary speed and larger pulse for exploration, costs signal
+  const skyAltar = LANDMARKS.find(l => l.id === "sky-altar");
+  if (skyAltar && !state.relics.skyAltarUsed && distance(state.player, skyAltar) <= skyAltar.radius + 30 && holding) {
+    state.relics.skyAltarUsed = true;
+    state.signal = Math.max(10, state.signal - 20);
+    state.clueLog.push("Sky Altar: wind-rush granted - move faster, see farther briefly");
+    // temp buffs (for this run, via state flags used in move/reveal)
+    state.windRushUntil = state.time + 120; // 2 min sim
+    state.lastDiscovery = { title: "Sky Altar", time: state.time, type: "relic" };
+  }
+
+  // Crypt Seal - breaking for legacy or echo power
+  const crypt = LANDMARKS.find(l => l.id === "crypt-seal");
+  if (crypt && !state.relics.cryptSealBroken && distance(state.player, crypt) <= crypt.radius + 30 && holding) {
+    state.relics.cryptSealBroken = true;
+    state.clueLog.push("Crypt Seal broken: captains' echoes grant wisdom");
+    if (state.legacy) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+    }
+    state.lastDiscovery = { title: "Crypt Seal", time: state.time, type: "relic" };
+  }
+
+  // Echo Well - drop pulse to reveal hidden cache
+  const well = LANDMARKS.find(l => l.id === "echo-well");
+  if (well && !state.relics.echoWellUsed && distance(state.player, well) <= well.radius + 30 && holding) {
+    state.relics.echoWellUsed = true;
+    state.clueLog.push("Echo Well: whispers revealed a hidden cache nearby");
+    // simulate by boosting signal and marking discovery
+    state.signal = Math.min(100, state.signal + 30);
+    state.lastDiscovery = { title: "Echo Well", time: state.time, type: "relic" };
+  }
+
+  // Void Beacon - attune for final surge and reveal 'end of map' lore
+  const voidBeacon = LANDMARKS.find(l => l.id === "void-beacon");
+  if (voidBeacon && !state.relics.voidBeaconAttuned && distance(state.player, voidBeacon) <= voidBeacon.radius + 30 && holding) {
+    state.relics.voidBeaconAttuned = true;
+    state.signal = Math.min(100, state.signal + 70);
+    state.clueLog.push("Void Beacon: the edge calls - surge granted, new horizon logged");
+    state.lastDiscovery = { title: "Void Beacon", time: state.time, type: "relic" };
+    // advance legacy
+    if (state.legacy) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+    }
+  }
+
+  // Storm Spire - risk pulse for shield (nullify next hazard drain)
+  const storm = LANDMARKS.find(l => l.id === "storm-spire");
+  if (storm && !state.relics.stormSpireCharged && distance(state.player, storm) <= storm.radius + 30 && holding) {
+    state.relics.stormSpireCharged = true;
+    state.signal = Math.max(5, state.signal - 15);
+    state.clueLog.push("Storm Spire: tempest shield charged - next drain nullified");
+    state.tempestShieldUntil = state.time + 60;
+    state.lastDiscovery = { title: "Storm Spire", time: state.time, type: "relic" };
+  }
+
+  // Forgotten Aerie - survey for legacy boost on extract
+  const aerie = LANDMARKS.find(l => l.id === "forgotten-aerie");
+  if (aerie && !state.relics.aerieSurveyed && distance(state.player, aerie) <= aerie.radius + 30 && holding) {
+    state.relics.aerieSurveyed = true;
+    state.clueLog.push("Forgotten Aerie: sky-watchers' lore claimed - will boost legacy on successful extract");
+    state.aerieLoreClaimed = true;
+    state.lastDiscovery = { title: "Forgotten Aerie", time: state.time, type: "relic" };
+  }
+
+  // Fringe Leyline - attune for 'Storm Ward' permanent drain reduction in windy areas
+  const leyline = LANDMARKS.find(l => l.id === "fringe-leyline");
+  if (leyline && !state.relics.leylineAttuned && distance(state.player, leyline) <= leyline.radius + 30 && holding) {
+    state.relics.leylineAttuned = true;
+    state.clueLog.push("Fringe Leyline: Storm Ward attuned - permanent wind drain reduction");
+    state.stormWard = true;
+    state.lastDiscovery = { title: "Fringe Leyline", time: state.time, type: "relic" };
+    if (state.legacy) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+    }
+  }
+
+  // Void Obelisk - high risk for 'Null Pulse' unlock (no-cost powerful pulse)
+  const obelisk = LANDMARKS.find(l => l.id === "void-oblisk");
+  if (obelisk && !state.relics.obeliskRisked && distance(state.player, obelisk) <= obelisk.radius + 30 && holding) {
+    state.relics.obeliskRisked = true;
+    state.signal = Math.max(5, state.signal - 40); // risk
+    state.clueLog.push("Void Obelisk: risked for Null Pulse - powerful no-cost pulse unlocked");
+    state.nullPulseUnlocked = true;
+    state.lastDiscovery = { title: "Void Obelisk", time: state.time, type: "relic" };
+  }
+
+  // Echo Chamber - choice: immediate relic or legacy on extract
+  const chamber = LANDMARKS.find(l => l.id === "echo-chamber");
+  if (chamber && !state.relics.chamberSurveyed && distance(state.player, chamber) <= chamber.radius + 30 && holding) {
+    state.relics.chamberSurveyed = true;
+    // choice: favor legacy for exploration
+    if (state.legacy && Math.random() > 0.4) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+      state.clueLog.push("Echo Chamber: chose long-term legacy boost");
+    } else {
+      state.signal = Math.min(100, state.signal + 60);
+      state.clueLog.push("Echo Chamber: took immediate power relic");
+    }
+    state.lastDiscovery = { title: "Echo Chamber", time: state.time, type: "relic" };
+  }
+
+  // Vortex Core - attune for 'Cyclone Sprint' (speed + reveal all nearby)
+  const vortex = LANDMARKS.find(l => l.id === "vortex-core");
+  if (vortex && !state.relics.vortexCoreAttuned && distance(state.player, vortex) <= vortex.radius + 30 && holding) {
+    state.relics.vortexCoreAttuned = true;
+    state.signal = Math.max(10, state.signal - 30);
+    state.clueLog.push("Vortex Core: Cyclone Sprint - speed and full reveal unlocked");
+    state.cycloneSprintUntil = state.time + 90;
+    // reveal nearby undiscovered
+    for (const l of LANDMARKS) {
+      if (!state.atlas.discoveredLandmarkIds.includes(l.id) && distance(state.player, l) < 800) {
+        state.atlas.discoveredLandmarkIds.push(l.id);
+      }
+    }
+    state.lastDiscovery = { title: "Vortex Core", time: state.time, type: "relic" };
+    if (state.legacy) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+    }
+  }
+
+  // Crystal Heart - analyze for choice: full signal or 'Resonant Pulse' permanent
+  const heart = LANDMARKS.find(l => l.id === "crystal-heart");
+  if (heart && !state.relics.crystalHeartAnalyzed && distance(state.player, heart) <= heart.radius + 30 && holding) {
+    state.relics.crystalHeartAnalyzed = true;
+    if (Math.random() > 0.5) {
+      state.signal = 100;
+      state.clueLog.push("Crystal Heart: full signal restored");
+    } else {
+      state.clueLog.push("Crystal Heart: Resonant Pulse permanent - better reveals");
+      state.resonantPulse = true;
+      if (state.legacy) {
+        state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+        saveLegacy(state.legacy);
+      }
+    }
+    state.lastDiscovery = { title: "Crystal Heart", time: state.time, type: "relic" };
+  }
+
+  // Bloom Sanctum - survey for major legacy on extract
+  const sanctum = LANDMARKS.find(l => l.id === "bloom-sanctum");
+  if (sanctum && !state.relics.bloomSanctumSurveyed && distance(state.player, sanctum) <= sanctum.radius + 30 && holding) {
+    state.relics.bloomSanctumSurveyed = true;
+    state.clueLog.push("Bloom Sanctum: deep lore - major legacy on extract");
+    state.bloomLore = true;
+    state.lastDiscovery = { title: "Bloom Sanctum", time: state.time, type: "relic" };
+  }
+
+  // Aether Gate - attune for 'Aether Step' (temp teleport to nearest undiscovered)
+  const aether = LANDMARKS.find(l => l.id === "aether-gate");
+  if (aether && !state.relics.aetherGateAttuned && distance(state.player, aether) <= aether.radius + 30 && holding) {
+    state.relics.aetherGateAttuned = true;
+    state.clueLog.push("Aether Gate: Aether Step - teleport to nearest secret");
+    // find nearest undiscovered and move player there
+    const undiscovered = LANDMARKS.filter(l => !state.atlas.discoveredLandmarkIds.includes(l.id));
+    if (undiscovered.length > 0) {
+      let nearest = undiscovered[0];
+      let minD = distance(state.player, nearest);
+      for (const l of undiscovered) {
+        const d = distance(state.player, l);
+        if (d < minD) { minD = d; nearest = l; }
+      }
+      state.player.x = nearest.x;
+      state.player.y = nearest.y;
+      state.atlas.discoveredLandmarkIds.push(nearest.id);
+    }
+    state.lastDiscovery = { title: "Aether Gate", time: state.time, type: "relic" };
+  }
+
+  // Pressure Core - analyze for 'Depth Ward' (pressure immunity + signal)
+  const pressCore = LANDMARKS.find(l => l.id === "pressure-core");
+  if (pressCore && !state.relics.pressureCoreAnalyzed && distance(state.player, pressCore) <= pressCore.radius + 30 && holding) {
+    state.relics.pressureCoreAnalyzed = true;
+    state.signal = Math.min(100, state.signal + 50);
+    state.clueLog.push("Pressure Core: Depth Ward - immunity to pressure, bonus signal");
+    state.depthWardUntil = state.time + 120;
+    state.lastDiscovery = { title: "Pressure Core", time: state.time, type: "relic" };
+  }
+
+  // Lumen Vein - survey for choice: signal or 'Lumen Pulse' permanent
+  const vein = LANDMARKS.find(l => l.id === "lumen-vein");
+  if (vein && !state.relics.lumenVeinSurveyed && distance(state.player, vein) <= vein.radius + 30 && holding) {
+    state.relics.lumenVeinSurveyed = true;
+    if (Math.random() > 0.5) {
+      state.signal = 100;
+      state.clueLog.push("Lumen Vein: full signal restored");
+    } else {
+      state.clueLog.push("Lumen Vein: Lumen Pulse permanent - enhanced reveals");
+      state.lumenPulse = true;
+      if (state.legacy) {
+        state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+        saveLegacy(state.legacy);
+      }
+    }
+    state.lastDiscovery = { title: "Lumen Vein", time: state.time, type: "relic" };
+  }
+
+  // Ethereal Spire - attune for 'Phase Cloak' (temp hazard immunity + reveal)
+  const ethereal = LANDMARKS.find(l => l.id === "ethereal-spire");
+  if (ethereal && !state.relics.etherealSpireAttuned && distance(state.player, ethereal) <= ethereal.radius + 30 && holding) {
+    state.relics.etherealSpireAttuned = true;
+    state.clueLog.push("Ethereal Spire: Phase Cloak - immunity and reveal granted");
+    state.phaseCloakUntil = state.time + 90;
+    // reveal nearby
+    for (const l of LANDMARKS) {
+      if (!state.atlas.discoveredLandmarkIds.includes(l.id) && distance(state.player, l) < 600) {
+        state.atlas.discoveredLandmarkIds.push(l.id);
+      }
+    }
+    state.lastDiscovery = { title: "Ethereal Spire", time: state.time, type: "relic" };
+    if (state.legacy) {
+      state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+      saveLegacy(state.legacy);
+    }
+  }
+
+  // Sunken Throne - claim for choice: treasure or legacy crown
+  const throne = LANDMARKS.find(l => l.id === "sunken-throne");
+  if (throne && !state.relics.sunkenThroneClaimed && distance(state.player, throne) <= throne.radius + 30 && holding) {
+    state.relics.sunkenThroneClaimed = true;
+    if (Math.random() > 0.5) {
+      state.signal = Math.min(100, state.signal + 70);
+      state.clueLog.push("Sunken Throne: claimed treasure");
+    } else {
+      if (state.legacy) {
+        state.legacy.level = Math.min(5, (state.legacy.level || 0) + 2);
+        saveLegacy(state.legacy);
+      }
+      state.clueLog.push("Sunken Throne: legacy crown claimed");
+    }
+    state.lastDiscovery = { title: "Sunken Throne", time: state.time, type: "relic" };
+  }
+
+  // Realm Key - survey for 'Realm Shift' ability or signal
+  const key = LANDMARKS.find(l => l.id === "realm-key");
+  if (key && !state.relics.realmKeySurveyed && distance(state.player, key) <= key.radius + 30 && holding) {
+    state.relics.realmKeySurveyed = true;
+    if (Math.random() > 0.5) {
+      state.signal = Math.min(100, state.signal + 50);
+      state.clueLog.push("Realm Key: signal surge");
+    } else {
+      state.clueLog.push("Realm Key: Realm Shift ability unlocked for future");
+      state.realmShift = true;
+      if (state.legacy) {
+        state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
+        saveLegacy(state.legacy);
+      }
+    }
+    state.lastDiscovery = { title: "Realm Key", time: state.time, type: "relic" };
   }
 }
 
@@ -2602,7 +3554,18 @@ function resolveEchoPressure(state, dt) {
   for (const echo of state.echoes) {
     const stunned = echo.stunnedUntil > state.time;
     if (!stunned && distance(state.player, echo) <= state.player.radius + echo.radius + 10) {
-      state.signal = Math.max(0, state.signal - WORLD.echoDrainPerSecond * dt);
+      if (state.tempestShieldUntil && state.tempestShieldUntil > state.time) {
+        // shield nullifies this drain
+        state.tempestShieldUntil = 0;
+      } else if (state.depthWardUntil && state.depthWardUntil > state.time) {
+        // depth ward nullifies
+      } else if (state.phaseCloakUntil && state.phaseCloakUntil > state.time) {
+        // phase cloak nullifies
+      } else {
+        let drain = WORLD.echoDrainPerSecond;
+        if (state.stormWard) drain *= 0.7; // Storm Ward reduces wind/echo drain
+        state.signal = Math.max(0, state.signal - drain * dt);
+      }
     }
   }
 
@@ -2623,6 +3586,32 @@ function resolveGate(state) {
     state.result = readiness.resultText || "Archive thread recovered";
     if (state.runEndedAt === null || state.runEndedAt === undefined) {
       state.runEndedAt = Date.now();
+    }
+    // Exploration depth for rewarding thorough runs (Skyrim-like satisfaction + future motivation)
+    const discRegions = (state.atlas && state.atlas.visitedRegionIds ? state.atlas.visitedRegionIds.length : 0);
+    const discLands = (state.atlas && state.atlas.discoveredLandmarkIds ? state.atlas.discoveredLandmarkIds.length : 0);
+    if (discRegions + discLands > 5) {
+      state.result += ` [Exploration Depth: ${discRegions} regions / ${discLands} landmarks]`;
+    }
+    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed)) {
+      state.result += " [New Frontier Mastered]";
+    }
+    // Award legacy on strong completion (Skyrim-style: thorough runs unlock permanent power for future expeditions after cooldown)
+    const score = readiness.score || 0;
+    if (score >= 2) {  // at least certified thread or better
+      const legacy = state.legacy || loadLegacy();
+      let bonus = 1;
+      if (state.aerieLoreClaimed) bonus += 1;
+      if (state.bloomLore) bonus += 2;
+      if (state.relics && (state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed)) bonus += 1;
+      const newLevel = Math.min(5, (legacy.level || 0) + bonus);
+      if (newLevel > (legacy.level || 0)) {
+        legacy.level = newLevel;
+        legacy.unlocks = legacy.unlocks || [];
+        if (!legacy.unlocks.includes(`level-${newLevel}`)) legacy.unlocks.push(`level-${newLevel}`);
+        saveLegacy(legacy);
+        state.result += ` (Explorer Legacy +${newLevel})`;
+      }
     }
   }
 }
