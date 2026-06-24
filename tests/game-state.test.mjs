@@ -237,7 +237,7 @@ function unlockTidewalkRouteChoice(state) {
   const atlas = getWorldAtlas(state);
   assert.equal(atlas.currentRegion.name, "South Intake");
   assert.equal(atlas.discoveredRegionCount, 1);
-  assert.equal(atlas.totalRegionCount, 7);
+  assert.equal(atlas.totalRegionCount, 9);
   assert.equal(atlas.discoveredLandmarkCount, 1);
   assert.equal(atlas.landmarks.find((landmark) => landmark.id === "salvager-camp").discovered, true);
 
@@ -796,6 +796,26 @@ function unlockTidewalkRouteChoice(state) {
   const sigBefore = state.signal;
   tick(state, 2.0);
   assert.ok(state.signal > sigBefore + 1, "spire attunement boosts recharge over time");
+}
+
+// Further Skyrim-like secrets and progression
+{
+  const state = createGameState();
+  state.player.x = 3200;
+  state.player.y = 600;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.5);
+  assert.ok(state.relics.coreAttuned, "resonance core should attune for progression");
+}
+
+{
+  const state = createGameState();
+  state.player.x = 2100;
+  state.player.y = 1850;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.5);
+  assert.ok(state.relics.shrineUsed);
+  assert.ok(state.signal > 80);
 }
 
 console.log("game-state tests passed");

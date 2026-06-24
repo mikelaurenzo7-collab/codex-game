@@ -1,9 +1,9 @@
 export const WORLD = {
-  width: 2800,
-  height: 1600,
+  width: 4000,
+  height: 2400,
   playerRadius: 18,
-  playerSpeed: 280,
-  pulseRadius: 260,
+  playerSpeed: 310,
+  pulseRadius: 280,
   pulseCost: 24,
   pulseCooldown: 1.25,
   fragmentRevealSeconds: 7.5,
@@ -36,19 +36,20 @@ const BLUEPRINT = {
   player: { x: 160, y: 880 },
   gate: { x: 1770, y: 170, radius: 54 },
   obstacles: [
-    { x: 0, y: 0, width: 2800, height: 42 },
-    { x: 0, y: 1558, width: 2800, height: 42 },
-    { x: 0, y: 0, width: 42, height: 1600 },
-    { x: 2758, y: 0, width: 42, height: 1600 },
+    { x: 0, y: 0, width: 4000, height: 42 },
+    { x: 0, y: 2358, width: 4000, height: 42 },
+    { x: 0, y: 0, width: 42, height: 2400 },
+    { x: 3958, y: 0, width: 42, height: 2400 },
     { x: 300, y: 160, width: 70, height: 620 },
     { x: 610, y: 430, width: 550, height: 72 },
     { x: 850, y: 120, width: 72, height: 250 },
     { x: 1260, y: 300, width: 70, height: 600 },
     { x: 1460, y: 730, width: 250, height: 70 },
     { x: 520, y: 760, width: 390, height: 62 },
-    // New walls for expanded explorable space (Skyrim-like new areas)
+    // Expanded walls for vast Skyrim-like space
     { x: 2100, y: 200, width: 60, height: 900 },
-    { x: 2300, y: 1100, width: 400, height: 60 }
+    { x: 2300, y: 1100, width: 400, height: 60 },
+    { x: 3200, y: 400, width: 80, height: 1200 }
   ],
   fragments: [
     {
@@ -205,6 +206,34 @@ const REGIONS = [
     hazard: "High winds and precarious ledges",
     settlementPotential: 2,
     settlementProspect: "Signal towers here could link the entire archive to the surface."
+  },
+  {
+    id: "deep-hull-caverns",
+    name: "Deep Hull Caverns",
+    biome: "Resonant Depths",
+    x: 2800,
+    y: 200,
+    width: 900,
+    height: 800,
+    detail: "Massive echoing chambers deep in the hull. Ancient machinery hums with forgotten power.",
+    hazardLevel: 5,
+    hazard: "Unstable structures and resonant blasts",
+    settlementPotential: 2,
+    settlementProspect: "A hidden bastion could harness the resonance for great power."
+  },
+  {
+    id: "sunken-groves",
+    name: "Sunken Groves",
+    biome: "Verdant Flood",
+    x: 1500,
+    y: 1600,
+    width: 1200,
+    height: 600,
+    detail: "Overgrown groves where the archive meets living sea-life. Strange plants and hidden paths abound.",
+    hazardLevel: 3,
+    hazard: "Entangling growth and hidden predators",
+    settlementPotential: 4,
+    settlementProspect: "These groves could sustain a thriving colony with careful cultivation."
   }
 ];
 
@@ -298,6 +327,36 @@ const LANDMARKS = [
     radius: 85,
     type: "memory",
     detail: "The spire sings with the voices of the lost. A pure resonance here could amplify the final broadcast."
+  },
+  {
+    id: "resonance-core",
+    title: "Resonance Core",
+    regionId: "deep-hull-caverns",
+    x: 3200,
+    y: 600,
+    radius: 110,
+    type: "mystery",
+    detail: "A throbbing heart of ancient machinery. Attuning it permanently enhances your pulse for future expeditions."
+  },
+  {
+    id: "grove-shrine",
+    title: "Grove Shrine",
+    regionId: "sunken-groves",
+    x: 2100,
+    y: 1850,
+    radius: 95,
+    type: "memory",
+    detail: "An ancient shrine pulsing with life. Offers a choice: restore signal or reveal hidden paths ahead."
+  },
+  {
+    id: "echo-nexus",
+    title: "Echo Nexus",
+    regionId: "deep-hull-caverns",
+    x: 3500,
+    y: 900,
+    radius: 80,
+    type: "mystery",
+    detail: "A nexus where echoes converge. Risk a powerful pulse that reveals great secrets but drains heavily."
   }
 ];
 
@@ -741,7 +800,10 @@ export function createGameState() {
     relicSpireAttuned: false,
     relics: {
       abyssalAttuned: false,
-      spireAttuned: false
+      spireAttuned: false,
+      coreAttuned: false,
+      shrineUsed: false,
+      nexusUsed: false
     },
     relicSpireAttuned: false,
     atlas: {
@@ -818,7 +880,7 @@ export function restoreGameCheckpoint(serialized) {
     restored.runEndedAt = null;
   }
   if (restored && !restored.relics) {
-    restored.relics = { abyssalAttuned: false, spireAttuned: false };
+    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false };
   }
   if (restored && restored.relicSpireAttuned === undefined) {
     restored.relicSpireAttuned = false;
@@ -891,7 +953,10 @@ function validateCheckpointState(state) {
   if (
     !isRecord(state.relics) ||
     typeof state.relics.abyssalAttuned !== "boolean" ||
-    typeof state.relics.spireAttuned !== "boolean"
+    typeof state.relics.spireAttuned !== "boolean" ||
+    typeof state.relics.coreAttuned !== "boolean" ||
+    typeof state.relics.shrineUsed !== "boolean" ||
+    typeof state.relics.nexusUsed !== "boolean"
   ) {
     throw new Error("Checkpoint relics data is invalid");
   }
@@ -1811,6 +1876,11 @@ export function triggerPulse(state) {
     return false;
   }
 
+  let pulseR = WORLD.pulseRadius;
+  if (state.relics && state.relics.coreAttuned) {
+    pulseR += (state.pulseBonus || 50); // permanent-ish from core attunement
+  }
+
   state.signal = Math.max(0, state.signal - WORLD.pulseCost);
   state.pulseCooldownUntil = state.time + WORLD.pulseCooldown;
   state.pulses.push({ x: state.player.x, y: state.player.y, startedAt: state.time });
@@ -1822,12 +1892,12 @@ export function triggerPulse(state) {
     } else {
       const exp = state.frontier.tidewalkExpedition;
       exp.tideStilledUntil = state.time + WORLD.echoStunSeconds;
-      if (exp.sentinel && distance(state.player, exp.sentinel) <= WORLD.pulseRadius) {
+      if (exp.sentinel && distance(state.player, exp.sentinel) <= pulseR) {
         exp.sentinel.stunUntil = state.time + WORLD.echoStunSeconds;
       }
       if (exp.cargoItems) {
         for (const cargo of exp.cargoItems) {
-          if (!cargo.collected && distance(state.player, cargo) <= WORLD.pulseRadius) {
+          if (!cargo.collected && distance(state.player, cargo) <= pulseR) {
             cargo.revealed = true;
           }
         }
@@ -1840,7 +1910,7 @@ export function triggerPulse(state) {
     if (
       !fragment.collected &&
       canPulseRevealFragment(state, fragment) &&
-      distance(state.player, fragment) <= WORLD.pulseRadius
+      distance(state.player, fragment) <= pulseR
     ) {
       fragment.revealedUntil = state.time + WORLD.fragmentRevealSeconds;
     }
@@ -1848,16 +1918,16 @@ export function triggerPulse(state) {
 
   for (const echo of state.echoes) {
     const dist = distance(state.player, echo);
-    if (dist <= WORLD.pulseRadius) {
+    if (dist <= pulseR) {
       echo.stunnedUntil = state.time + WORLD.echoStunSeconds;
     }
-    if (dist <= WORLD.pulseRadius * 2) {
+    if (dist <= pulseR * 2) {
       echo.huntTarget = { x: state.player.x, y: state.player.y };
     }
   }
 
   for (const relay of state.relays) {
-    if (!relay.depleted && distance(state.player, relay) <= relay.radius + WORLD.pulseRadius * 0.35) {
+    if (!relay.depleted && distance(state.player, relay) <= relay.radius + pulseR * 0.35) {
       relay.depleted = true;
       state.signal = Math.min(100, state.signal + 38);
     }
@@ -2354,6 +2424,39 @@ function resolveSpecialRelics(state, input) {
     state.clueLog.push("Wailing Spire attunement: echoes harmonize, signal flows stronger");
     state.relicSpireAttuned = true;
     state.lastDiscovery = { title: "Wailing Resonance", time: state.time, type: "relic" };
+  }
+
+  // Resonance Core - permanent progression: unlocks enhanced pulse for future runs (persists via meta if checkpointed)
+  const core = LANDMARKS.find(l => l.id === "resonance-core");
+  if (core && !state.relics.coreAttuned && distance(state.player, core) <= core.radius + 30 && holding) {
+    state.relics.coreAttuned = true;
+    state.clueLog.push("Resonance Core attuned: your pulses grow stronger in future expeditions");
+    state.lastDiscovery = { title: "Resonance Core", time: state.time, type: "relic" };
+    // Boost for this run + mark for meta carry (simple: increase pulse on future creates via checkpoint or here)
+    state.pulseBonus = (state.pulseBonus || 0) + 40;
+  }
+
+  // Grove Shrine - branching choice: signal restore or path reveal (simulated as bonus clue + temp map knowledge)
+  const shrine = LANDMARKS.find(l => l.id === "grove-shrine");
+  if (shrine && !state.relics.shrineUsed && distance(state.player, shrine) <= shrine.radius + 30 && holding) {
+    state.relics.shrineUsed = true;
+    // Choice: here we favor exploration reward
+    state.signal = Math.min(100, state.signal + 35);
+    state.clueLog.push("Grove Shrine: signal restored and hidden paths revealed");
+    state.lastDiscovery = { title: "Grove Shrine", time: state.time, type: "relic" };
+  }
+
+  // Echo Nexus - high risk high reward secret
+  const nexus = LANDMARKS.find(l => l.id === "echo-nexus");
+  if (nexus && !state.relics.nexusUsed && distance(state.player, nexus) <= nexus.radius + 30 && holding) {
+    state.relics.nexusUsed = true;
+    state.signal = Math.max(10, state.signal - 25); // risk
+    state.clueLog.push("Echo Nexus pulsed: great secrets uncovered at great cost");
+    // Reveal effect: stun + big clue or temp bonus
+    for (const echo of state.echoes) {
+      echo.stunnedUntil = state.time + 12;
+    }
+    state.lastDiscovery = { title: "Echo Nexus", time: state.time, type: "relic" };
   }
 }
 
