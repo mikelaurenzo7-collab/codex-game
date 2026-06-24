@@ -1220,4 +1220,51 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(isRunStartAllowed(state), false);
 }
 
+// New iteration feature: Echo Bloom branching secret in biolum-caverns (TDD first - will fail until impl)
+{
+  // Deep path for new secret POI
+  const state = createGameState();
+  state.echoShards = 3;
+  state.player.x = 2800;
+  state.player.y = 7800;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.echoBloomEmbraced, true, "new bloom embraced");
+  assert.equal(state.relics.echoBloomDeep, true, "deep branch via shards");
+  assert.ok((state.echoShards || 0) >= 4, "awards shard on deep");
+
+  // Real gate finish path + guard
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.15);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.ok(state.result && state.result.includes("Echo Bloom"), "new secret appears in result");
+  assert.equal(isRunStartAllowed(state), false);
+  const laterBloom = state.runEndedAt + (WORLD.runIntervalSeconds + 2) * 1000;
+  assert.equal(isRunStartAllowed(state, laterBloom), true, "guard preserved");
+  const fresh = createGameState();
+  assert.equal(fresh.status, "running");
+  assert.equal(fresh.runEndedAt, null);
+}
+
+{
+  // Shallow for new bloom
+  const state = createGameState();
+  state.player.x = 2800;
+  state.player.y = 7800;
+  tick(state, 0.1);
+  state.echoShards = 0;
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.echoBloomEmbraced, true);
+  assert.ok(!state.relics.echoBloomDeep);
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
 console.log("game-state tests passed");

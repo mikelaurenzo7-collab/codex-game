@@ -964,6 +964,16 @@ const LANDMARKS = [
     detail: "Coral spire singing drowned histories. Hold E to hear shallow echo or commit deep verse for sealed power."
   },
   {
+    id: "echo-bloom",
+    title: "Echo Bloom",
+    regionId: "biolum-caverns",
+    x: 2800,
+    y: 7800,
+    radius: 75,
+    type: "mystery",
+    detail: "Glowing bloom that resonates with explorer's signal. Hold E for shallow light or commit deep for sealed bloom lore and power."
+  },
+  {
     id: "null-beacon",
     title: "Null Beacon",
     regionId: "starless-halls",
@@ -1475,7 +1485,9 @@ export function createGameState() {
       nullCryptEmbraced: false,
       nullCryptDeep: false,
       sirenSpireEmbraced: false,
-      sirenSpireDeep: false
+      sirenSpireDeep: false,
+      echoBloomEmbraced: false,
+      echoBloomDeep: false
     },
     relicSpireAttuned: false,
     legacy: loadLegacy(),
@@ -1595,7 +1607,7 @@ export function restoreGameCheckpoint(serialized) {
     restored.runEndedAt = null;
   }
   if (restored && !restored.relics) {
-    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false };
+    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false };
   }
   if (restored && restored.relicSpireAttuned === undefined) {
     restored.relicSpireAttuned = false;
@@ -2605,6 +2617,7 @@ export function getExtractionReadiness(state) {
   if (state.relics && state.relics.drownedChoirDeep) deepSigs.push("Drowned Choir");
   if (state.relics && state.relics.nullCryptDeep) deepSigs.push("Null Crypt");
   if (state.relics && state.relics.sirenSpireDeep) deepSigs.push("Siren Spire");
+  if (state.relics && state.relics.echoBloomDeep) deepSigs.push("Echo Bloom");
   if (deepSigs.length > 0 && resultText) {
     const sigStr = deepSigs.join(" + ");
     resultText += ` [${sigStr} Signature]`;
@@ -3249,7 +3262,7 @@ function resolveWorldSurvey(state) {
 
 function resolveSpecialRelics(state, input) {
   if (!state.relics) {
-    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false };
+    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false };
   }
 
   const holding = Boolean(input.analyze);
@@ -3783,6 +3796,25 @@ function resolveSpecialRelics(state, input) {
       state.clueLog.push("Shallow song lured: temporary signal surge this dive");
     }
   }
+
+  // Echo Bloom - new secret POI in biolum-caverns: shallow immediate vs deep (shards gated) for bloom lore + boost
+  const bloom = LANDMARKS.find(l => l.id === "echo-bloom");
+  if (bloom && !state.relics.echoBloomEmbraced && distance(state.player, bloom) <= bloom.radius + 30 && holding) {
+    state.relics.echoBloomEmbraced = true;
+    state.clueLog.push("Echo Bloom: the glow hums with biolum secrets");
+    state.lastDiscovery = { title: "Echo Bloom", time: state.time, type: "relic" };
+    if ((state.echoShards || 0) >= 2) {
+      state.relics.echoBloomDeep = true;
+      state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
+      state.clueLog.push("You embraced the deep bloom — sealed for surface return");
+      state.clueLog.push("Deep Resonance: bloom verse awarded resonant Echo Shard + pulse boost this run");
+    } else {
+      state.signal = Math.min(100, state.signal + 25);
+      state.bloomLure = true;
+      state.clueLog.push("Shallow glow: temporary biolum surge this dive");
+    }
+  }
 }
 
 function resolveFrontierSurvey(state) {
@@ -3980,6 +4012,7 @@ function resolveGate(state) {
     if (state.relics && state.relics.drownedChoirDeep) state.result += " [Deep Path Embraced]";
     if (state.relics && state.relics.nullCryptDeep) state.result += " [Null Crypt Signature]";
     if (state.relics && state.relics.sirenSpireDeep) state.result += " [Siren Spire Whisper]";
+    if (state.relics && state.relics.echoBloomDeep) state.result += " [Echo Bloom Whisper]";
     if (state.lureDeep) state.result += " [Lure Deep Lore]";
     if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) state.result += " [Drowned Archive Signatures Aligned]";
     // feat-1/2: unique deep resonance lore + discovery high in result for branching secrets
@@ -4005,6 +4038,7 @@ function resolveGate(state) {
       if (state.relics && state.relics.drownedChoirDeep) bonus += 1;
       if (state.relics && state.relics.nullCryptDeep) bonus += 1;
       if (state.relics && state.relics.sirenSpireDeep) bonus += 1;
+      if (state.relics && state.relics.echoBloomDeep) bonus += 1;
       if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) bonus += 1; // combo for committed deep secrets
       const newLevel = Math.min(5, (legacy.level || 0) + bonus);
       if (newLevel > (legacy.level || 0)) {
