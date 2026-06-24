@@ -152,7 +152,7 @@ function unlockTidewalkRouteChoice(state) {
   moveTo(state, { x: 1760, y: 860 }, "survey south pier", 6);
   moveTo(state, secondField.nextSite.target, "lampblack storehouse", 6);
   tick(state, WORLD.tidewalkSurveySeconds + 0.12, { analyze: true });
-  assert.equal(state.scene, "archive");
+  assert.equal(state.scene, "tidewalk");
 
   const routeChoice = getFrontierRouteChoice(state);
   assert.equal(routeChoice.active, true);
@@ -338,16 +338,37 @@ function unlockTidewalkRouteChoice(state) {
   assert.deepEqual(new Set(completedSurvey.discoveredClueIds), new Set(["warehouse-ledger", "black-keel-mark"]));
   assert.match(completedSurvey.resourceTitle, /Hostile Salvage Mark/);
   assert.match(completedSurvey.nextHook, /intercept, bargain, or shadow/i);
-  assert.match(state.clueLog.at(-1), /Hostile Salvage Mark/);
+  assert.match(state.clueLog.at(-1), /contacts answer the hostile mark/i);
 
   const routeChoice = getFrontierRouteChoice(state);
   assert.equal(routeChoice.active, true);
   assert.equal(routeChoice.selectedChoice, null);
   assert.equal(routeChoice.choices.length, 2);
-  assert.match(routeChoice.prompt, /Choose whether Tidewalk Coast stabilizes/i);
+  assert.match(routeChoice.prompt, /moving Tidewalk contacts/i);
+  assert.equal(routeChoice.choices.every((choice) => choice.target && choice.contactLabel && choice.presence && choice.hail), true);
+  const initialContactTargets = Object.fromEntries(
+    routeChoice.choices.map((choice) => [choice.id, { x: choice.target.x, y: choice.target.y }])
+  );
   assert.equal(chooseFrontierRoute(state, "wrong-choice"), false);
-  assert.equal(chooseFrontierRoute(state, "black-keel-countermark"), true);
+  tick(state, 1.25);
+  const driftingRouteChoice = getFrontierRouteChoice(state);
+  assert.equal(
+    driftingRouteChoice.choices.some((choice) => {
+      const target = initialContactTargets[choice.id];
+      return choice.target.x !== target.x || choice.target.y !== target.y;
+    }),
+    true
+  );
+  const driftingCountermarker = driftingRouteChoice.choices.find((choice) => choice.id === "black-keel-countermark");
+  state.player.x = driftingCountermarker.target.x;
+  state.player.y = driftingCountermarker.target.y;
+  const inRangeRouteChoice = getFrontierRouteChoice(state);
+  assert.equal(inRangeRouteChoice.choices.find((choice) => choice.id === "black-keel-countermark").inRange, true);
+  tick(state, WORLD.tidewalkSurveySeconds + 0.12, { analyze: true });
+  assert.equal(chooseFrontierRoute(state, "black-keel-countermark"), false);
   assert.equal(chooseFrontierRoute(state, "quay-safe-lantern-line"), false);
+  assert.equal(state.scene, "archive");
+  assert.match(state.clueLog.at(-3), /wet tar sign/i);
   assert.match(state.clueLog.at(-1), /hostile salvage network/i);
 
   const selectedRouteChoice = getFrontierRouteChoice(state);

@@ -1669,6 +1669,39 @@ const TIDEWALK_SURVEY_SCENE = {
   }
 };
 
+const TIDEWALK_ROUTE_CONTACTS = {
+  "quay-safe-lantern-line": {
+    label: "Quay lantern keeper",
+    path: [
+      { x: 250, y: 860 },
+      { x: 316, y: 790 },
+      { x: 404, y: 844 },
+      { x: 328, y: 928 }
+    ],
+    speed: 26,
+    phaseOffset: 0.15,
+    callout: "Shuttered lantern raised",
+    presence: "Circles the quay ropewalk and keeps the safer lantern chain lit just above the tide.",
+    hail: "The keeper hails that the lit line can still move honest cargo inland.",
+    commitText: "The lantern keeper shutters a low lamp twice and waves the archive crew onto the safer line."
+  },
+  "black-keel-countermark": {
+    label: "Black-Keel countermarker",
+    path: [
+      { x: 1760, y: 860 },
+      { x: 1702, y: 798 },
+      { x: 1608, y: 850 },
+      { x: 1706, y: 930 }
+    ],
+    speed: 28,
+    phaseOffset: 0.85,
+    callout: "Wet tar sign flashing",
+    presence: "Paces the outer pilings, checking a tar-black marker against the tide and the underpier wake.",
+    hail: "The countermarker hisses that Black-Keel left fresh paint and did not expect company.",
+    commitText: "The countermarker smears a wet tar sign across your sleeve and slips toward the underpier route."
+  }
+};
+
 export function createGameState() {
   const state = {
     time: 0,
@@ -2093,6 +2126,19 @@ export function getActiveObjective(state) {
   const tidewalkSurvey = getTidewalkSurveyField(state);
   if (tidewalkSurvey.active) {
     return buildObjective("tidewalk-survey", tidewalkSurvey.title, tidewalkSurvey.target, state);
+  }
+
+  const routeChoice = getFrontierRouteChoice(state);
+  if (routeChoice.active && !routeChoice.selectedChoice && state.scene === "tidewalk") {
+    const nearestContact = [...routeChoice.choices].sort(
+      (left, right) => distance(state.player, left.target) - distance(state.player, right.target)
+    )[0];
+    return buildObjective(
+      "tidewalk-route-choice",
+      `Reach ${nearestContact.contactLabel}`,
+      nearestContact.target,
+      state
+    );
   }
 
   const openFragments = state.fragments.filter((fragment) => !fragment.collected);
@@ -2562,17 +2608,40 @@ export function getFrontierRouteChoice(state) {
 
   const selectedChoiceId = state.frontier?.selectedRouteChoiceId || null;
   const selectedChoice = TIDEWALK_ROUTE_CHOICES.find((choice) => choice.id === selectedChoiceId) || null;
+  const progressState = state.frontier?.tidewalkSurvey || {};
+  const choices = TIDEWALK_ROUTE_CHOICES.map((choice) => {
+    const contact = TIDEWALK_ROUTE_CONTACTS[choice.id];
+    const target =
+      getLoopPathPosition(contact?.path || [], contact?.speed || 0, state.time, contact?.phaseOffset || 0) ||
+      contact?.path?.[0] || {
+        x: state.player.x,
+        y: state.player.y
+      };
+    return {
+      ...choice,
+      selected: choice.id === selectedChoiceId,
+      contactLabel: contact?.label || choice.label,
+      callout: contact?.callout || null,
+      presence: contact?.presence || null,
+      hail: contact?.hail || null,
+      path: (contact?.path || []).map((point) => ({ ...point })),
+      target: { ...target },
+      inRange: state.scene === "tidewalk" && distance(state.player, target) <= WORLD.tidewalkSurveyRadius
+    };
+  });
   return {
     active: true,
     routeId: survey.routeId,
     selectedChoice,
-    choices: TIDEWALK_ROUTE_CHOICES.map((choice) => ({
-      ...choice,
-      selected: choice.id === selectedChoiceId
-    })),
+    progress: progressState.progress || 0,
+    required: WORLD.tidewalkSurveySeconds,
+    tideStilled: (progressState.tideStilledUntil || 0) > state.time,
+    hazards: TIDEWALK_SCENE.hazards.map((hazard) => ({ ...hazard })),
+    obstacles: TIDEWALK_SCENE.obstacles.map((obstacle) => ({ ...obstacle })),
+    choices,
     prompt: selectedChoice
       ? `${selectedChoice.label} selected: ${selectedChoice.consequence}`
-      : "Choose whether Tidewalk Coast stabilizes behind lanterns or presses the hostile countermark deeper into Black-Keel territory."
+      : "Track down one of the moving Tidewalk contacts and hold E to commit the coast."
   };
 }
 
@@ -2592,10 +2661,21 @@ export function chooseFrontierRoute(state, choiceId) {
     routeId: routeChoice.routeId,
     choiceId: choice.id,
     label: choice.label,
+    contactLabel: TIDEWALK_ROUTE_CONTACTS[choice.id]?.label || choice.label,
     chosenAt: state.time
   };
+  const contact = TIDEWALK_ROUTE_CONTACTS[choice.id];
+  if (contact?.commitText) {
+    state.clueLog.push(contact.commitText);
+  }
   state.clueLog.push(`Tidewalk route chosen: ${choice.label}`);
   state.clueLog.push(choice.consequence);
+  state.scene = "archive";
+  state.player.x = TIDEWALK_SURVEY_SCENE.launchGate.x;
+  state.player.y = TIDEWALK_SURVEY_SCENE.launchGate.y;
+  state.frontier.tidewalkSurvey.launched = false;
+  state.frontier.tidewalkSurvey.progress = 0;
+  state.frontier.tidewalkSurvey.tideStilledUntil = 0;
   return true;
 }
 
@@ -3195,6 +3275,7 @@ export function updateGameState(state, input, deltaSeconds) {
     resolveBrinehookPierExit(state, input, dt);
   }
   resolveTidewalkSurveyField(state, input, dt);
+  resolveTidewalkRouteChoice(state, input, dt);
   resolveTidewalkExpedition(state, input, dt);
 
   return state;
@@ -3274,11 +3355,8 @@ function resolveTidewalkSurveyField(state, input, dt) {
 
     const nextSurvey = getFrontierSurvey(state);
     if (nextSurvey.complete) {
-      progressState.launched = false;
       progressState.tideStilledUntil = 0;
-      state.scene = "archive";
-      state.player.x = TIDEWALK_SURVEY_SCENE.launchGate.x;
-      state.player.y = TIDEWALK_SURVEY_SCENE.launchGate.y;
+      state.clueLog.push("Two Tidewalk contacts answer the hostile mark. Approach one and hold E to commit the coast.");
     }
     return;
   }
@@ -3301,6 +3379,31 @@ function resolveTidewalkSurveyField(state, input, dt) {
         state.runEndedAt = Date.now();
       }
     }
+  }
+}
+
+function resolveTidewalkRouteChoice(state, input, dt) {
+  if (state.scene !== "tidewalk") {
+    return;
+  }
+
+  const routeChoice = getFrontierRouteChoice(state);
+  if (!routeChoice.active || routeChoice.selectedChoice) {
+    return;
+  }
+
+  const contact = routeChoice.choices.find((choice) => choice.inRange);
+  const progressState = state.frontier.tidewalkSurvey;
+  if (!input.analyze || !contact || state.signal <= 0) {
+    progressState.progress = Math.max(0, progressState.progress - dt * 0.7);
+    return;
+  }
+
+  state.signal = Math.max(0, state.signal - WORLD.tidewalkSurveyDrainPerSecond * dt);
+  progressState.progress = Math.min(routeChoice.required, progressState.progress + dt);
+  if (progressState.progress >= routeChoice.required) {
+    progressState.progress = 0;
+    chooseFrontierRoute(state, contact.id);
   }
 }
 
@@ -4739,6 +4842,55 @@ function findNearest(origin, candidates) {
     }
     return nearest;
   }, null);
+}
+
+function getLoopPathPosition(path, speed, time, phaseOffset = 0) {
+  if (!Array.isArray(path) || path.length === 0) {
+    return null;
+  }
+
+  if (path.length === 1 || speed <= 0) {
+    return { ...path[0] };
+  }
+
+  const segments = [];
+  let totalLength = 0;
+  for (let index = 0; index < path.length; index += 1) {
+    const start = path[index];
+    const end = path[(index + 1) % path.length];
+    const length = distance(start, end);
+    if (length <= 0) {
+      continue;
+    }
+
+    segments.push({ start, end, length });
+    totalLength += length;
+  }
+
+  if (segments.length === 0 || totalLength <= 0) {
+    return { ...path[0] };
+  }
+
+  let travel = ((time + phaseOffset) * speed) % totalLength;
+  if (travel < 0) {
+    travel += totalLength;
+  }
+
+  for (const segment of segments) {
+    if (travel <= segment.length) {
+      return interpolatePoint(segment.start, segment.end, travel / segment.length);
+    }
+    travel -= segment.length;
+  }
+
+  return { ...segments[segments.length - 1].end };
+}
+
+function interpolatePoint(start, end, t) {
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t
+  };
 }
 
 function findNearestRoute(origin, routes) {

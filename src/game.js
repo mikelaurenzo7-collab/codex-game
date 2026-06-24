@@ -226,6 +226,7 @@ function draw() {
   const height = canvas.clientHeight;
   const camera = makeCamera(width, height);
   const tidewalkSurvey = getTidewalkSurveyField(state);
+  const routeChoice = getFrontierRouteChoice(state);
 
   ctx.clearRect(0, 0, width, height);
   drawBackground(width, height);
@@ -236,6 +237,8 @@ function draw() {
 
   if (state.scene === "tidewalk" && tidewalkSurvey.active && tidewalkSurvey.phase === "field") {
     drawTidewalkSurveyScene(tidewalkSurvey);
+  } else if (state.scene === "tidewalk" && routeChoice.active && !routeChoice.selectedChoice) {
+    drawTidewalkRouteChoiceScene(routeChoice);
   } else if (state.scene === "tidewalk") {
     drawTidewalkScene();
     const stage = getTidewalkPlayableCommitmentStage(state);
@@ -942,6 +945,114 @@ function drawTidewalkSurveyScene(tidewalkSurvey) {
   }
 }
 
+function drawTidewalkRouteChoiceScene(routeChoice) {
+  ctx.fillStyle = "#11292c";
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  const tide = ctx.createLinearGradient(0, 0, WORLD.width, WORLD.height);
+  tide.addColorStop(0, "rgba(28, 108, 104, 0.16)");
+  tide.addColorStop(0.55, "rgba(4, 17, 21, 0.7)");
+  tide.addColorStop(1, "rgba(58, 95, 80, 0.2)");
+  ctx.fillStyle = tide;
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  ctx.strokeStyle = "rgba(98, 214, 184, 0.12)";
+  ctx.lineWidth = 4;
+  for (let y = 120; y < WORLD.height; y += 140) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(380, y - 90, 960, y + 72, WORLD.width, y - 24);
+    ctx.stroke();
+  }
+
+  for (const hazard of routeChoice.hazards) {
+    const suppressed = routeChoice.tideStilled;
+    ctx.save();
+    ctx.translate(hazard.x, hazard.y);
+    ctx.fillStyle = suppressed ? "rgba(98, 214, 184, 0.08)" : "rgba(4, 8, 13, 0.58)";
+    ctx.strokeStyle = suppressed ? "rgba(98, 214, 184, 0.44)" : "rgba(217, 102, 102, 0.42)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius + Math.sin(state.time * 3 + hazard.x) * 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (const obstacle of routeChoice.obstacles) {
+    ctx.fillStyle = "#334344";
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    ctx.fillStyle = "rgba(98, 214, 184, 0.1)";
+    ctx.fillRect(obstacle.x + 6, obstacle.y + 6, obstacle.width - 12, obstacle.height - 12);
+  }
+
+  for (const choice of routeChoice.choices) {
+    const progress = choice.inRange ? routeChoice.progress / routeChoice.required : 0;
+    const accent = choice.id === "quay-safe-lantern-line" ? "rgba(98, 214, 184, 0.62)" : "rgba(232, 145, 112, 0.64)";
+
+    if (choice.path.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([12, 10]);
+      ctx.beginPath();
+      choice.path.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.translate(choice.target.x, choice.target.y);
+    ctx.fillStyle = choice.id === "quay-safe-lantern-line" ? "rgba(14, 59, 53, 0.86)" : "rgba(38, 22, 18, 0.84)";
+    ctx.strokeStyle = choice.inRange
+      ? "#e8c46d"
+      : choice.id === "quay-safe-lantern-line"
+        ? "rgba(98, 214, 184, 0.52)"
+        : "rgba(224, 139, 102, 0.56)";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(
+      0,
+      0,
+      WORLD.tidewalkSurveyRadius,
+      -Math.PI / 2,
+      -Math.PI / 2 + Math.PI * 2 * progress
+    );
+    ctx.lineTo(0, 0);
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([10, 8]);
+    ctx.strokeStyle = "rgba(243, 240, 220, 0.26)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, WORLD.tidewalkSurveyRadius - 14, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#f3f0dc";
+    ctx.fillRect(-6, -18, 12, 28);
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(0, -22, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f3f0dc";
+    ctx.font = "700 14px system-ui, sans-serif";
+    ctx.fillText(choice.contactLabel, 28, -18);
+    ctx.fillStyle = accent;
+    ctx.font = "700 11px system-ui, sans-serif";
+    ctx.fillText(choice.label, 28, 2);
+    ctx.fillStyle = "rgba(243, 240, 220, 0.74)";
+    ctx.fillText(choice.callout, 28, 20);
+    ctx.restore();
+  }
+}
+
 function drawFrontierCoastalOperation() {
   const operation = getFrontierCoastalOperation(state);
   if (!operation.active) {
@@ -1234,13 +1345,16 @@ function updateHud() {
   const resolution = getBrinehookResolutionState(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   const tidePhase = state.frontier?.tide?.phase ? ` (${state.frontier.tide.phase.toUpperCase()} TIDE)` : "";
+  const liveRouteChoice = routeChoice.active && !routeChoice.selectedChoice && state.scene === "tidewalk";
   fragmentReadout.textContent =
     state.scene === "tidewalk" && tidewalkSurvey.active && tidewalkSurvey.phase === "field"
       ? `Tidewalk Coast Survey ${tidewalkSurvey.completedCount}/${tidewalkSurvey.totalSiteCount}${tidePhase}`
+      : liveRouteChoice
+        ? `Tidewalk contact choice${tidePhase}`
       : state.scene === "tidewalk"
         ? `Brinehook Low Piers${tidePhase}`
         : `Fragments ${collectedFragmentCount(state)}/${state.fragments.length}`;
-  objectiveReadout.textContent = stage.active
+  objectiveReadout.textContent = stage.active && !liveRouteChoice
     ? stage.objectiveText
     : formatObjective(
         objective,
@@ -1279,6 +1393,18 @@ function updateHud() {
 
   if (state.status !== "running") {
     statusReadout.textContent = state.result;
+  } else if (liveRouteChoice) {
+    const inRangeChoice = routeChoice.choices.find((choice) => choice.inRange) || null;
+    const trackedChoice = inRangeChoice || getNearestTidewalkChoice(routeChoice);
+    if (inRangeChoice && input.analyze) {
+      statusReadout.textContent = `${inRangeChoice.contactLabel} ${Math.round((routeChoice.progress / routeChoice.required) * 100)}%`;
+    } else if (inRangeChoice) {
+      statusReadout.textContent = inRangeChoice.hail;
+    } else if (trackedChoice) {
+      statusReadout.textContent = `Track ${trackedChoice.contactLabel}`;
+    } else {
+      statusReadout.textContent = "Approach a Tidewalk contact";
+    }
   } else if (stage.active) {
     statusReadout.textContent = stage.statusText;
   } else if (tidewalkSurvey.active && tidewalkSurvey.phase === "field" && tidewalkSurvey.inRange && input.analyze) {
@@ -1473,38 +1599,56 @@ function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, 
     ? stage.dossierProjection.title
     : routeChoice.selectedChoice
       ? `Selected: ${routeChoice.selectedChoice.label}`
-      : "Choose a coastal line";
+      : "Meet a coastal contact";
   arrivalRouteChoiceText.textContent = useProjection
     ? stage.dossierProjection.text
     : routeChoice.prompt;
 
   const choicesToRender = useProjection ? stage.dossierProjection.choices : routeChoice.choices;
-
   arrivalRouteChoiceList.replaceChildren(
     ...choicesToRender.map((choice) => {
       const item = document.createElement("li");
       item.className = "arrival-survey-item";
 
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "arrival-action-button";
-      button.dataset.choiceId = choice.choiceId || choice.id;
-      button.disabled = useProjection ? choice.disabled : Boolean(routeChoice.selectedChoice);
-      button.textContent = useProjection
-        ? choice.actionLabel
-        : routeChoice.selectedChoice
-          ? choice.selected
-            ? `${choice.label} selected`
-            : choice.label
-          : `Choose ${choice.label}`;
+      if (useProjection) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "arrival-action-button";
+        button.dataset.choiceId = choice.choiceId || choice.id;
+        button.disabled = Boolean(choice.disabled);
+        button.textContent = choice.actionLabel;
+
+        const detail = document.createElement("span");
+        detail.className = "arrival-choice-detail";
+        detail.textContent = choice.detail;
+
+        item.append(button, detail);
+        return item;
+      }
+
+      const title = document.createElement("span");
+      title.className = "arrival-block-title";
+      title.textContent = `${choice.contactLabel} - ${choice.label}`;
+
+      const presence = document.createElement("span");
+      presence.className = "arrival-survey-detail";
+      presence.textContent = choice.presence;
 
       const detail = document.createElement("span");
       detail.className = "arrival-choice-detail";
-      detail.textContent = useProjection
-        ? choice.detail
-        : `Risk ${choice.risk}/5 | ${choice.reward} | ${choice.consequence}`;
+      detail.textContent = `Risk ${choice.risk}/5 | ${choice.reward} | ${choice.consequence}`;
 
-      item.append(button, detail);
+      const status = document.createElement("span");
+      status.className = `arrival-survey-status ${choice.selected ? "is-complete" : choice.inRange ? "is-active" : "is-pending"}`;
+      status.textContent = routeChoice.selectedChoice
+        ? choice.selected
+          ? "Committed in field"
+          : "Not selected"
+        : choice.inRange
+          ? "Hold E in Tidewalk Coast"
+          : choice.callout;
+
+      item.append(title, status, presence, detail);
       return item;
     })
   );
@@ -1646,7 +1790,7 @@ function updatePrimer(
     return;
   }
 
-  if (stage && stage.active && !stage.complete) {
+  if (stage && stage.active && !stage.complete && !(routeChoice.active && !routeChoice.selectedChoice && state.scene === "tidewalk")) {
     primerTitle.textContent = stage.dossierProjection?.title || "Choose a coastal contact";
     primerText.textContent = stage.objectiveText || "Find the contacts at the pier and hold E to commit.";
     return;
@@ -1677,6 +1821,18 @@ function updatePrimer(
   if (expedition.active && expedition.complete) {
     primerTitle.textContent = expedition.completionTitle;
     primerText.textContent = expedition.completionText;
+    return;
+  }
+
+  if (routeChoice.active && !routeChoice.selectedChoice && state.scene === "tidewalk") {
+    const inRangeChoice = routeChoice.choices.find((choice) => choice.inRange) || null;
+    const trackedChoice = inRangeChoice || getNearestTidewalkChoice(routeChoice);
+    primerTitle.textContent = "Choose the Tidewalk line";
+    primerText.textContent = inRangeChoice
+      ? `Hold E beside the ${inRangeChoice.contactLabel} to back ${inRangeChoice.label.toLowerCase()}. ${inRangeChoice.hail}`
+      : trackedChoice
+        ? `Track the moving ${trackedChoice.contactLabel}. ${trackedChoice.presence}`
+        : "Cross Tidewalk Coast and reach either contact ring to commit the coast in person.";
     return;
   }
 
@@ -1722,7 +1878,7 @@ function updatePrimer(
 
   if (routeChoice.active && !routeChoice.selectedChoice) {
     primerTitle.textContent = "Choose the Tidewalk line";
-    primerText.textContent = "The hostile salvage mark is confirmed. Use the arrival dossier to commit to the safer lantern line or the riskier countermark pursuit.";
+    primerText.textContent = "The hostile salvage mark is confirmed. Return to Tidewalk Coast and commit the branch by catching one of the moving local contacts in person.";
     return;
   }
 
@@ -1824,6 +1980,16 @@ function formatObjective(
       : `${tidewalkSurvey.title} ${Math.round(distanceBetween(state.player, tidewalkSurvey.target))}m`;
   }
 
+  if (routeChoice.active && !routeChoice.selectedChoice && state.scene === "tidewalk") {
+    const inRangeChoice = routeChoice.choices.find((choice) => choice.inRange) || null;
+    const trackedChoice = inRangeChoice || getNearestTidewalkChoice(routeChoice);
+    return inRangeChoice
+      ? `${inRangeChoice.contactLabel} ${Math.round((routeChoice.progress / routeChoice.required) * 100)}%`
+      : trackedChoice
+        ? `Reach ${trackedChoice.contactLabel} ${Math.round(distanceBetween(state.player, trackedChoice.target))}m`
+        : "Choose a Tidewalk contact";
+  }
+
   if (expedition.active && !expedition.complete) {
     if (expedition.phase === "field" && resolution?.active) {
       return resolution.objective;
@@ -1866,7 +2032,7 @@ function formatObjective(
   }
 
   if (routeChoice.active && !routeChoice.selectedChoice) {
-    return "Choose Tidewalk route";
+    return "Return to Tidewalk contact";
   }
 
   if (survey.active && survey.complete) {
@@ -1943,6 +2109,22 @@ function updateJournal() {
 
 function distanceBetween(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function getNearestTidewalkChoice(routeChoice) {
+  if (!routeChoice?.choices?.length) {
+    return null;
+  }
+
+  return routeChoice.choices.reduce((nearest, choice) => {
+    if (!nearest) {
+      return choice;
+    }
+
+    return distanceBetween(state.player, choice.target) < distanceBetween(state.player, nearest.target)
+      ? choice
+      : nearest;
+  }, null);
 }
 
 function clamp(value, min, max) {
