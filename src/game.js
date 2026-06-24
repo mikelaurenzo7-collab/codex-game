@@ -180,7 +180,9 @@ resizeCanvas();
 requestAnimationFrame(frame);
 
 function restart() {
-  if (!isRunStartAllowed(state)) {
+  // Interval guard only applies after a previous run has reached non-running finish state.
+  // While running, R/restart always allowed (immediate abandon + fresh start).
+  if (state.status !== "running" && !isRunStartAllowed(state)) {
     checkpointMessage = "Interval active — prior run must settle";
     updateHud();
     return;

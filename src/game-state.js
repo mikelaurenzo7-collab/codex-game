@@ -2655,7 +2655,7 @@ function clamp(value, min, max) {
 export function isRunStartAllowed(state, referenceTime = Date.now()) {
   if (!isRecord(state)) return false;
   if (state.status === "running") {
-    return false;
+    return true; // mid-run restart allowed (abandon current expedition for fresh one)
   }
   const ended = state.runEndedAt;
   if (ended === null || ended === undefined) {

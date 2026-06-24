@@ -698,11 +698,13 @@ function unlockTidewalkRouteChoice(state) {
 }
 
 // Interval guard and run sequencing (AC 2,3)
+// Guard semantics: running states allow immediate restart (abandon + fresh);
+// only finished (non-running) states with recent runEndedAt within interval are blocked.
 {
   const fresh = createGameState();
   assert.equal(fresh.status, "running");
   assert.equal(fresh.runEndedAt, null);
-  assert.equal(isRunStartAllowed(fresh), false, "cannot start new while running");
+  assert.equal(isRunStartAllowed(fresh), true, "active expedition allows immediate restart/abandon for fresh run");
   assert.equal(getRunFinishTime(fresh), null);
 }
 
@@ -728,6 +730,19 @@ function unlockTidewalkRouteChoice(state) {
   const next = createGameState();
   assert.equal(next.status, "running");
   assert.equal(next.runEndedAt, null);
+}
+
+// Additional coverage: running state always permits restart-equivalent; interval only post-finish
+{
+  const active = createGameState();
+  // simulate some play without finishing
+  active.player.x = 300;
+  active.player.y = 400;
+  tick(active, 1.0);
+  assert.equal(active.status, "running");
+  assert.equal(isRunStartAllowed(active), true, "mid-expedition allows immediate restart to fresh");
+  const restarted = createGameState();
+  assert.equal(restarted.status, "running", "restart-equivalent from running produces fresh running state");
 }
 
 {
