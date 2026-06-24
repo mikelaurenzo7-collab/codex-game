@@ -1444,5 +1444,52 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(isRunStartAllowed(state), false);
 }
 
+// TDD (real path): Nexus Breach new far-edge region + 2 POIs (nexus-spire branching secret, echo-nexus for lore/progression). Real paths only: create -> shards/pos/analyze -> gate/fail -> assert flags, result, runEndedAt, !allowed then allowed, fresh create running+null.
+{
+  // Deep nexus-spire
+  const state = createGameState();
+  tick(state, 0.1);
+  state.echoShards = 3;
+  state.player.x = 14920; state.player.y = 8900; // nexus-spire
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.nexusSpireEmbraced, true);
+  assert.equal(state.relics.nexusSpireDeep, true);
+  assert.ok((state.echoShards || 0) >= 4);
+  assert.equal(state.deepResonance, true);
+  assert.equal(state.nexusPulse, true);
+
+  // Full gate + guard
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.15);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.ok(state.result && state.result.includes("Nexus Spire"), "result has new sig");
+  assert.equal(isRunStartAllowed(state), false);
+  const later = state.runEndedAt + (WORLD.runIntervalSeconds + 2) * 1000;
+  assert.equal(isRunStartAllowed(state, later), true, "guard preserved");
+  const fresh = createGameState();
+  assert.equal(fresh.status, "running");
+  assert.equal(fresh.runEndedAt, null);
+}
+
+{
+  // Shallow echo-nexus
+  const state = createGameState();
+  tick(state, 0.1);
+  state.player.x = 14980; state.player.y = 9186;
+  state.echoShards = 0;
+  state.shardJournal = [];
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.echoNexusEmbraced, true);
+  assert.ok(!state.relics.echoNexusDeep);
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
 // Iteration note: verified Horizon Rift + shardJournal features + guard in this scheduled loop
 console.log("game-state tests passed");

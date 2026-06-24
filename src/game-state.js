@@ -581,6 +581,20 @@ const REGIONS = [
     hazard: "Eternal pull and memory drain",
     settlementPotential: 1,
     settlementProspect: "A beacon for those who dare the final dark."
+  },
+  {
+    id: "nexus-breach",
+    name: "Nexus Breach",
+    biome: "Cosmic Tear",
+    x: 14000,
+    y: 8800,
+    width: 1000,
+    height: 500,
+    detail: "A breach where realities tear. Echoes from beyond offer power or peril.",
+    hazardLevel: 5,
+    hazard: "Reality rifts and echo storms",
+    settlementPotential: 1,
+    settlementProspect: "An outpost for the void-touched."
   }
 ];
 
@@ -1124,6 +1138,26 @@ const LANDMARKS = [
     radius: 75,
     type: "relic",
     detail: "A binding point in the void. Hold E for shallow echo or eternal commitment for carry."
+  },
+  {
+    id: "nexus-spire",
+    title: "Nexus Spire",
+    regionId: "nexus-breach",
+    x: 14920,
+    y: 8900,
+    radius: 85,
+    type: "mystery",
+    detail: "A spire at the breach. Hold E for shallow glimpse or deep nexus attune."
+  },
+  {
+    id: "breach-nexus",
+    title: "Breach Nexus",
+    regionId: "nexus-breach",
+    x: 14980,
+    y: 8982,
+    radius: 80,
+    type: "relic",
+    detail: "A nexus of echoes. Hold E for power or bind lore for the long run."
   }
 ];
 
@@ -1621,7 +1655,11 @@ export function createGameState() {
       voidWhisperEmbraced: false,
       voidWhisperDeep: false,
       eternalBindEmbraced: false,
-      eternalBindDeep: false
+      eternalBindDeep: false,
+      nexusSpireEmbraced: false,
+      nexusSpireDeep: false,
+      echoNexusEmbraced: false,
+      echoNexusDeep: false
     },
     relicSpireAttuned: false,
     legacy: loadLegacy(),
@@ -1741,7 +1779,7 @@ export function restoreGameCheckpoint(serialized) {
     restored.runEndedAt = null;
   }
   if (restored && !restored.relics) {
-    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false };
+    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false, nexusSpireEmbraced: false, nexusSpireDeep: false, echoNexusEmbraced: false, echoNexusDeep: false };
   }
   if (restored && restored.relicSpireAttuned === undefined) {
     restored.relicSpireAttuned = false;
@@ -2757,6 +2795,8 @@ export function getExtractionReadiness(state) {
   if (state.relics && state.relics.fractureVaultDeep) deepSigs.push("Fracture Vault");
   if (state.relics && state.relics.voidWhisperDeep) deepSigs.push("Void Whisper");
   if (state.relics && state.relics.eternalBindDeep) deepSigs.push("Eternal Bind");
+  if (state.relics && state.relics.nexusSpireDeep) deepSigs.push("Nexus Spire");
+  if (state.relics && state.relics.echoNexusDeep) deepSigs.push("Echo Nexus");
   if (deepSigs.length > 0 && resultText) {
     const sigStr = deepSigs.join(" + ");
     resultText += ` [${sigStr} Signature]`;
@@ -2839,6 +2879,9 @@ export function triggerPulse(state) {
   }
   if (state.deepResonance) {
     pulseR *= 1.25; // resonant boost from committing to deep secret branch (unique mechanic for discovery highs)
+  }
+  if (state.nexusPulse) {
+    pulseR *= 1.3; // nexus pulse from deep nexus-spire
   }
 
   state.signal = Math.max(0, state.signal - cost);
@@ -3370,7 +3413,7 @@ function resolveWorldSurvey(state) {
 
   // Echo Shards - light discovery progression: resonant high-hazard/far discoveries yield countable shards
   // for in-run buffs + extract rewards + legacy carry (Skyrim "one more run" after cooldown)
-  const resonantRegionIds = ["whisper-reefs", "starless-halls", "abyssal-trenches", "void-reaches", "storm-vortex", "deep-void", "eastern-abyss", "northern-fringe", "horizon-rift", "abyssal-verge", "eternal-void"];
+  const resonantRegionIds = ["whisper-reefs", "starless-halls", "abyssal-trenches", "void-reaches", "storm-vortex", "deep-void", "eastern-abyss", "northern-fringe", "horizon-rift", "abyssal-verge", "eternal-void", "nexus-breach"];
   const current = findRegionAt(state.player);
   if (current && resonantRegionIds.includes(current.id)) {
     const wasNew = !state.atlas.visitedRegionIds.includes(current.id);
@@ -3411,7 +3454,7 @@ function resolveWorldSurvey(state) {
 
 function resolveSpecialRelics(state, input) {
   if (!state.relics) {
-    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false };
+    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false, nexusSpireEmbraced: false, nexusSpireDeep: false, echoNexusEmbraced: false, echoNexusDeep: false };
   }
 
   const holding = Boolean(input.analyze);
@@ -4072,6 +4115,46 @@ function resolveSpecialRelics(state, input) {
       state.clueLog.push("Shallow bind: signal and power");
     }
   }
+
+  // Nexus Breach new POIs - nexus-spire and echo-nexus for branching secrets + progression
+  const nSpire = LANDMARKS.find(l => l.id === "nexus-spire");
+  if (nSpire && !state.relics.nexusSpireEmbraced && distance(state.player, nSpire) <= nSpire.radius + 30 && holding) {
+    state.relics.nexusSpireEmbraced = true;
+    state.clueLog.push("Nexus Spire: the breach hums with power");
+    state.lastDiscovery = { title: "Nexus Spire", time: state.time, type: "relic" };
+    if ((state.echoShards || 0) >= 2) {
+      state.relics.nexusSpireDeep = true;
+      state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
+      state.nexusPulse = true;
+      state.shardJournal = state.shardJournal || [];
+      state.shardJournal.push({ title: "Nexus Verse", source: "Nexus Spire", time: state.time });
+      state.clueLog.push("Deep Resonance: nexus verse awarded shard + boost + nexus pulse");
+    } else {
+      state.signal = Math.min(100, state.signal + 25);
+      state.nexusLure = true;
+      state.clueLog.push("Shallow nexus: signal surge");
+    }
+  }
+
+  const eNexus = LANDMARKS.find(l => l.id === "breach-nexus");
+  if (eNexus && !state.relics.echoNexusEmbraced && distance(state.player, eNexus) <= eNexus.radius + 30 && holding) {
+    state.relics.echoNexusEmbraced = true;
+    state.clueLog.push("Echo Nexus: bind echo or power for the journey");
+    state.lastDiscovery = { title: "Echo Nexus", time: state.time, type: "relic" };
+    if ((state.echoShards || 0) >= 3 || (state.shardJournal || []).length >= 3) {
+      state.relics.echoNexusDeep = true;
+      state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
+      state.nexusMastery = true; // for feedback/progression
+      state.shardJournal = state.shardJournal || [];
+      state.shardJournal.push({ title: "Echo Bind", source: "Echo Nexus", time: state.time });
+      state.clueLog.push("Deep Resonance: echo nexus awarded shard + mastery + journal");
+    } else {
+      state.signal = Math.min(100, state.signal + 30);
+      state.clueLog.push("Shallow echo: signal and power");
+    }
+  }
 }
 
 function resolveFrontierSurvey(state) {
@@ -4277,6 +4360,8 @@ function resolveGate(state) {
     if (state.relics && state.relics.fractureVaultDeep) state.result += " [Fracture Vault Lore]";
     if (state.relics && state.relics.voidWhisperDeep) state.result += " [Void Whisper]";
     if (state.relics && state.relics.eternalBindDeep) state.result += " [Eternal Bind]";
+    if (state.relics && state.relics.nexusSpireDeep) state.result += " [Nexus Spire]";
+    if (state.relics && state.relics.echoNexusDeep) state.result += " [Echo Nexus]";
     if (state.lureDeep) state.result += " [Lure Deep Lore]";
     if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) state.result += " [Drowned Archive Signatures Aligned]";
     // feat-1/2: unique deep resonance lore + discovery high in result for branching secrets
@@ -4309,6 +4394,8 @@ function resolveGate(state) {
       if (state.relics && state.relics.fractureVaultDeep) bonus += 1;
       if (state.relics && state.relics.voidWhisperDeep) bonus += 1;
       if (state.relics && state.relics.eternalBindDeep) bonus += 1;
+      if (state.relics && state.relics.nexusSpireDeep) bonus += 1;
+      if (state.relics && state.relics.echoNexusDeep) bonus += 1;
       if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) bonus += 1; // combo for committed deep secrets
       const newLevel = Math.min(5, (legacy.level || 0) + bonus);
       if (newLevel > (legacy.level || 0)) {

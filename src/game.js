@@ -1193,7 +1193,11 @@ function drawEndState(width, height) {
     if (readinessFb.deepSignatures && readinessFb.deepSignatures.length > 0) {
       ctx.fillText(`Deep secrets: ${readinessFb.deepSignatures.join(" + ")}`, cx, height / 2 + 198);
     }
-    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed || state.relics.sirenSpireDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep)) {
+    const deepCount = (state.relics ? Object.keys(state.relics).filter(k => k.endsWith('Deep') && state.relics[k]).length : 0);
+    if (deepCount > 0) {
+      ctx.fillText(`Deep Mastery: ${deepCount} commitments`, cx, height / 2 + 204);
+    }
+    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed || state.relics.sirenSpireDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep || state.relics.nexusSpireDeep || state.relics.echoNexusDeep)) {
       ctx.fillText("New abilities unlocked!", cx, height / 2 + 216);
     }
   } else {
