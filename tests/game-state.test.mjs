@@ -1350,4 +1350,5 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(isRunStartAllowed(state), false);
 }
 
+// Iteration note: verified Horizon Rift + shardJournal features + guard in this scheduled loop
 console.log("game-state tests passed");
