@@ -1625,6 +1625,8 @@ function unlockTidewalkRouteChoice(state) {
 
 {
   // Shallow star-anchor
+  const origRandom = Math.random;
+  Math.random = () => 0.1;
   const state = createGameState();
   state.player.x = 14990; state.player.y = 8975;
   tick(state, 0.1);
@@ -1639,6 +1641,7 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(state.status, "complete");
   assert.ok(typeof state.runEndedAt === "number");
   assert.equal(isRunStartAllowed(state), false);
+  Math.random = origRandom;
 }
 
 // Iteration note: verified Horizon Rift + shardJournal features + guard in this scheduled loop
