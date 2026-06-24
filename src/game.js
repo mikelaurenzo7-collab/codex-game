@@ -1185,11 +1185,15 @@ function drawEndState(width, height) {
     if (shardsFb > 0) {
       ctx.fillText(`Shards resonated: ${shardsFb}`, cx, height / 2 + 182);
     }
+    const journalFb = state.shardJournal || [];
+    if (journalFb.length > 0) {
+      ctx.fillText(`Shard journal: ${journalFb.length} entries`, cx, height / 2 + 190);
+    }
     const readinessFb = getExtractionReadiness(state);
     if (readinessFb.deepSignatures && readinessFb.deepSignatures.length > 0) {
       ctx.fillText(`Deep secrets: ${readinessFb.deepSignatures.join(" + ")}`, cx, height / 2 + 198);
     }
-    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed || state.relics.sirenSpireDeep)) {
+    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed || state.relics.sirenSpireDeep || state.relics.riftSpireDeep)) {
       ctx.fillText("New abilities unlocked!", cx, height / 2 + 216);
     }
   } else {

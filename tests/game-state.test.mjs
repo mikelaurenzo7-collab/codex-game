@@ -1267,4 +1267,87 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(isRunStartAllowed(state), false);
 }
 
+// TDD (real path): Horizon Rift expansion - new edge region + rift-spire branching secret (shards-gated deep vs shallow, deepResonance + horizonWard)
+// Must cover create->pos/analyze->full collect+gate or fail-> runEndedAt, status, result sigs, allowed guard, fresh create
+{
+  // Deep Rift Spire branch (shards>=2)
+  const state = createGameState();
+  state.echoShards = 3;
+  state.player.x = 15050; state.player.y = 3400; // rift-spire coords
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.riftSpireEmbraced, true, "rift embraced on analyze");
+  assert.equal(state.relics.riftSpireDeep, true, "high shards -> deep rift branch");
+  assert.ok((state.echoShards || 0) >= 4, "deep awards resonant shard");
+  assert.equal(state.deepResonance, true, "deep sets resonant boost");
+  assert.equal(state.horizonWard, true, "deep rift grants unique ward");
+
+  // Real complete path
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.15);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.ok(state.result && state.result.includes("Rift Spire"), "rift deep appears in result");
+  assert.ok(state.result && state.result.includes("Deep Resonance"), "deep resonance surfaces");
+  assert.ok(state.result && state.result.includes("Echo Shards"), "shards reported");
+  const finishAt = state.runEndedAt;
+  assert.equal(isRunStartAllowed(state), false);
+  const laterRift = finishAt + (WORLD.runIntervalSeconds + 2) * 1000;
+  assert.equal(isRunStartAllowed(state, laterRift), true, "guard untouched by new POI");
+  const freshAfterRift = createGameState();
+  assert.equal(freshAfterRift.status, "running");
+  assert.equal(freshAfterRift.runEndedAt, null);
+}
+
+{
+  // Shallow rift (0 shards)
+  const state = createGameState();
+  state.player.x = 15050; state.player.y = 3400;
+  tick(state, 0.1);
+  state.echoShards = 0;
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.riftSpireEmbraced, true);
+  assert.ok(!state.relics.riftSpireDeep);
+  assert.ok(!state.horizonWard);
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
+// TDD (real path): Shard journal + threshold (shards collect as journal entries; >=3 threshold grants resonantPulse progression buff)
+{
+  const state = createGameState();
+  // Force resonant landmark in starless-halls (resonant) to hit landmark award path + journal (real survey)
+  state.atlas.visitedRegionIds = [];
+  state.player.x = 1550; state.player.y = 8100; // null-crypt landmark in resonant region
+  tick(state, 0.1);
+  const origRand = Math.random;
+  Math.random = () => 0.7; // guarantee >0.6 to hit shard+journal award path
+  updateGameState(state, {}, 0.1); // survey triggers landmark resonant chance
+  Math.random = origRand;
+  assert.ok((state.echoShards || 0) >= 1, "shard awarded");
+  assert.ok(Array.isArray(state.shardJournal), "journal exists");
+  assert.ok(state.shardJournal.length >= 1, "journal entry logged on award");
+  // reach threshold >=3 , grant buff (re-use random trick + update to hit award block)
+  state.echoShards = 3;
+  const origRand2 = Math.random;
+  Math.random = () => 0.7;
+  updateGameState(state, {}, 0.1);
+  Math.random = origRand2;
+  assert.equal(state.resonantPulse, true, "threshold 3+ unlocks resonantPulse progression");
+
+  // finish real path
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
 console.log("game-state tests passed");

@@ -147,4 +147,22 @@ function recordAftermath(state, outcome = "witness-secured") {
   assert.ok(typeof state.runEndedAt === "number");
 }
 
+// TDD real path: Horizon Rift deep sig via readiness + rift-spire
+{
+  const state = createGameState();
+  state.echoShards = 3;
+  state.player.x = 15050;
+  state.player.y = 3400;
+  updateGameState(state, { analyze: true }, 0.6);  // rift deep
+  collectAllFragments(state);
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  const r = getExtractionReadiness(state);
+  assert.ok(r.deepSignatures && r.deepSignatures.includes("Rift Spire"), "Rift deep contributes to deepSignatures");
+  assert.ok(r.resultText && r.resultText.includes("Rift Spire"), "readiness carries rift sig");
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+}
+
 console.log("extraction readiness tests passed");
