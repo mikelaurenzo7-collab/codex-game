@@ -1,9 +1,9 @@
 export const WORLD = {
-  width: 1920,
-  height: 1080,
+  width: 2800,
+  height: 1600,
   playerRadius: 18,
-  playerSpeed: 255,
-  pulseRadius: 245,
+  playerSpeed: 280,
+  pulseRadius: 260,
   pulseCost: 24,
   pulseCooldown: 1.25,
   fragmentRevealSeconds: 7.5,
@@ -36,16 +36,19 @@ const BLUEPRINT = {
   player: { x: 160, y: 880 },
   gate: { x: 1770, y: 170, radius: 54 },
   obstacles: [
-    { x: 0, y: 0, width: 1920, height: 42 },
-    { x: 0, y: 1038, width: 1920, height: 42 },
-    { x: 0, y: 0, width: 42, height: 1080 },
-    { x: 1878, y: 0, width: 42, height: 1080 },
+    { x: 0, y: 0, width: 2800, height: 42 },
+    { x: 0, y: 1558, width: 2800, height: 42 },
+    { x: 0, y: 0, width: 42, height: 1600 },
+    { x: 2758, y: 0, width: 42, height: 1600 },
     { x: 300, y: 160, width: 70, height: 620 },
     { x: 610, y: 430, width: 550, height: 72 },
     { x: 850, y: 120, width: 72, height: 250 },
     { x: 1260, y: 300, width: 70, height: 600 },
     { x: 1460, y: 730, width: 250, height: 70 },
-    { x: 520, y: 760, width: 390, height: 62 }
+    { x: 520, y: 760, width: 390, height: 62 },
+    // New walls for expanded explorable space (Skyrim-like new areas)
+    { x: 2100, y: 200, width: 60, height: 900 },
+    { x: 2300, y: 1100, width: 400, height: 60 }
   ],
   fragments: [
     {
@@ -77,27 +80,27 @@ const BLUEPRINT = {
   echoes: [
     {
       id: "witness",
-      x: 700,
-      y: 650,
+      x: 1400,
+      y: 1300,
       radius: 26,
       path: [
-        { x: 700, y: 650 },
-        { x: 1110, y: 650 },
-        { x: 1110, y: 920 },
-        { x: 700, y: 920 }
+        { x: 1400, y: 1300 },
+        { x: 2220, y: 1300 },
+        { x: 2220, y: 1840 },
+        { x: 1400, y: 1840 }
       ],
       speed: 105
     },
     {
       id: "warden",
-      x: 1450,
-      y: 230,
+      x: 2900,
+      y: 460,
       radius: 28,
       path: [
-        { x: 1450, y: 230 },
-        { x: 1710, y: 230 },
-        { x: 1710, y: 610 },
-        { x: 1450, y: 610 }
+        { x: 2900, y: 460 },
+        { x: 3420, y: 460 },
+        { x: 3420, y: 1220 },
+        { x: 2900, y: 1220 }
       ],
       speed: 95
     }
@@ -174,6 +177,34 @@ const REGIONS = [
     hazard: "Reed choke, sinkwater, and relay leeches",
     settlementPotential: 5,
     settlementProspect: "A lantern-post colony could command the fen crossings."
+  },
+  {
+    id: "western-deeps",
+    name: "Western Deeps",
+    biome: "Abyssal Vaults",
+    x: 80,
+    y: 80,
+    width: 500,
+    height: 500,
+    detail: "Collapsed service tunnels leading to untouched lower vaults. Few have returned with coherent stories.",
+    hazardLevel: 5,
+    hazard: "Crushing pressure and lightless pockets",
+    settlementPotential: 1,
+    settlementProspect: "A desperate outpost might survive if the vaults can be sealed."
+  },
+  {
+    id: "northern-spires",
+    name: "Northern Spires",
+    biome: "Wailing Heights",
+    x: 1200,
+    y: 50,
+    width: 700,
+    height: 350,
+    detail: "Jagged hull spires rising above the flood line. The wind carries fragments of old distress calls.",
+    hazardLevel: 4,
+    hazard: "High winds and precarious ledges",
+    settlementPotential: 2,
+    settlementProspect: "Signal towers here could link the entire archive to the surface."
   }
 ];
 
@@ -247,6 +278,26 @@ const LANDMARKS = [
     radius: 120,
     type: "relay",
     detail: "Mossglass water around the relay hints at the larger green frontier beyond the archive."
+  },
+  {
+    id: "abyssal-vault",
+    title: "Abyssal Vault",
+    regionId: "western-deeps",
+    x: 420,
+    y: 520,
+    radius: 100,
+    type: "mystery",
+    detail: "An untouched vault sealed for centuries. Strange harmonics and lost cargo await the bold."
+  },
+  {
+    id: "wailing-spire",
+    title: "Wailing Spire",
+    regionId: "northern-spires",
+    x: 1500,
+    y: 220,
+    radius: 85,
+    type: "memory",
+    detail: "The spire sings with the voices of the lost. A pure resonance here could amplify the final broadcast."
   }
 ];
 
@@ -2220,12 +2271,23 @@ function moveEchoes(state, dt) {
 function resolveWorldSurvey(state) {
   const currentRegion = findRegionAt(state.player);
   if (currentRegion) {
+    const wasNew = !state.atlas.visitedRegionIds.includes(currentRegion.id);
     remember(state.atlas.visitedRegionIds, currentRegion.id);
+    if (wasNew) {
+      // Skyrim-like discovery reward: first visit to a new region feels meaningful
+      state.signal = Math.min(100, state.signal + 15);
+      state.clueLog.push(`Discovered: ${currentRegion.name} — ${currentRegion.biome}`);
+    }
   }
 
   for (const landmark of LANDMARKS) {
     if (distance(state.player, landmark) <= landmark.radius) {
+      const wasNewLandmark = !state.atlas.discoveredLandmarkIds.includes(landmark.id);
       remember(state.atlas.discoveredLandmarkIds, landmark.id);
+      if (wasNewLandmark) {
+        state.clueLog.push(`Found landmark: ${landmark.title}`);
+        state.signal = Math.min(100, state.signal + 6);
+      }
     }
   }
 
