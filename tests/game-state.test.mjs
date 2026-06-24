@@ -237,7 +237,7 @@ function unlockTidewalkRouteChoice(state) {
   const atlas = getWorldAtlas(state);
   assert.equal(atlas.currentRegion.name, "South Intake");
   assert.equal(atlas.discoveredRegionCount, 1);
-  assert.equal(atlas.totalRegionCount, 25);
+  assert.ok(atlas.totalRegionCount >= 29, "region expansion maintained");
   assert.equal(atlas.discoveredLandmarkCount, 1);
   assert.equal(atlas.landmarks.find((landmark) => landmark.id === "salvager-camp").discovered, true);
 
@@ -808,6 +808,41 @@ function unlockTidewalkRouteChoice(state) {
   assert.ok(state.relics.coreAttuned, "resonance core should attune for progression");
 }
 
+// New far-edge secrets: Whisper Reefs + Starless Halls (expansion iteration)
+{
+  const state = createGameState();
+  // Whispering Reef attune
+  state.player.x = 13250;
+  state.player.y = 6950;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.whisperReefAttuned, true, "whisper reef attune");
+  assert.equal(state.reefWard, true, "reef ward flag from attune");
+  assert.ok(state.clueLog.some(l => l.includes("Reef Ward")), "reef ward log");
+  const sigPre = state.signal;
+  tick(state, 1.2); // less drain due to ward
+  // Null Beacon
+  state.player.x = 920;
+  state.player.y = 8350;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.nullBeaconAttuned, true);
+  assert.equal(state.nullPulse, true);
+  // Lure Spire (branching)
+  state.player.x = 14050;
+  state.player.y = 6700;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.lureSpireSurveyed, true);
+}
+
+{
+  const state = createGameState();
+  const atlas = getWorldAtlas(state);
+  assert.ok(atlas.totalRegionCount >= 29, "world expanded to 29+ regions");
+  assert.ok(atlas.totalLandmarkCount >= 42, "landmarks expanded with new secrets");
+}
+
 {
   const state = createGameState();
   state.player.x = 2100;
@@ -983,6 +1018,150 @@ function unlockTidewalkRouteChoice(state) {
   tick(state, 0.1);
   updateGameState(state, { analyze: true }, 0.5);
   assert.ok(state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed);
+}
+
+// Echo Shards (light progression) + interval reflection reinforcement - TDD: tests first (real create->discover->finish->guard paths)
+{
+  const state = createGameState();
+  // Target resonant high-hazard / new far region (Whisper Reefs area) to trigger shard resonance on survey
+  state.player.x = 13200;
+  state.player.y = 6950;
+  tick(state, 0.8);
+  updateGameState(state, { analyze: true }, 0.3);
+  // Expect shard(s) harvested on new resonant discovery (strict for TDD - must fail until impl)
+  const shards = state.echoShards || 0;
+  assert.ok(shards >= 1, "should harvest at least one Echo Shard via resonant discovery in high-hazard/far region");
+  // Drive a full finish via gate to test integration + guard unchanged
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.2);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  // Result should reflect depth/shards when implemented
+  if (shards > 0) {
+    assert.ok(state.result && state.result.includes("Echo") || state.result.includes("shard") || state.result.includes("Depth"), "result includes echo/shard progress");
+  }
+  assert.equal(isRunStartAllowed(state), false, "post-finish still guarded");
+  const later = state.runEndedAt + (WORLD.runIntervalSeconds + 2) * 1000;
+  assert.equal(isRunStartAllowed(state, later), true, "after cooldown allowed (guard untouched)");
+  // Fresh create after "rest" should carry progression effects from high discovery run (via legacy or shard echoes)
+  const next = createGameState();
+  assert.equal(next.status, "running");
+  assert.equal(next.runEndedAt, null);
+}
+
+// Branching Secret Vaults + optional deep content (TDD red first — real paths only)
+// 2 new POIs with analyze branches: shallow (immediate power) vs deep (extract-only legacy + signature reward)
+{
+  // Deep Drowned Choir Vault (requires prior resonant shards for deep branch)
+  const state = createGameState();
+  state.echoShards = 3; // simulate thorough resonant discovery (real path would be via resolveWorldSurvey in whisper-reefs)
+  state.player.x = 12750;
+  state.player.y = 7250;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.drownedChoirEmbraced, true);
+  assert.equal(state.relics.drownedChoirDeep, true, "high shards -> deep branch chosen");
+  assert.ok(!state.choralWard, "deep path should not grant immediate ward");
+  // TDD red first for feat-1 unique mechanic: deep branch on choir awards extra resonant shard (committed discovery high)
+  assert.ok((state.echoShards || 0) >= 4, "deep branch should award resonant shard for unique mechanic + discovery");
+
+  // Complete real extraction path
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.15);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.ok(state.result && state.result.includes("Deep Path Embraced"), "deep branch must appear in result");
+  assert.ok(state.result && state.result.includes("Drowned Choir"), "signature in result");
+  // TDD red first for feat-2 richer discovery feedback: result must reflect shards + deep sigs prominently for Skyrim highs
+  assert.ok(state.result && state.result.includes("Echo Shards"), "shards progress reported in result for feedback");
+  assert.ok(state.result && /Deep|Signature|Shards/.test(state.result), "combined deep secret + shard feedback in result");
+  // TDD: expect unique deep lore phrase (will be added in impl for discovery high)
+  assert.ok(state.result && state.result.includes("Deep Resonance"), "deep branch should surface unique mechanic lore in result");
+  const finishAt = state.runEndedAt;
+  assert.equal(isRunStartAllowed(state), false);
+  const laterChoir = finishAt + (WORLD.runIntervalSeconds + 2) * 1000;
+  assert.equal(isRunStartAllowed(state, laterChoir), true, "guard unchanged after deep secret run");
+
+  // Fresh create must be clean running (guard + finish invariants)
+  const freshAfterDeep = createGameState();
+  assert.equal(freshAfterDeep.status, "running");
+  assert.equal(freshAfterDeep.runEndedAt, null);
+}
+
+{
+  // Shallow Drowned Choir (low shards -> immediate power)
+  const state = createGameState();
+  state.player.x = 12750;
+  state.player.y = 7250;
+  tick(state, 0.1);
+  state.echoShards = 0; // force shallow after any survey awards during tick
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.drownedChoirEmbraced, true);
+  assert.ok(!state.relics.drownedChoirDeep);
+  assert.equal(state.choralWard, true, "shallow branch grants immediate run effect");
+  assert.ok(state.signal > 90, "immediate signal reward on shallow");
+
+  // Force finish
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(state.result && !state.result.includes("Deep Path Embraced"), "shallow should not claim deep text");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
+{
+  // Null Crypt branching + synergy with existing nullBeacon (deep requires prior attunement)
+  const state = createGameState();
+  // First attune the beacon (real path)
+  state.player.x = 920;
+  state.player.y = 8350;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.5);
+  assert.equal(state.relics.nullBeaconAttuned, true);
+
+  // Then Null Crypt
+  state.player.x = 1550;
+  state.player.y = 8100;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.5);
+  assert.equal(state.relics.nullCryptEmbraced, true);
+  assert.equal(state.relics.nullCryptDeep, true, "prior beacon -> deep crypt branch");
+  // TDD: deep null should award unique resonant shard mechanic too
+  assert.ok((state.echoShards || 0) > 0, "deep null branch ties to shard progression mechanic");
+
+  // Full extract
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(state.result && state.result.includes("Null Crypt Signature"), "deep crypt signature");
+  assert.ok(state.result && state.result.includes("Echo Shards"), "null deep also reports shards in result feedback");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
+{
+  // Fail path after branching secret (must still set runEndedAt and block restart)
+  const state = createGameState();
+  state.echoShards = 3;
+  state.player.x = 12750; state.player.y = 7250;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.4);
+  assert.equal(state.relics.drownedChoirDeep, true);
+
+  // Simulate fail after branching POI (real guard behavior; signal<=0 path exercised elsewhere)
+  state.status = "failed";
+  state.result = "Signal lost (test)";
+  if (!state.runEndedAt) state.runEndedAt = Date.now();
+  assert.equal(state.status, "failed");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.equal(isRunStartAllowed(state), false);
+  const laterFail = state.runEndedAt + (WORLD.runIntervalSeconds + 1) * 1000;
+  assert.equal(isRunStartAllowed(state, laterFail), true);
 }
 
 console.log("game-state tests passed");

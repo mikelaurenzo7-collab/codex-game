@@ -1161,9 +1161,9 @@ function drawEndState(width, height) {
     ctx.fillStyle = "rgba(243,240,220,0.45)";
     ctx.font = "14px system-ui, sans-serif";
     if (isRunStartAllowed(state)) {
-      ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 90);
+      ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 108);
     } else {
-      ctx.fillText("Re-entry interval active.", cx, height / 2 + 90);
+      ctx.fillText("Re-entry interval active. The archive exhales; attunement settles only on the surface.", cx, height / 2 + 108);
     }
 
     // Skyrim-like exploration depth feedback
@@ -1175,10 +1175,22 @@ function drawEndState(width, height) {
     if (state.legacyLevel > 0) {
       ctx.fillText(`Legacy Lv.${state.legacyLevel}`, cx, height / 2 + 132);
     }
+    if (state.lastDiscovery && state.lastDiscovery.title) {
+      ctx.fillText(`Last find: ${state.lastDiscovery.title}`, cx, height / 2 + 148);
+    }
     const score = Math.round(((atlas.discoveredRegionCount + atlas.discoveredLandmarkCount) / (atlas.totalRegionCount + atlas.totalLandmarkCount)) * 100);
-    ctx.fillText(`Exploration Score: ${score}%`, cx, height / 2 + 150);
-    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed)) {
-      ctx.fillText("New abilities unlocked!", cx, height / 2 + 168);
+    ctx.fillText(`Exploration Score: ${score}%`, cx, height / 2 + 166);
+    // feat-2: richer discovery highs + progression feedback in end screen (shards, deep secrets)
+    const shardsFb = state.echoShards || 0;
+    if (shardsFb > 0) {
+      ctx.fillText(`Shards resonated: ${shardsFb}`, cx, height / 2 + 182);
+    }
+    const readinessFb = getExtractionReadiness(state);
+    if (readinessFb.deepSignatures && readinessFb.deepSignatures.length > 0) {
+      ctx.fillText(`Deep secrets: ${readinessFb.deepSignatures.join(" + ")}`, cx, height / 2 + 198);
+    }
+    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed)) {
+      ctx.fillText("New abilities unlocked!", cx, height / 2 + 216);
     }
   } else {
     ctx.fillStyle = "#d96666";
@@ -1189,7 +1201,7 @@ function drawEndState(width, height) {
     if (isRunStartAllowed(state)) {
       ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 30);
     } else {
-      ctx.fillText("Re-entry interval active.", cx, height / 2 + 30);
+      ctx.fillText("Re-entry interval active. Rest. Reflect. Return stronger.", cx, height / 2 + 30);
     }
   }
 
@@ -1616,7 +1628,7 @@ function updatePrimer(
   if (state.status !== "running") {
     primerTitle.textContent = state.status === "complete" ? "Thread recovered" : "Signal lost";
     if (!isRunStartAllowed(state)) {
-      primerText.textContent = "Prior run settled. Re-entry interval holding — rest and reflect between these deep delves.";
+      primerText.textContent = "Prior run settled. Re-entry interval holding — the drowned archive must settle. Rest between these deep delves; Echo Shards and legacy await your return.";
     } else {
       primerText.textContent =
         state.status === "complete"
