@@ -1480,9 +1480,62 @@ function unlockTidewalkRouteChoice(state) {
   state.player.x = 14980; state.player.y = 9186;
   state.echoShards = 0;
   state.shardJournal = [];
+  const origRand = Math.random;
+  Math.random = () => 0.1; // <0.6 to avoid award in survey
   updateGameState(state, { analyze: true }, 0.6);
+  Math.random = origRand;
   assert.equal(state.relics.echoNexusEmbraced, true);
   assert.ok(!state.relics.echoNexusDeep);
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
+// TDD (real path): Void Fracture far-edge - fracture-spire and null-anchor branching (deep via shards/journal, new wards, result, guard)
+{
+  // Deep fracture-spire
+  const state = createGameState();
+  tick(state, 0.1);
+  state.echoShards = 3;
+  state.player.x = 14930; state.player.y = 9258;
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.fractureSpireEmbraced, true);
+  assert.equal(state.relics.fractureSpireDeep, true);
+  assert.ok((state.echoShards || 0) >= 4);
+  assert.equal(state.deepResonance, true);
+  assert.equal(state.fractureWard, true);
+
+  // Full gate + guard
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.15);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.ok(state.result && state.result.includes("Fracture Spire"), "result has new sig");
+  assert.equal(isRunStartAllowed(state), false);
+  const later = state.runEndedAt + (WORLD.runIntervalSeconds + 2) * 1000;
+  assert.equal(isRunStartAllowed(state, later), true);
+  const fresh = createGameState();
+  assert.equal(fresh.status, "running");
+  assert.equal(fresh.runEndedAt, null);
+}
+
+{
+  // Shallow null-anchor
+  const state = createGameState();
+  tick(state, 0.1);
+  state.player.x = 14970; state.player.y = 9308;
+  state.echoShards = 0;
+  state.shardJournal = [];
+  const origRand = Math.random;
+  Math.random = () => 0.1; // <0.6 no award
+  updateGameState(state, { analyze: true }, 0.6);
+  Math.random = origRand;
+  assert.equal(state.relics.nullAnchorEmbraced, true);
+  assert.ok(!state.relics.nullAnchorDeep);
   for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
   state.player.x = state.gate.x; state.player.y = state.gate.y;
   updateGameState(state, {}, 0.1);
