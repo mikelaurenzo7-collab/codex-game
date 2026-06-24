@@ -737,6 +737,13 @@ export function createGameState() {
     pulses: [],
     clueLog: [],
     resonanceBroadcast: false,
+    lastDiscovery: null,
+    relicSpireAttuned: false,
+    relics: {
+      abyssalAttuned: false,
+      spireAttuned: false
+    },
+    relicSpireAttuned: false,
     atlas: {
       visitedRegionIds: [],
       discoveredLandmarkIds: [],
@@ -810,6 +817,12 @@ export function restoreGameCheckpoint(serialized) {
   if (restored && restored.runEndedAt === undefined) {
     restored.runEndedAt = null;
   }
+  if (restored && !restored.relics) {
+    restored.relics = { abyssalAttuned: false, spireAttuned: false };
+  }
+  if (restored && restored.relicSpireAttuned === undefined) {
+    restored.relicSpireAttuned = false;
+  }
   validateCheckpointState(restored);
   return restored;
 }
@@ -873,6 +886,17 @@ function validateCheckpointState(state) {
     !isStringArray(state.atlas.chartedRouteIds)
   ) {
     throw new Error("Checkpoint atlas data is invalid");
+  }
+
+  if (
+    !isRecord(state.relics) ||
+    typeof state.relics.abyssalAttuned !== "boolean" ||
+    typeof state.relics.spireAttuned !== "boolean"
+  ) {
+    throw new Error("Checkpoint relics data is invalid");
+  }
+  if (typeof state.relicSpireAttuned !== "boolean") {
+    throw new Error("Checkpoint relic bonus data is invalid");
   }
 
   const frontier = state.frontier;
@@ -1942,7 +1966,11 @@ export function updateGameState(state, input, deltaSeconds) {
 
   const dt = Math.min(Math.max(deltaSeconds, 0), 0.05);
   state.time += dt;
-  state.signal = Math.min(100, state.signal + WORLD.signalRechargePerSecond * dt);
+  let recharge = WORLD.signalRechargePerSecond;
+  if (state.relicSpireAttuned) {
+    recharge *= 1.6; // Wailing Spire attunement - stronger flow
+  }
+  state.signal = Math.min(100, state.signal + recharge * dt);
   state.pulses = state.pulses.filter((pulse) => state.time - pulse.startedAt < 0.72);
 
   movePlayer(state, input, dt);
@@ -1955,6 +1983,7 @@ export function updateGameState(state, input, deltaSeconds) {
     resolveCollection(state);
     resolveEchoPressure(state, dt);
     resolveGate(state);
+    resolveSpecialRelics(state, input);
   } else if (state.scene === "tidewalk") {
     updateTideCycle(state, dt);
     resolveResolutionAchieved(state);
@@ -2276,7 +2305,9 @@ function resolveWorldSurvey(state) {
     if (wasNew) {
       // Skyrim-like discovery reward: first visit to a new region feels meaningful
       state.signal = Math.min(100, state.signal + 15);
-      state.clueLog.push(`Discovered: ${currentRegion.name} — ${currentRegion.biome}`);
+      const msg = `Discovered: ${currentRegion.name} — ${currentRegion.biome}`;
+      state.clueLog.push(msg);
+      state.lastDiscovery = { title: currentRegion.name, time: state.time, type: "region" };
     }
   }
 
@@ -2287,11 +2318,43 @@ function resolveWorldSurvey(state) {
       if (wasNewLandmark) {
         state.clueLog.push(`Found landmark: ${landmark.title}`);
         state.signal = Math.min(100, state.signal + 6);
+        state.lastDiscovery = { title: landmark.title, time: state.time, type: "landmark" };
       }
     }
   }
 
   resolveFrontierSurvey(state);
+}
+
+function resolveSpecialRelics(state, input) {
+  if (!state.relics) {
+    state.relics = { abyssalAttuned: false, spireAttuned: false };
+  }
+
+  const holding = Boolean(input.analyze);
+  if (!holding) return;
+
+  // Abyssal Vault - unique void attunement: massive signal restore + strong echo stun
+  const abyssal = LANDMARKS.find(l => l.id === "abyssal-vault");
+  if (abyssal && !state.relics.abyssalAttuned && distance(state.player, abyssal) <= abyssal.radius + 30) {
+    state.relics.abyssalAttuned = true;
+    state.signal = Math.min(100, state.signal + 40);
+    state.clueLog.push("Void attunement: signal surged, echoes silenced");
+    state.lastDiscovery = { title: "Abyssal Void", time: state.time, type: "relic" };
+    const stunTime = state.time + 8;
+    for (const echo of state.echoes) {
+      echo.stunnedUntil = Math.max(echo.stunnedUntil || 0, stunTime);
+    }
+  }
+
+  // Wailing Spire - resonance attunement: permanent-for-run recharge boost + lore
+  const spire = LANDMARKS.find(l => l.id === "wailing-spire");
+  if (spire && !state.relics.spireAttuned && distance(state.player, spire) <= spire.radius + 30) {
+    state.relics.spireAttuned = true;
+    state.clueLog.push("Wailing Spire attunement: echoes harmonize, signal flows stronger");
+    state.relicSpireAttuned = true;
+    state.lastDiscovery = { title: "Wailing Resonance", time: state.time, type: "relic" };
+  }
 }
 
 function resolveFrontierSurvey(state) {

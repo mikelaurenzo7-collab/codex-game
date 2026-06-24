@@ -267,6 +267,7 @@ function draw() {
   ctx.restore();
   drawObjectiveCue(camera, width, height);
   drawBottomLog(width, height);
+  drawDiscoveryFlash(width, height);
   drawEndState(width, height);
 }
 
@@ -1110,6 +1111,19 @@ function drawBottomLog(width, height) {
   ctx.fillStyle = "#f3f0dc";
   ctx.font = "16px system-ui, sans-serif";
   ctx.fillText(latest, 44, height - 41);
+}
+
+function drawDiscoveryFlash(width, height) {
+  const d = state.lastDiscovery;
+  if (!d || state.time - d.time > 3.5) return;
+  const alpha = Math.max(0, 1 - (state.time - d.time) / 3.5);
+  ctx.save();
+  ctx.fillStyle = `rgba(240, 216, 112, ${alpha * 0.9})`;
+  ctx.font = "700 18px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  const label = d.type === "region" ? `NEW REGION: ${d.title}` : `DISCOVERED: ${d.title}`;
+  ctx.fillText(label, width / 2, 80);
+  ctx.restore();
 }
 
 function drawEndState(width, height) {

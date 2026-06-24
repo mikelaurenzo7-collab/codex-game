@@ -774,4 +774,28 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(isRunStartAllowed(restored), false);
 }
 
+// New explorative features from this iteration: unique relic mechanics + discovery progression in expanded world
+{
+  const state = createGameState();
+  // Visit and attune Abyssal Vault (new secret in Western Deeps)
+  state.player.x = 420;
+  state.player.y = 520;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.5);
+  assert.equal(state.relics.abyssalAttuned, true);
+  assert.ok(state.clueLog.some(l => l.includes("Void attunement")));
+  assert.ok(state.lastDiscovery && state.lastDiscovery.title.includes("Abyssal"));
+}
+
+{
+  const state = createGameState();
+  state.signal = 50; // below max to observe recharge
+  // Simulate attuning Wailing Spire via direct (tests shipped recharge effect)
+  state.relics.spireAttuned = true;
+  state.relicSpireAttuned = true;
+  const sigBefore = state.signal;
+  tick(state, 2.0);
+  assert.ok(state.signal > sigBefore + 1, "spire attunement boosts recharge over time");
+}
+
 console.log("game-state tests passed");
