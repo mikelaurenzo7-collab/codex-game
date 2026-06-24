@@ -1197,7 +1197,7 @@ function drawEndState(width, height) {
     if (deepCount > 0) {
       ctx.fillText(`Deep Mastery: ${deepCount} commitments`, cx, height / 2 + 204);
     }
-    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed || state.relics.sirenSpireDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep || state.relics.nexusSpireDeep || state.relics.echoNexusDeep || state.relics.fractureSpireDeep || state.relics.nullAnchorDeep)) {
+    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed || state.relics.sirenSpireDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep || state.relics.nexusSpireDeep || state.relics.echoNexusDeep || state.relics.fractureSpireDeep || state.relics.nullAnchorDeep || state.relics.riftTetherDeep || state.relics.abyssSealDeep)) {
       ctx.fillText("New abilities unlocked!", cx, height / 2 + 216);
     }
   } else {
