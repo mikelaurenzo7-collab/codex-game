@@ -623,6 +623,20 @@ const REGIONS = [
     hazard: "Rift pulls and cosmic storms",
     settlementPotential: 1,
     settlementProspect: "A lone beacon at the true edge."
+  },
+  {
+    id: "nebula-void",
+    name: "Nebula Void",
+    biome: "Stellar Abyss",
+    x: 14850,
+    y: 8920,
+    width: 200,
+    height: 120,
+    detail: "A nebula of void where stars are born and die. Secrets of the cosmos await the attuned.",
+    hazardLevel: 5,
+    hazard: "Nebula pulls and star storms",
+    settlementPotential: 1,
+    settlementProspect: "A stellar outpost at the final frontier."
   }
 ];
 
@@ -1226,6 +1240,26 @@ const LANDMARKS = [
     radius: 60,
     type: "relic",
     detail: "A seal in the abyss. Hold E for shallow echo or deep seal for carry lore."
+  },
+  {
+    id: "nebula-spire",
+    title: "Nebula Spire",
+    regionId: "nebula-void",
+    x: 14980,
+    y: 8955,
+    radius: 55,
+    type: "mystery",
+    detail: "A spire in the nebula. Hold E to glimpse or commit to the deep cosmic verse."
+  },
+  {
+    id: "star-anchor",
+    title: "Star Anchor",
+    regionId: "nebula-void",
+    x: 14990,
+    y: 8975,
+    radius: 50,
+    type: "relic",
+    detail: "An anchor among stars. Hold E for shallow light or deep bind for stellar carry."
   }
 ];
 
@@ -1735,7 +1769,11 @@ export function createGameState() {
       riftTetherEmbraced: false,
       riftTetherDeep: false,
       abyssSealEmbraced: false,
-      abyssSealDeep: false
+      abyssSealDeep: false,
+      nebulaSpireEmbraced: false,
+      nebulaSpireDeep: false,
+      starAnchorEmbraced: false,
+      starAnchorDeep: false
     },
     relicSpireAttuned: false,
     legacy: loadLegacy(),
@@ -1855,7 +1893,7 @@ export function restoreGameCheckpoint(serialized) {
     restored.runEndedAt = null;
   }
   if (restored && !restored.relics) {
-    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false, nexusSpireEmbraced: false, nexusSpireDeep: false, echoNexusEmbraced: false, echoNexusDeep: false, fractureSpireEmbraced: false, fractureSpireDeep: false, nullAnchorEmbraced: false, nullAnchorDeep: false, riftTetherEmbraced: false, riftTetherDeep: false, abyssSealEmbraced: false, abyssSealDeep: false };
+    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false, nexusSpireEmbraced: false, nexusSpireDeep: false, echoNexusEmbraced: false, echoNexusDeep: false, fractureSpireEmbraced: false, fractureSpireDeep: false, nullAnchorEmbraced: false, nullAnchorDeep: false, riftTetherEmbraced: false, riftTetherDeep: false, abyssSealEmbraced: false, abyssSealDeep: false, nebulaSpireEmbraced: false, nebulaSpireDeep: false, starAnchorEmbraced: false, starAnchorDeep: false };
   }
   if (restored && restored.relicSpireAttuned === undefined) {
     restored.relicSpireAttuned = false;
@@ -2877,6 +2915,9 @@ export function getExtractionReadiness(state) {
   if (state.relics && state.relics.nullAnchorDeep) deepSigs.push("Null Anchor");
   if (state.relics && state.relics.riftTetherDeep) deepSigs.push("Rift Tether");
   if (state.relics && state.relics.abyssSealDeep) deepSigs.push("Abyss Seal");
+  if (state.relics && state.relics.riftTetherDeep) deepSigs.push("Rift Tether");
+  if (state.relics && state.relics.nebulaSpireDeep) deepSigs.push("Nebula Spire");
+  if (state.relics && state.relics.starAnchorDeep) deepSigs.push("Star Anchor");
   if (deepSigs.length > 0 && resultText) {
     const sigStr = deepSigs.join(" + ");
     resultText += ` [${sigStr} Signature]`;
@@ -3496,7 +3537,7 @@ function resolveWorldSurvey(state) {
 
   // Echo Shards - light discovery progression: resonant high-hazard/far discoveries yield countable shards
   // for in-run buffs + extract rewards + legacy carry (Skyrim "one more run" after cooldown)
-  const resonantRegionIds = ["whisper-reefs", "starless-halls", "abyssal-trenches", "void-reaches", "storm-vortex", "deep-void", "eastern-abyss", "northern-fringe", "horizon-rift", "abyssal-verge", "eternal-void", "nexus-breach", "void-fracture", "cosmic-rift"];
+  const resonantRegionIds = ["whisper-reefs", "starless-halls", "abyssal-trenches", "void-reaches", "storm-vortex", "deep-void", "eastern-abyss", "northern-fringe", "horizon-rift", "abyssal-verge", "eternal-void", "nexus-breach", "void-fracture", "cosmic-rift", "nebula-void"];
   const current = findRegionAt(state.player);
   if (current && resonantRegionIds.includes(current.id)) {
     const wasNew = !state.atlas.visitedRegionIds.includes(current.id);
@@ -3537,7 +3578,7 @@ function resolveWorldSurvey(state) {
 
 function resolveSpecialRelics(state, input) {
   if (!state.relics) {
-    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false, nexusSpireEmbraced: false, nexusSpireDeep: false, echoNexusEmbraced: false, echoNexusDeep: false, fractureSpireEmbraced: false, fractureSpireDeep: false, nullAnchorEmbraced: false, nullAnchorDeep: false, riftTetherEmbraced: false, riftTetherDeep: false, abyssSealEmbraced: false, abyssSealDeep: false };
+    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false, echoBloomEmbraced: false, echoBloomDeep: false, riftSpireEmbraced: false, riftSpireDeep: false, vergeCairnSurveyed: false, nullSpireEmbraced: false, nullSpireDeep: false, fractureVaultEmbraced: false, fractureVaultDeep: false, voidWhisperEmbraced: false, voidWhisperDeep: false, eternalBindEmbraced: false, eternalBindDeep: false, nexusSpireEmbraced: false, nexusSpireDeep: false, echoNexusEmbraced: false, echoNexusDeep: false, fractureSpireEmbraced: false, fractureSpireDeep: false, nullAnchorEmbraced: false, nullAnchorDeep: false, riftTetherEmbraced: false, riftTetherDeep: false, abyssSealEmbraced: false, abyssSealDeep: false, nebulaSpireEmbraced: false, nebulaSpireDeep: false, starAnchorEmbraced: false, starAnchorDeep: false };
   }
 
   const holding = Boolean(input.analyze);
@@ -4318,6 +4359,46 @@ function resolveSpecialRelics(state, input) {
       state.clueLog.push("Shallow seal: signal and power");
     }
   }
+
+  // Nebula Void new POIs - nebula-spire and star-anchor for more far-edge branching
+  const nebSpire = LANDMARKS.find(l => l.id === "nebula-spire");
+  if (nebSpire && !state.relics.nebulaSpireEmbraced && distance(state.player, nebSpire) <= nebSpire.radius + 30 && holding) {
+    state.relics.nebulaSpireEmbraced = true;
+    state.clueLog.push("Nebula Spire: stars whisper of lost empires");
+    state.lastDiscovery = { title: "Nebula Spire", time: state.time, type: "relic" };
+    if ((state.echoShards || 0) >= 2) {
+      state.relics.nebulaSpireDeep = true;
+      state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
+      state.nebulaWard = true;
+      state.shardJournal = state.shardJournal || [];
+      state.shardJournal.push({ title: "Nebula Verse", source: "Nebula Spire", time: state.time });
+      state.clueLog.push("Deep Resonance: nebula verse awarded shard + boost + nebula ward");
+    } else {
+      state.signal = Math.min(100, state.signal + 25);
+      state.nebulaLure = true;
+      state.clueLog.push("Shallow nebula: signal surge");
+    }
+  }
+
+  const sAnchor = LANDMARKS.find(l => l.id === "star-anchor");
+  if (sAnchor && !state.relics.starAnchorEmbraced && distance(state.player, sAnchor) <= sAnchor.radius + 30 && holding) {
+    state.relics.starAnchorEmbraced = true;
+    state.clueLog.push("Star Anchor: light now or bind for cosmic carry");
+    state.lastDiscovery = { title: "Star Anchor", time: state.time, type: "relic" };
+    if ((state.echoShards || 0) >= 3 || (state.shardJournal || []).length >= 3) {
+      state.relics.starAnchorDeep = true;
+      state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
+      state.starAnchor = true;
+      state.shardJournal = state.shardJournal || [];
+      state.shardJournal.push({ title: "Star Anchor", source: "Star Anchor", time: state.time });
+      state.clueLog.push("Deep Resonance: star anchor awarded shard + carry + journal");
+    } else {
+      state.signal = Math.min(100, state.signal + 30);
+      state.clueLog.push("Shallow star: signal and light");
+    }
+  }
 }
 
 function resolveFrontierSurvey(state) {
@@ -4479,6 +4560,7 @@ function resolveEchoPressure(state, dt) {
         if (state.horizonWard) drain *= 0.65; // Horizon Ward from deep Rift Spire commit
         if (state.vergeWard) drain *= 0.6; // Verge Ward from abyssal deep commit
         if (state.fractureWard) drain *= 0.55; // Fracture Ward from void fracture deep
+        if (state.nebulaWard) drain *= 0.5; // Nebula Ward from nebula deep
         state.signal = Math.max(0, state.signal - drain * dt);
       }
     }
@@ -4530,17 +4612,24 @@ function resolveGate(state) {
     if (state.relics && state.relics.nullAnchorDeep) state.result += " [Null Anchor]";
     if (state.relics && state.relics.riftTetherDeep) state.result += " [Rift Tether]";
     if (state.relics && state.relics.abyssSealDeep) state.result += " [Abyss Seal]";
+    if (state.relics && state.relics.riftTetherDeep) state.result += " [Rift Tether]";
+    if (state.relics && state.relics.nebulaSpireDeep) state.result += " [Nebula Spire]";
+    if (state.relics && state.relics.starAnchorDeep) state.result += " [Star Anchor]";
     if (state.lureDeep) state.result += " [Lure Deep Lore]";
     if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) state.result += " [Drowned Archive Signatures Aligned]";
     // feat-1/2: unique deep resonance lore + discovery high in result for branching secrets
-    if (state.relics && (state.relics.drownedChoirDeep || state.relics.nullCryptDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep || state.relics.fractureSpireDeep || state.relics.nullAnchorDeep || state.relics.riftTetherDeep || state.relics.abyssSealDeep)) {
+    if (state.relics && (state.relics.drownedChoirDeep || state.relics.nullCryptDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep || state.relics.fractureSpireDeep || state.relics.nullAnchorDeep || state.relics.riftTetherDeep || state.relics.abyssSealDeep || state.relics.nebulaSpireDeep || state.relics.starAnchorDeep)) {
       state.result += " — Deep Resonance";
     }
     if (state.deepResonance) {
       state.result += " [Resonant Boost]";
     }
-    if ((state.echoShards || 0) >= 3 && (state.relics && (state.relics.drownedChoirDeep || state.relics.nullCryptDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep || state.relics.fractureSpireDeep || state.relics.nullAnchorDeep || state.relics.riftTetherDeep || state.relics.abyssSealDeep))) {
+    if ((state.echoShards || 0) >= 3 && (state.relics && (state.relics.drownedChoirDeep || state.relics.nullCryptDeep || state.relics.riftSpireDeep || state.relics.voidWhisperDeep || state.relics.eternalBindDeep || state.relics.fractureSpireDeep || state.relics.nullAnchorDeep || state.relics.riftTetherDeep || state.relics.abyssSealDeep || state.relics.nebulaSpireDeep || state.relics.starAnchorDeep))) {
       state.result += " [High Discovery]";
+    }
+    const deepCount = Object.keys(state.relics || {}).filter(k => k.endsWith('Deep') && state.relics[k]).length;
+    if (deepCount >= 5) {
+      state.result += " [Thorough Explorer: bonus rewards for deep delves]";
     }
     // Award legacy on strong completion (Skyrim-style: thorough runs unlock permanent power for future expeditions after cooldown)
     const score = readiness.score || 0;
@@ -4568,6 +4657,11 @@ function resolveGate(state) {
       if (state.relics && state.relics.nullAnchorDeep) bonus += 1;
       if (state.relics && state.relics.riftTetherDeep) bonus += 1;
       if (state.relics && state.relics.abyssSealDeep) bonus += 1;
+      if (state.relics && state.relics.riftTetherDeep) bonus += 1;
+      if (state.relics && state.relics.nebulaSpireDeep) bonus += 1;
+      if (state.relics && state.relics.starAnchorDeep) bonus += 1;
+      const deepCount = Object.keys(state.relics || {}).filter(k => k.endsWith('Deep') && state.relics[k]).length;
+      if (deepCount >= 5) bonus += 1; // thorough exploration bonus
       if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) bonus += 1; // combo for committed deep secrets
       const newLevel = Math.min(5, (legacy.level || 0) + bonus);
       if (newLevel > (legacy.level || 0)) {
