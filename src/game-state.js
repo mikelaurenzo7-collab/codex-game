@@ -24,7 +24,8 @@ export const WORLD = {
   tideHazardDrainPerSecond: 18,
   echoStunSeconds: 2.6,
   echoDrainPerSecond: 26,
-  signalRechargePerSecond: 4.5
+  signalRechargePerSecond: 4.5,
+  runIntervalSeconds: 2
 };
 
 export const GAME_SAVE_VERSION = 7;
@@ -661,6 +662,7 @@ export function createGameState() {
     scene: "archive",
     status: "running",
     result: null,
+    runEndedAt: null,
     player: { ...BLUEPRINT.player, radius: WORLD.playerRadius },
     gate: { ...BLUEPRINT.gate, unlocked: false },
     obstacles: BLUEPRINT.obstacles.map((obstacle) => ({ ...obstacle })),
@@ -753,8 +755,12 @@ export function restoreGameCheckpoint(serialized) {
     throw new Error("Checkpoint version is not supported");
   }
 
-  validateCheckpointState(checkpoint.state);
-  return checkpoint.state;
+  const restored = checkpoint.state;
+  if (restored && restored.runEndedAt === undefined) {
+    restored.runEndedAt = null;
+  }
+  validateCheckpointState(restored);
+  return restored;
 }
 
 function validateCheckpointState(state) {
@@ -767,6 +773,7 @@ function validateCheckpointState(state) {
     !isFiniteNumber(state.signal) ||
     !isFiniteNumber(state.pulseCooldownUntil) ||
     typeof state.resonanceBroadcast !== "boolean" ||
+    (state.runEndedAt !== null && !isFiniteNumber(state.runEndedAt)) ||
     !isPoint(state.player) ||
     !isPoint(state.gate)
   ) {
@@ -1998,6 +2005,9 @@ function resolveTidewalkSurveyField(state, input, dt) {
     if (state.signal <= 0) {
       state.status = "failed";
       state.result = "Lost to the black tide";
+      if (state.runEndedAt === null || state.runEndedAt === undefined) {
+        state.runEndedAt = Date.now();
+      }
     }
   }
 }
@@ -2102,6 +2112,9 @@ function resolveTidewalkExpedition(state, input, dt) {
         if (state.signal <= 0) {
           state.status = "failed";
           state.result = "Sentinel caught you";
+          if (state.runEndedAt === null || state.runEndedAt === undefined) {
+            state.runEndedAt = Date.now();
+          }
         }
       }
     }
@@ -2140,6 +2153,9 @@ function resolveTidewalkExpedition(state, input, dt) {
     if (state.signal <= 0) {
       state.status = "failed";
       state.result = "Lost to the black tide";
+      if (state.runEndedAt === null || state.runEndedAt === undefined) {
+        state.runEndedAt = Date.now();
+      }
     }
   }
 }
@@ -2365,6 +2381,9 @@ function resolveEchoPressure(state, dt) {
   if (state.signal <= 0) {
     state.status = "failed";
     state.result = "Signal lost";
+    if (state.runEndedAt === null || state.runEndedAt === undefined) {
+      state.runEndedAt = Date.now();
+    }
   }
 }
 
@@ -2374,6 +2393,9 @@ function resolveGate(state) {
   if (state.gate.unlocked && distance(state.player, state.gate) <= state.player.radius + state.gate.radius) {
     state.status = "complete";
     state.result = readiness.resultText || "Archive thread recovered";
+    if (state.runEndedAt === null || state.runEndedAt === undefined) {
+      state.runEndedAt = Date.now();
+    }
   }
 }
 
@@ -2628,4 +2650,26 @@ function buildObjective(kind, label, target, state) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+export function isRunStartAllowed(state, referenceTime = Date.now()) {
+  if (!isRecord(state)) return false;
+  if (state.status === "running") {
+    return false;
+  }
+  const ended = state.runEndedAt;
+  if (ended === null || ended === undefined) {
+    return true;
+  }
+  if (!isFiniteNumber(ended) || !isFiniteNumber(referenceTime)) {
+    return false;
+  }
+  const elapsed = referenceTime - ended;
+  return elapsed >= WORLD.runIntervalSeconds * 1000;
+}
+
+export function getRunFinishTime(state) {
+  if (!isRecord(state)) return null;
+  const ended = state.runEndedAt;
+  return isFiniteNumber(ended) ? ended : null;
 }

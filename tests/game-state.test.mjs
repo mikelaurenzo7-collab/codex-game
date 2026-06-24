@@ -27,7 +27,9 @@ import {
   resolveFrontierSurveySite,
   restoreGameCheckpoint,
   triggerPulse,
-  updateGameState
+  updateGameState,
+  isRunStartAllowed,
+  getRunFinishTime
 } from "../src/game-state.js";
 
 function tick(state, seconds, input = {}) {
@@ -693,6 +695,68 @@ function unlockTidewalkRouteChoice(state) {
   state.player.y = echo.y;
   tick(state, 0.5);
   assert.ok(state.signal < 100, "echo contact should drain signal");
+}
+
+// Interval guard and run sequencing (AC 2,3)
+{
+  const fresh = createGameState();
+  assert.equal(fresh.status, "running");
+  assert.equal(fresh.runEndedAt, null);
+  assert.equal(isRunStartAllowed(fresh), false, "cannot start new while running");
+  assert.equal(getRunFinishTime(fresh), null);
+}
+
+{
+  const state = createGameState();
+  for (const f of state.fragments) {
+    f.collected = true;
+    f.collectedAt = state.time;
+  }
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number", "complete sets runEndedAt");
+  const finishAt = state.runEndedAt;
+  assert.ok(getRunFinishTime(state) === finishAt);
+  // immediately after finish, guard blocks with current time
+  assert.equal(isRunStartAllowed(state), false, "immediate restart blocked by interval");
+  // with future reference time past interval, allowed
+  const pastInterval = finishAt + (WORLD.runIntervalSeconds + 1) * 1000;
+  assert.equal(isRunStartAllowed(state, pastInterval), true, "after interval allowed");
+  // new state from create is always fresh start
+  const next = createGameState();
+  assert.equal(next.status, "running");
+  assert.equal(next.runEndedAt, null);
+}
+
+{
+  const state = createGameState();
+  // force a fail path via direct signal drain simulation post-update bail would not, so set after
+  state.status = "failed";
+  state.result = "Signal lost (test)";
+  const t0 = Date.now();
+  state.runEndedAt = t0;
+  assert.equal(isRunStartAllowed(state), false);
+  assert.equal(isRunStartAllowed(state, t0 + 500), false);
+  assert.equal(isRunStartAllowed(state, t0 + (WORLD.runIntervalSeconds * 1000 + 50)), true);
+  const restarted = createGameState();
+  assert.equal(restarted.status, "running", "equivalent restart produces fresh running");
+}
+
+{
+  // checkpoint roundtrip preserves runEndedAt for finished run
+  const state = createGameState();
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.05);
+  assert.equal(state.status, "complete");
+  const serialized = createGameCheckpoint(state);
+  const restored = restoreGameCheckpoint(serialized);
+  assert.equal(restored.status, "complete");
+  assert.ok(typeof restored.runEndedAt === "number");
+  // guard still works on restored
+  assert.equal(isRunStartAllowed(restored), false);
 }
 
 console.log("game-state tests passed");

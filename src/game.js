@@ -27,7 +27,8 @@ import {
   resolveFrontierEncounter,
   restoreGameCheckpoint,
   triggerPulse,
-  updateGameState
+  updateGameState,
+  isRunStartAllowed
 } from "./game-state.js";
 import {
   getTidewalkPlayableCommitmentStage,
@@ -179,6 +180,11 @@ resizeCanvas();
 requestAnimationFrame(frame);
 
 function restart() {
+  if (!isRunStartAllowed(state)) {
+    checkpointMessage = "Interval active — prior run must settle";
+    updateHud();
+    return;
+  }
   localStorage.removeItem(CHECKPOINT_KEY);
   state = createGameState();
   checkpointMessage = "Checkpoint cleared";
@@ -1138,14 +1144,22 @@ function drawEndState(width, height) {
 
     ctx.fillStyle = "rgba(243,240,220,0.45)";
     ctx.font = "14px system-ui, sans-serif";
-    ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 90);
+    if (isRunStartAllowed(state)) {
+      ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 90);
+    } else {
+      ctx.fillText("Re-entry interval active.", cx, height / 2 + 90);
+    }
   } else {
     ctx.fillStyle = "#d96666";
     ctx.font = "700 42px system-ui, sans-serif";
     ctx.fillText(state.result, cx, height / 2 - 12);
     ctx.fillStyle = "#f3f0dc";
     ctx.font = "18px system-ui, sans-serif";
-    ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 30);
+    if (isRunStartAllowed(state)) {
+      ctx.fillText("Press R to re-enter the archive.", cx, height / 2 + 30);
+    } else {
+      ctx.fillText("Re-entry interval active.", cx, height / 2 + 30);
+    }
   }
 
   ctx.textAlign = "start";
@@ -1570,10 +1584,14 @@ function updatePrimer(
 
   if (state.status !== "running") {
     primerTitle.textContent = state.status === "complete" ? "Thread recovered" : "Signal lost";
-    primerText.textContent =
-      state.status === "complete"
-        ? "You cleared the archive loop. Restart to rerun the slice or keep scanning the atlas for frontier prospects."
-        : "Echo pressure or overuse drained your signal. Restart, pulse more deliberately, and use relays to recover.";
+    if (!isRunStartAllowed(state)) {
+      primerText.textContent = "Prior run settled. Re-entry interval holding — wait to start the next expedition.";
+    } else {
+      primerText.textContent =
+        state.status === "complete"
+          ? "You cleared the archive loop. Restart to rerun the slice or keep scanning the atlas for frontier prospects."
+          : "Echo pressure or overuse drained your signal. Restart, pulse more deliberately, and use relays to recover.";
+    }
     return;
   }
 
