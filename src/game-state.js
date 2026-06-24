@@ -954,6 +954,16 @@ const LANDMARKS = [
     detail: "A spire that lures distant echoes. Survey branches: immediate power surge or deeper legacy reward on extract."
   },
   {
+    id: "siren-spire",
+    title: "Siren Spire",
+    regionId: "whisper-reefs",
+    x: 13850,
+    y: 7050,
+    radius: 80,
+    type: "mystery",
+    detail: "Coral spire singing drowned histories. Hold E to hear shallow echo or commit deep verse for sealed power."
+  },
+  {
     id: "null-beacon",
     title: "Null Beacon",
     regionId: "starless-halls",
@@ -1463,7 +1473,9 @@ export function createGameState() {
       drownedChoirEmbraced: false,
       drownedChoirDeep: false,
       nullCryptEmbraced: false,
-      nullCryptDeep: false
+      nullCryptDeep: false,
+      sirenSpireEmbraced: false,
+      sirenSpireDeep: false
     },
     relicSpireAttuned: false,
     legacy: loadLegacy(),
@@ -1583,7 +1595,7 @@ export function restoreGameCheckpoint(serialized) {
     restored.runEndedAt = null;
   }
   if (restored && !restored.relics) {
-    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false };
+    restored.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false };
   }
   if (restored && restored.relicSpireAttuned === undefined) {
     restored.relicSpireAttuned = false;
@@ -2592,6 +2604,7 @@ export function getExtractionReadiness(state) {
   const deepSigs = [];
   if (state.relics && state.relics.drownedChoirDeep) deepSigs.push("Drowned Choir");
   if (state.relics && state.relics.nullCryptDeep) deepSigs.push("Null Crypt");
+  if (state.relics && state.relics.sirenSpireDeep) deepSigs.push("Siren Spire");
   if (deepSigs.length > 0 && resultText) {
     const sigStr = deepSigs.join(" + ");
     resultText += ` [${sigStr} Signature]`;
@@ -3236,7 +3249,7 @@ function resolveWorldSurvey(state) {
 
 function resolveSpecialRelics(state, input) {
   if (!state.relics) {
-    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false };
+    state.relics = { abyssalAttuned: false, spireAttuned: false, coreAttuned: false, shrineUsed: false, nexusUsed: false, abyssCoreAttuned: false, fringeUsed: false, lostUsed: false, mireUsed: false, outpostRestored: false, whisperUsed: false, skyAltarUsed: false, cryptSealBroken: false, echoWellUsed: false, voidBeaconAttuned: false, stormSpireCharged: false, aerieSurveyed: false, leylineAttuned: false, obeliskRisked: false, chamberSurveyed: false, vortexCoreAttuned: false, crystalHeartAnalyzed: false, bloomSanctumSurveyed: false, aetherGateAttuned: false, pressureCoreAnalyzed: false, lumenVeinSurveyed: false, etherealSpireAttuned: false, sunkenThroneClaimed: false, realmKeySurveyed: false, mistVeilAttuned: false, glowCoreStabilized: false, symbiotePodSurveyed: false, whisperReefAttuned: false, lureSpireSurveyed: false, nullBeaconAttuned: false, drownedChoirEmbraced: false, drownedChoirDeep: false, nullCryptEmbraced: false, nullCryptDeep: false, sirenSpireEmbraced: false, sirenSpireDeep: false };
   }
 
   const holding = Boolean(input.analyze);
@@ -3687,19 +3700,20 @@ function resolveSpecialRelics(state, input) {
     }
   }
 
-  // Lure Spire - branching survey for power or legacy
+  // Lure Spire - branching (now shard-aware for progression: shallow power or deep lore if shards from prior exploration; builds on echoShards pattern)
   const lure = LANDMARKS.find(l => l.id === "lure-spire");
   if (lure && !state.relics.lureSpireSurveyed && distance(state.player, lure) <= lure.radius + 30 && holding) {
     state.relics.lureSpireSurveyed = true;
-    if (Math.random() > 0.4) {
-      state.signal = Math.min(100, state.signal + 55);
-      state.clueLog.push("Lure Spire: power surge claimed");
-    } else {
-      state.clueLog.push("Lure Spire: lore depth claimed for legacy");
+    if ((state.echoShards || 0) >= 2) {
+      state.clueLog.push("Lure Spire: lore depth claimed for legacy (shards guided the deep choice)");
       if (state.legacy) {
         state.legacy.level = Math.min(5, (state.legacy.level || 0) + 1);
         saveLegacy(state.legacy);
       }
+      state.lureDeep = true; // simple flag for potential result extension
+    } else {
+      state.signal = Math.min(100, state.signal + 55);
+      state.clueLog.push("Lure Spire: power surge claimed");
     }
     state.lastDiscovery = { title: "Lure Spire", time: state.time, type: "relic" };
   }
@@ -3748,6 +3762,25 @@ function resolveSpecialRelics(state, input) {
       state.signal = Math.max(10, state.signal - 12);
       state.nullVeilUntil = state.time + 75;
       state.clueLog.push("You nulled your signal to read the log — leeches turn away briefly");
+    }
+  }
+
+  // Siren Spire - new secret POI branching (shallow: immediate lure/signal vs deep: shard+deepResonance, requires shards, uses resolveSpecialRelics + existing flags)
+  const siren = LANDMARKS.find(l => l.id === "siren-spire");
+  if (siren && !state.relics.sirenSpireEmbraced && distance(state.player, siren) <= siren.radius + 30 && holding) {
+    state.relics.sirenSpireEmbraced = true;
+    state.clueLog.push("Siren Spire: the coral sings of lost crews and false shores");
+    state.lastDiscovery = { title: "Siren Spire", time: state.time, type: "relic" };
+    if ((state.echoShards || 0) >= 2) {
+      state.relics.sirenSpireDeep = true;
+      state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
+      state.clueLog.push("You committed the deep verse — Siren's echo sealed for the surface");
+      state.clueLog.push("Deep Resonance: siren verse awarded resonant Echo Shard + pulse boost this run");
+    } else {
+      state.signal = Math.min(100, state.signal + 25);
+      state.sirenLure = true;
+      state.clueLog.push("Shallow song lured: temporary signal surge this dive");
     }
   }
 }
@@ -3946,6 +3979,8 @@ function resolveGate(state) {
     }
     if (state.relics && state.relics.drownedChoirDeep) state.result += " [Deep Path Embraced]";
     if (state.relics && state.relics.nullCryptDeep) state.result += " [Null Crypt Signature]";
+    if (state.relics && state.relics.sirenSpireDeep) state.result += " [Siren Spire Whisper]";
+    if (state.lureDeep) state.result += " [Lure Deep Lore]";
     if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) state.result += " [Drowned Archive Signatures Aligned]";
     // feat-1/2: unique deep resonance lore + discovery high in result for branching secrets
     if (state.relics && (state.relics.drownedChoirDeep || state.relics.nullCryptDeep)) {
@@ -3969,6 +4004,7 @@ function resolveGate(state) {
       if (shards >= 3) bonus += 1; // Echo Shards amplify legacy on thorough extraction
       if (state.relics && state.relics.drownedChoirDeep) bonus += 1;
       if (state.relics && state.relics.nullCryptDeep) bonus += 1;
+      if (state.relics && state.relics.sirenSpireDeep) bonus += 1;
       if (state.relics && state.relics.drownedChoirDeep && state.relics.nullCryptDeep) bonus += 1; // combo for committed deep secrets
       const newLevel = Math.min(5, (legacy.level || 0) + bonus);
       if (newLevel > (legacy.level || 0)) {

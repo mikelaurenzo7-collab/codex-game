@@ -1167,4 +1167,57 @@ function unlockTidewalkRouteChoice(state) {
   assert.equal(isRunStartAllowed(state, laterFail), true);
 }
 
+// TDD: new secret branching POI "Siren Spire" in whisper-reefs (builds on echoShards, deep choice of Choir/Null, resolveSpecialRelics + resolveGate + deepSigs)
+// Real paths only: create -> pos/analyze at POI -> collect -> gate -> assert flags, result texts incl [Deep Resonance] etc, runEndedAt, !allowed then allowed post-cooldown, fresh create running
+{
+  // Deep Siren Spire branch (shards >=2 -> deep commit, shard reward, resonant boost, deep signature)
+  const state = createGameState();
+  state.echoShards = 3;
+  state.player.x = 13850;
+  state.player.y = 7050;
+  tick(state, 0.1);
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.sirenSpireEmbraced, true);
+  assert.equal(state.relics.sirenSpireDeep, true, "high shards -> deep siren branch chosen");
+  assert.ok((state.echoShards || 0) >= 4, "deep branch awards resonant shard");
+  assert.equal(state.deepResonance, true, "deep sets resonant boost for run feel");
+
+  // Complete real extraction path (gate finish)
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.15);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.ok(state.result && state.result.includes("Siren Spire"), "siren deep appears in result");
+  assert.ok(state.result && state.result.includes("Deep Resonance"), "deep branch surfaces shared lore in result");
+  assert.ok(state.result && state.result.includes("Echo Shards"), "shards reported");
+  const finishAt = state.runEndedAt;
+  assert.equal(isRunStartAllowed(state), false);
+  const laterSiren = finishAt + (WORLD.runIntervalSeconds + 2) * 1000;
+  assert.equal(isRunStartAllowed(state, laterSiren), true, "guard logic untouched");
+  const freshAfterSiren = createGameState();
+  assert.equal(freshAfterSiren.status, "running");
+  assert.equal(freshAfterSiren.runEndedAt, null);
+}
+
+{
+  // Shallow Siren Spire (low shards -> immediate effect, no deep flag)
+  const state = createGameState();
+  state.player.x = 13850;
+  state.player.y = 7050;
+  tick(state, 0.1);
+  state.echoShards = 0;
+  updateGameState(state, { analyze: true }, 0.6);
+  assert.equal(state.relics.sirenSpireEmbraced, true);
+  assert.ok(!state.relics.sirenSpireDeep);
+  // full gate finish path
+  for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
+  state.player.x = state.gate.x; state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+  assert.equal(isRunStartAllowed(state), false);
+}
+
 console.log("game-state tests passed");

@@ -129,4 +129,22 @@ function recordAftermath(state, outcome = "witness-secured") {
   assert.match(state.result, /Complete thread recovered/);
 }
 
+// Extended real path test for new deep secret sig (Siren Spire) via getExtractionReadiness + resolve path
+{
+  const state = createGameState();
+  state.echoShards = 3;
+  state.player.x = 13850;
+  state.player.y = 7050;
+  updateGameState(state, { analyze: true }, 0.6);  // trigger siren deep branch
+  collectAllFragments(state);
+  state.player.x = state.gate.x;
+  state.player.y = state.gate.y;
+  updateGameState(state, {}, 0.1);
+  const r = getExtractionReadiness(state);
+  assert.ok(r.deepSignatures && r.deepSignatures.includes("Siren Spire"), "Siren deep contributes to deepSignatures");
+  assert.ok(r.resultText && r.resultText.includes("Siren Spire"), "readiness resultText carries siren sig");
+  assert.equal(state.status, "complete");
+  assert.ok(typeof state.runEndedAt === "number");
+}
+
 console.log("extraction readiness tests passed");

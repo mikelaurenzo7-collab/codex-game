@@ -1189,7 +1189,7 @@ function drawEndState(width, height) {
     if (readinessFb.deepSignatures && readinessFb.deepSignatures.length > 0) {
       ctx.fillText(`Deep secrets: ${readinessFb.deepSignatures.join(" + ")}`, cx, height / 2 + 198);
     }
-    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed)) {
+    if (state.relics && (state.relics.aetherGateAttuned || state.relics.pressureCoreAnalyzed || state.relics.lumenVeinSurveyed || state.relics.etherealSpireAttuned || state.relics.sunkenThroneClaimed || state.relics.realmKeySurveyed || state.relics.whisperReefAttuned || state.relics.nullBeaconAttuned || state.relics.lureSpireSurveyed || state.relics.sirenSpireDeep)) {
       ctx.fillText("New abilities unlocked!", cx, height / 2 + 216);
     }
   } else {
