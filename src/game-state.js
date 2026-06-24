@@ -2672,6 +2672,9 @@ export function triggerPulse(state) {
   if (state.biolumSight && state.signal < 50) {
     pulseR *= 1.5;
   }
+  if (state.deepResonance) {
+    pulseR *= 1.25; // resonant boost from committing to deep secret branch (unique mechanic for discovery highs)
+  }
 
   state.signal = Math.max(0, state.signal - cost);
   state.pulseCooldownUntil = state.time + WORLD.pulseCooldown;
@@ -3719,8 +3722,9 @@ function resolveSpecialRelics(state, input) {
     if ((state.echoShards || 0) >= 2) {
       state.relics.drownedChoirDeep = true;
       state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
       state.clueLog.push("You sang the deep verse — the Choir's secret is sealed for the surface return");
-      state.clueLog.push("Deep Resonance: committed path awarded resonant Echo Shard");
+      state.clueLog.push("Deep Resonance: committed path awarded resonant Echo Shard + pulse boost this run");
     } else {
       state.signal = Math.min(100, state.signal + 30);
       state.choralWard = true;
@@ -3737,8 +3741,9 @@ function resolveSpecialRelics(state, input) {
     if (state.relics.nullBeaconAttuned) {
       state.relics.nullCryptDeep = true;
       state.echoShards = (state.echoShards || 0) + 1;
+      state.deepResonance = true;
       state.clueLog.push("Beacon + Crypt aligned — the null order is sealed");
-      state.clueLog.push("Deep Resonance: null order awarded resonant Echo Shard");
+      state.clueLog.push("Deep Resonance: null order awarded resonant Echo Shard + pulse boost this run");
     } else {
       state.signal = Math.max(10, state.signal - 12);
       state.nullVeilUntil = state.time + 75;
@@ -3945,6 +3950,9 @@ function resolveGate(state) {
     // feat-1/2: unique deep resonance lore + discovery high in result for branching secrets
     if (state.relics && (state.relics.drownedChoirDeep || state.relics.nullCryptDeep)) {
       state.result += " — Deep Resonance";
+    }
+    if (state.deepResonance) {
+      state.result += " [Resonant Boost]";
     }
     if ((state.echoShards || 0) >= 3 && (state.relics && (state.relics.drownedChoirDeep || state.relics.nullCryptDeep))) {
       state.result += " [High Discovery]";

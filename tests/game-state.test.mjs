@@ -1066,6 +1066,8 @@ function unlockTidewalkRouteChoice(state) {
   assert.ok(!state.choralWard, "deep path should not grant immediate ward");
   // TDD red first for feat-1 unique mechanic: deep branch on choir awards extra resonant shard (committed discovery high)
   assert.ok((state.echoShards || 0) >= 4, "deep branch should award resonant shard for unique mechanic + discovery");
+  // TDD for this iteration new feature: deep branch grants temporary resonant boost (unique run mechanic for committed secrets, e.g. better pulse)
+  assert.equal(state.deepResonance, true, "deep branch should set resonant boost flag for discovery high + run feel");
 
   // Complete real extraction path
   for (const f of state.fragments) { f.collected = true; f.collectedAt = state.time; }
@@ -1081,6 +1083,7 @@ function unlockTidewalkRouteChoice(state) {
   assert.ok(state.result && /Deep|Signature|Shards/.test(state.result), "combined deep secret + shard feedback in result");
   // TDD: expect unique deep lore phrase (will be added in impl for discovery high)
   assert.ok(state.result && state.result.includes("Deep Resonance"), "deep branch should surface unique mechanic lore in result");
+  assert.ok(state.result && state.result.includes("Resonant Boost"), "deep resonance grants boost visible in result for run feel");
   const finishAt = state.runEndedAt;
   assert.equal(isRunStartAllowed(state), false);
   const laterChoir = finishAt + (WORLD.runIntervalSeconds + 2) * 1000;
