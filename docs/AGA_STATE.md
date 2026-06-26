@@ -39,6 +39,7 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - The Rewritten Cartography Table (x:1080, y:760) now functions as a Resonance Node: once the Brinehook expedition is complete, pulsing at the survey table triggers a one-time broadcast cascade — all echoes stunned 8 seconds, all uncollected fragments revealed 15 seconds, and +30 signal — rewarding players who return with coastal intel before pushing to the archive endgame.
 - Completing the Brinehook resolution now unlocks a pier-exit action at the launch gate (hold E to return inland) that records a persistent `brinehookAftermath` in frontier state. Aftermath consequences (faction pressure 1–5, settlement trust 1–5, authored resource text and next hook) surface in the arrival dossier and update the status/objective HUD when the player returns to the archive.
 - The extraction gate now reads all three thread conditions (archive memory, coastal aftermath, resonance broadcast) and computes a `getExtractionReadiness` score (0–3). The gate's visual pulses gold on a full thread; the end screen shows a per-condition checklist and the `state.result` message reflects what the player actually accomplished (e.g. "Complete thread recovered — Black-Keel cache certified" vs "Archive thread recovered").
+- The `main` branch is now rebased onto the later remote frontier line with the Tidewalk contact embodiment work preserved; deterministic validation and local browser smoke are green again on the unified slice.
 
 ## Operating Rules
 
@@ -441,4 +442,48 @@ This file is the durable memory for the Autonomous Game Architect. Each automati
 - **Risk Mitigation:** No game-state mutations, no new save-schema changes, no new dependencies. The resolution selector was already tested. The only client change is reading a pre-existing value and showing it.
 - **Validation Evidence:** `node tests/run-all.mjs` passed all 26 suites. `node --check src/game.js` reported no syntax errors.
 - **Next Bottleneck:** Create a Brinehook exit/return transition from completed resolution states (`escaped-with-cargo`, `witness-secured`) so the player can leave the pier with their outcome reflected in the arrival dossier.
+
+### 0047 - Resonance Broadcast
+
+- **State Assessment:** Brinehook resolution had real consequences, but returning inland with that intel still produced no mechanical payoff before extraction.
+- **Strategic Choice:** A. Core Mechanic Deep Dive.
+- **Justification:** Turning the Rewritten Cartography Table into a one-time broadcast reward gave the coastal intel-return loop a concrete gameplay payoff instead of leaving it as text-only consequence.
+- **Work Completed:** Added the `RESONANCE_NODE` at the cartography table, exported `getResonanceNode(state)`, extended `triggerPulse` so a completed Brinehook run can fire a one-shot broadcast (+30 signal, 8-second echo stun, 15-second fragment reveal), bumped the checkpoint schema from version 4 to 5, added `tests/resonance-node.test.mjs`, and registered it in `tests/run-all.mjs`.
+- **Validation Evidence:** `node --check src/game-state.js`, `node --check src/game.js`, and `node tests/run-all.mjs` all passed with 28 suites green.
+- **Next Bottleneck:** Brinehook still stranded the player on the pier after success. The next seam was a real exit/return transition that records aftermath in the arrival dossier.
+
+### 0048 - Brinehook Aftermath And Pier Return
+
+- **State Assessment:** The resonance reward closed the intel-return loop, but the coastal leg still had no narrative close: completed Brinehook states left the player on the pier and the dossier stayed stale.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** The coastal branch needed to persist into permanent world state so Black-Keel and Lantern Line outcomes mattered beyond the field scene.
+- **Work Completed:** Added authored `BRINEHOOK_AFTERMATH_DATA`, exported `getBrinehookAftermath(state)` and `getBrinehookPierExit(state)`, added resolution-achieved tracking plus a hold-to-exit pier return, let expedition completion stamp aftermath into frontier state, updated arrival dossier precedence, drew the pier-exit ring in `src/game.js`, and added `tests/brinehook-aftermath.test.mjs`.
+- **Validation Evidence:** `node --check src/game-state.js`, `node --check src/game.js`, and `node tests/run-all.mjs` all passed with 29 suites green.
+- **Next Bottleneck:** Extraction still only cared about fragment count. The archive endgame needed to read aftermath and resonance so a full playthrough produced a differentiated ending.
+
+### 0049 - The Complete Thread
+
+- **State Assessment:** Evidence synthesis, Brinehook aftermath, and Resonance Broadcast all existed, but the extraction gate still returned the same generic result for every completed run.
+- **Strategic Choice:** B. Systemic Expansion.
+- **Justification:** The three major thread systems needed a meeting point. Wiring them through extraction made the ending reflect what the player actually accomplished.
+- **Work Completed:** Exported `getExtractionReadiness(state)`, updated `resolveGate`, `drawGate`, `drawEndState`, `statusReadout`, and `getActiveObjective` to distinguish incomplete/archive/broadcast/certified/full-thread outcomes, bumped the checkpoint schema from version 6 to 7, and added `tests/extraction-readiness.test.mjs`.
+- **Validation Evidence:** `node --check src/game-state.js`, `node --check src/game.js`, and `node tests/run-all.mjs` all passed with 30 suites green.
+- **Next Bottleneck:** The world atlas and frontier network expose settlement-potential data, but the game still lacks a live frontier ledger that turns those authored scores into readable viability and rebuild consequences.
+
+### 0050 - Rebase Stability And State Recovery
+
+- **State Assessment:** The actual bottleneck was repository integrity. `main` was mid-rebase onto the later remote frontier line, `README.md`, `docs/AGA_STATE.md`, and `src/game.js` were left in a half-merged state, and the durable AGA log had dropped the 0047-0049 history even though the code already depended on those systems.
+- **Strategic Choice:** D. Technical/Polish Overhaul.
+- **Justification:** Shipping another biome or system on top of a conflicted branch would have been a bad plan. The right move was to restore a coherent base, validate it, and recover the missing durable state before any new expansion work.
+- **Plan Critique:** A feature-first pass would have amplified risk by layering new mechanics on unresolved merge state and a drifted state log. The corrected scope was repository stabilization only: preserve the Tidewalk contact embodiment work, keep the later Brinehook/resonance/extraction systems intact, prove the merged slice still runs, and then repair the durable history.
+- **Execution Plan:**
+  - **Specific Tasks:** Resolve the rebase conflicts in `README.md`, `docs/AGA_STATE.md`, and `src/game.js`; restore the live `chooseFrontierRoute` client path; complete the rebase onto the later `origin/main` line; backfill missing 0047-0049 iteration history from the automation run notes; append this iteration with validation evidence.
+  - **Technology Stack Justification:** The existing vanilla Canvas + ES module client and deterministic Node test harness remain the right tools because this was a branch-integrity and runtime-contract repair, not an engine limitation. Using the in-app browser for smoke kept validation aligned with the live playable slice instead of relying on HTTP 200 alone.
+  - **Success Metrics:** `main` rebases cleanly, the merged client keeps both Tidewalk contact embodiment and later Brinehook/extraction systems, syntax checks pass, `tests/run-all.mjs` stays green, and the served game loads in browser with the expected title/HUD and no current-page warnings or errors.
+  - **Risk Mitigation:** Keep scope limited to merge resolution plus durable-state repair; do not mutate core gameplay rules unless required to restore existing runtime paths; validate with both deterministic tests and live browser smoke before committing.
+- **Work Completed:** Resolved the interrupted rebase and advanced `main` to the unified branch tip, fixed the missing `chooseFrontierRoute` import in `src/game.js`, preserved the Tidewalk contact history inside `docs/AGA_STATE.md`, backfilled concise 0047-0049 entries from `docs/automation-runs/0047-resonance-broadcast.md`, `0048-brinehook-aftermath.md`, and `0049-complete-thread.md`, and recorded this stabilization pass as iteration 0050.
+- **Validation Evidence:** `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe --check src/game.js` passed. `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe --check src/game-state.js` passed. `C:\Users\MichaelLaurenzo\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe tests/run-all.mjs` passed all 30 suites. Browser smoke on `http://127.0.0.1:5189/` loaded the `Signal Below` title, rendered the Canvas client, showed `Fragments 0/3`, `Trace memory signal 778m`, `Save checkpoint`, and reported no current-page warnings or errors.
+- **External Services Used:** GitHub remained the repository remote. The in-app Browser was used for local smoke validation. No other external service was needed for this stabilization iteration.
+- **Learned Constraints:** When a replayed AGA commit is rebased over much later frontier history, `docs/AGA_STATE.md` can lose iteration chronology even if the code merges. The durable fix is to treat the automation run notes as backup evidence, restore chronology immediately, and validate the client path before continuing feature work.
+- **Next Bottleneck:** Surface the atlas/route settlement scores through a frontier ledger so traversed routes, survey completions, and Brinehook aftermath trust actually translate into visible rebuild viability and player-facing settlement decisions.
 
