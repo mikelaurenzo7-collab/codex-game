@@ -1273,6 +1273,7 @@ const FRONTIER_ROUTES = [
     threat: 2,
     stability: "frayed",
     hazard: "Loose plates and echo resonance make every crossing noisy.",
+    settlementPotential: 2,
     settlementProspect: "Cable-Roof Lookout",
     surveyLandmarkIds: ["salvager-camp", "hull-chorus-site"]
   },
@@ -1285,6 +1286,7 @@ const FRONTIER_ROUTES = [
     threat: 3,
     stability: "serviceable",
     hazard: "Machinery wakes and surgewater can cut the path without warning.",
+    settlementPotential: 3,
     settlementProspect: "Drainwatch Scaffold",
     surveyLandmarkIds: ["south-relay-camp", "rewritten-table"]
   },
@@ -1297,6 +1299,7 @@ const FRONTIER_ROUTES = [
     threat: 4,
     stability: "precarious",
     hazard: "The upper span pulls the warden through a narrow kill corridor.",
+    settlementPotential: 2,
     settlementProspect: "Spanwatch Tollhouse",
     surveyLandmarkIds: ["rewritten-table", "dead-bell-spire"]
   },
@@ -1309,6 +1312,7 @@ const FRONTIER_ROUTES = [
     threat: 3,
     stability: "marsh-soft",
     hazard: "Silt blooms hide drop-offs and signal-draining growth.",
+    settlementPotential: 3,
     settlementProspect: "Mudglass Ferry Post",
     surveyLandmarkIds: ["rewritten-table", "east-relay-basin"]
   },
@@ -1321,6 +1325,7 @@ const FRONTIER_ROUTES = [
     threat: 4,
     stability: "seasonal",
     hazard: "Reed stairs collapse under bell shock and wet stone.",
+    settlementPotential: 3,
     settlementProspect: "Lantern Reed Hamlet",
     surveyLandmarkIds: ["dead-bell-spire", "east-relay-basin"]
   },
@@ -1335,6 +1340,7 @@ const FRONTIER_ROUTES = [
     threat: 3,
     stability: "sealed",
     hazard: "Rust lifts and storm tides turn the descent into a salvage gamble.",
+    settlementPotential: 4,
     settlementProspect: "Raised Dock Hamlet",
     surveyLandmarkIds: ["salvager-camp"]
   },
@@ -1349,6 +1355,7 @@ const FRONTIER_ROUTES = [
     threat: 5,
     stability: "wild",
     hazard: "Predatory growth and drowned root canyons reclaim any slow traveler.",
+    settlementPotential: 5,
     settlementProspect: "Fenward Ranger Enclave",
     surveyLandmarkIds: ["east-relay-basin"]
   },
@@ -1363,6 +1370,7 @@ const FRONTIER_ROUTES = [
     threat: 4,
     stability: "contested",
     hazard: "Bell-fed revenants sweep the pass whenever the weather turns thin.",
+    settlementPotential: 4,
     settlementProspect: "Stoneward Bastion",
     surveyLandmarkIds: ["extraction-cairn", "dead-bell-spire"]
   }
@@ -4815,7 +4823,9 @@ function buildRouteSummary(route, charted, traversed) {
     threat: route.threat,
     stability: route.stability,
     hazard: route.hazard,
+    settlementPotential: route.settlementPotential ?? destinationRegion?.settlementPotential ?? 2,
     settlementProspect: route.settlementProspect,
+    surveyLandmarkIds: [...(route.surveyLandmarkIds || [])],
     gate: { x: route.gate.x, y: route.gate.y }
   };
 }

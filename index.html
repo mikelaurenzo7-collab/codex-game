@@ -82,6 +82,12 @@
           <span class="arrival-label">Next hook</span>
           <span id="arrivalNextHook" class="arrival-block-text">Linked routes should now hand off into a concrete next action.</span>
         </div>
+        <div class="arrival-block">
+          <span class="arrival-label">Frontier ledger</span>
+          <span id="arrivalLedgerTitle" class="arrival-block-title">Raised Dock Hamlet ledger</span>
+          <span id="arrivalLedgerText" class="arrival-block-text">Viability 3/5 | Charted | Threat 3/5 | sealed</span>
+          <span id="arrivalLedgerNote" class="arrival-block-text">Hold E at Coastline Lift to test whether this foothold can carry real rebuild traffic.</span>
+        </div>
         <div id="arrivalAction" class="arrival-block arrival-action is-hidden">
           <span class="arrival-label">Playable edge encounter</span>
           <button id="arrivalActionButton" class="arrival-action-button" type="button">Secure docking rights</button>
@@ -129,6 +135,14 @@
         <div class="atlas-metrics">
           <span id="regionRisk" class="region-metric">Hazard 2/5 · Settlement 3/5</span>
           <span id="routeCount" class="region-metric">3/8 routes</span>
+        </div>
+        <div class="frontier-ledger" aria-live="polite">
+          <div class="atlas-header">
+            <span>Frontier Ledger</span>
+            <span id="ledgerCount">0/0 strong</span>
+          </div>
+          <span id="ledgerSummary" class="region-detail">Survey landmarks to reveal the first frontier build lines.</span>
+          <span id="ledgerNextAction" class="region-metric">No settlement prospect is stable yet.</span>
         </div>
         <ol id="routeList" class="route-list"></ol>
         <ol id="landmarkList" class="landmark-list"></ol>

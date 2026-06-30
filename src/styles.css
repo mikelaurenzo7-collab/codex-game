@@ -397,6 +397,14 @@ body {
   color: rgba(243, 240, 220, 0.78);
 }
 
+.frontier-ledger {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(98, 214, 184, 0.18);
+  background: rgba(12, 28, 31, 0.62);
+}
+
 .region-detail,
 .landmark-detail,
 .route-detail,
@@ -449,6 +457,16 @@ body {
 .route-status.is-charted {
   border-color: rgba(232, 196, 109, 0.28);
   color: #e8c46d;
+}
+
+.route-status.is-secured {
+  border-color: rgba(98, 214, 184, 0.35);
+  color: #62d6b8;
+}
+
+.route-status.is-pressured {
+  border-color: rgba(219, 111, 87, 0.35);
+  color: #db6f57;
 }
 
 .route-status.is-rumored {

@@ -37,6 +37,7 @@ import {
 } from "./tidewalk-playable-commitment.js";
 import { drawTidewalkContactClient } from "./tidewalk-contact-client.js";
 import { getBrinehookResolutionState } from "./brinehook-resolution.js";
+import { getFrontierLedger } from "./frontier-ledger.js";
 
 
 const canvas = document.querySelector("#game");
@@ -54,6 +55,9 @@ const regionName = document.querySelector("#regionName");
 const regionDetail = document.querySelector("#regionDetail");
 const regionRisk = document.querySelector("#regionRisk");
 const routeCount = document.querySelector("#routeCount");
+const ledgerCount = document.querySelector("#ledgerCount");
+const ledgerSummary = document.querySelector("#ledgerSummary");
+const ledgerNextAction = document.querySelector("#ledgerNextAction");
 const routeList = document.querySelector("#routeList");
 const landmarkList = document.querySelector("#landmarkList");
 const arrivalPanel = document.querySelector("#arrivalPanel");
@@ -67,6 +71,9 @@ const arrivalSettlementText = document.querySelector("#arrivalSettlementText");
 const arrivalResourceTitle = document.querySelector("#arrivalResourceTitle");
 const arrivalResourceText = document.querySelector("#arrivalResourceText");
 const arrivalNextHook = document.querySelector("#arrivalNextHook");
+const arrivalLedgerTitle = document.querySelector("#arrivalLedgerTitle");
+const arrivalLedgerText = document.querySelector("#arrivalLedgerText");
+const arrivalLedgerNote = document.querySelector("#arrivalLedgerNote");
 const arrivalAction = document.querySelector("#arrivalAction");
 const arrivalActionButton = document.querySelector("#arrivalActionButton");
 const arrivalActionNote = document.querySelector("#arrivalActionNote");
@@ -1343,6 +1350,7 @@ function updateHud() {
   const coastalOperation = getFrontierCoastalOperation(state);
   const expedition = getTidewalkExpedition(state);
   const resolution = getBrinehookResolutionState(state);
+  const ledger = getFrontierLedger(state);
   signalFill.style.width = `${Math.round(state.signal)}%`;
   const tidePhase = state.frontier?.tide?.phase ? ` (${state.frontier.tide.phase.toUpperCase()} TIDE)` : "";
   const liveRouteChoice = routeChoice.active && !routeChoice.selectedChoice && state.scene === "tidewalk";
@@ -1370,12 +1378,12 @@ function updateHud() {
         resolution
       );
   updateJournal();
-  updateAtlas();
+  updateAtlas(ledger);
   if (state.scene === "tidewalk") {
     arrivalPanel.classList.add("is-hidden");
     arrivalSnapshot = "tidewalk-hidden";
   } else {
-    updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, storylet, coastalOperation);
+    updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, storylet, coastalOperation, ledger);
   }
   updatePrimer(
     synthesis,
@@ -1480,12 +1488,14 @@ function updateHud() {
   }
 }
 
-function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, storylet, coastalOperation) {
+function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, storylet, coastalOperation, ledger) {
   if (!arrival.active) {
     arrivalPanel.classList.add("is-hidden");
     arrivalSnapshot = "hidden";
     return;
   }
+
+  const ledgerEntry = ledger.entries.find((entry) => entry.routeId === arrival.routeId) || null;
 
   const signature = [
     arrival.routeId,
@@ -1510,7 +1520,10 @@ function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, 
     storylet.id || "none",
     coastalOperation.active,
     coastalOperation.id || "none",
-    coastalOperation.complete
+    coastalOperation.complete,
+    ledgerEntry?.stage || "none",
+    ledgerEntry?.viability || 0,
+    ledgerEntry?.detailText || "none"
   ].join("|");
 
   if (signature === arrivalSnapshot) {
@@ -1529,6 +1542,11 @@ function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, 
   arrivalResourceTitle.textContent = arrival.resourceTitle;
   arrivalResourceText.textContent = arrival.resourceText;
   arrivalNextHook.textContent = arrival.nextHook;
+  arrivalLedgerTitle.textContent = ledgerEntry ? `${ledgerEntry.name} ledger` : "Frontier ledger";
+  arrivalLedgerText.textContent = ledgerEntry
+    ? `Viability ${ledgerEntry.viability}/5 | ${ledgerEntry.stage} | ${ledgerEntry.detailText}`
+    : "No settlement prospect has enough route intel yet.";
+  arrivalLedgerNote.textContent = ledgerEntry ? ledgerEntry.nextAction : "Survey landmarks to expose the next build line.";
 
   if (!encounter.active) {
     arrivalAction.classList.add("is-hidden");
@@ -1667,9 +1685,26 @@ function updateArrival(arrival, encounter, survey, tidewalkSurvey, routeChoice, 
   arrivalStoryletNextHook.textContent = `Next hook: ${storylet.nextHook}`;
 }
 
-function updateAtlas() {
+function getRouteLedgerStatusClass(entry, route) {
+  if (entry?.tone === "secured") {
+    return "route-status is-secured";
+  }
+  if (entry?.tone === "pressured") {
+    return "route-status is-pressured";
+  }
+  if (entry?.tone === "rumored") {
+    return "route-status is-rumored";
+  }
+  if (route.traversed || route.charted || entry) {
+    return "route-status is-charted";
+  }
+  return "route-status is-rumored";
+}
+
+function updateAtlas(ledger) {
   const atlas = getWorldAtlas(state);
   const frontier = getFrontierNetwork(state);
+  const ledgerByRoute = new Map(ledger.entries.map((entry) => [entry.routeId, entry]));
   const discovered = atlas.landmarks.filter((landmark) => landmark.discovered);
   const siteEntries =
     discovered.filter((landmark) => landmark.regionId === atlas.currentRegion?.id).slice(-3).reverse() ||
@@ -1677,7 +1712,13 @@ function updateAtlas() {
   const signature =
     `${atlas.currentRegion?.id || "none"}|${atlas.discoveredRegionCount}/${atlas.totalRegionCount}|` +
     `${frontier.visibleRouteCount}/${frontier.chartedRouteCount}/${frontier.launchedRouteCount}|` +
-    frontier.routes.map((route) => `${route.id}:${route.charted}:${route.traversed}`).join(",") +
+    frontier.routes
+      .map((route) => {
+        const entry = ledgerByRoute.get(route.id);
+        return `${route.id}:${route.charted}:${route.traversed}:${entry?.stage || "none"}:${entry?.viability || 0}`;
+      })
+      .join(",") +
+    `|${ledger.summary}|${ledger.countText}|${ledger.nextAction}` +
     "|" +
     discovered.map((landmark) => landmark.id).join(",");
   if (signature === atlasSnapshot) {
@@ -1691,12 +1732,16 @@ function updateAtlas() {
     ? `${atlas.currentRegion.biome} - ${atlas.currentRegion.detail}`
     : "No survey reading.";
   regionRisk.textContent = atlas.currentRegion
-    ? `Hazard ${atlas.currentRegion.hazardLevel}/5 · Settlement ${atlas.currentRegion.settlementPotential}/5`
+    ? `Hazard ${atlas.currentRegion.hazardLevel}/5 - Settlement ${atlas.currentRegion.settlementPotential}/5`
     : "No frontier metrics.";
-  routeCount.textContent = `${frontier.visibleRouteCount}/${frontier.totalRouteCount} routes · ${frontier.launchedRouteCount} linked`;
+  routeCount.textContent = `${frontier.visibleRouteCount}/${frontier.totalRouteCount} routes - ${frontier.launchedRouteCount} linked`;
+  ledgerCount.textContent = ledger.countText;
+  ledgerSummary.textContent = ledger.summary;
+  ledgerNextAction.textContent = ledger.nextAction;
 
   routeList.replaceChildren(
     ...frontier.routes.map((route) => {
+      const entry = ledgerByRoute.get(route.id) || null;
       const item = document.createElement("li");
 
       const top = document.createElement("div");
@@ -1707,32 +1752,20 @@ function updateAtlas() {
       title.textContent = route.gateTitle;
 
       const status = document.createElement("span");
-      if (route.traversed) {
-        status.className = "route-status is-charted";
-        status.textContent = "Linked";
-      } else if (route.charted) {
-        status.className = "route-status is-charted";
-        status.textContent = "Charted";
-      } else {
-        status.className = "route-status is-rumored";
-        status.textContent = "Rumored";
-      }
+      status.className = getRouteLedgerStatusClass(entry, route);
+      status.textContent = entry?.stage || (route.charted ? "Charted" : "Rumored");
 
       const destination = document.createElement("span");
       destination.className = "route-destination";
-      destination.textContent = `${route.destinationName} · ${route.destinationBiome}`;
+      destination.textContent = `${route.destinationName} - ${route.destinationBiome}`;
 
       const detail = document.createElement("span");
       detail.className = "route-detail";
-      if (route.traversed) {
-        detail.textContent = `Frontier link secured · ${route.destinationName} staged beyond archive edge.`;
-      } else if (route.canTraverse) {
-        detail.textContent = `Hold E at gate to launch · Hazard ${route.threat}/5 · ${route.stability} · ${route.settlementProspect}`;
-      } else if (route.charted) {
-        detail.textContent = `Hazard ${route.threat}/5 · ${route.stability} · ${route.settlementProspect}`;
-      } else {
-        detail.textContent = `Survey incomplete. Likely corridor toward ${route.destinationName}.`;
-      }
+      detail.textContent = entry
+        ? `Viability ${entry.viability}/5 | ${entry.detailText}`
+        : route.charted
+          ? `Threat ${route.threat}/5 | ${route.stability} | ${route.settlementProspect}`
+          : `Survey incomplete. Likely corridor toward ${route.destinationName}.`;
 
       top.append(title, status);
       item.append(top, destination, detail);
